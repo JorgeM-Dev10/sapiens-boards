@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ownedBoards   Board[]        @relation("BoardOwner")
+  memberBoards  BoardMember[]
+  assignedTasks Task[]         @relation("AssignedTasks")
+  clients       Client[]
+  workers       Worker[]
+  aiSolutions   AISolution[]
+
+  @@map("User")
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  phase       String   @default("PLANIFICACIÓN") // PLANIFICACIÓN, DESARROLLO, PRUEBAS, DESPLIEGUE, COMPLETADO
+  totalAmount Float
+  paidAmount  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timelines ClientTimeline[]
+
+  @@map("Client")
+}
+
+model ClientTimeline {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String   @default("UPDATE") // UPDATE, PAYMENT, MILESTONE
+  amount      Float?
+  createdAt   DateTime @default(now())
+  clientId    String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("ClientTimeline")
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  ownerId     String
+
+  owner   User          @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members BoardMember[]
+  lists   List[]
+
+  @@map("Board")
+}
+
+model BoardMember {
+  id      String @id @default(cuid())
+  boardId String
+  userId  String
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@map("_BoardMembers")
+}
+
+model List {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  boardId   String
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@map("List")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  image       String?
+  status      String    @default("pending")
+  order       Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  listId      String
+  assignedTo  String?
+
+  list     List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assigned User?     @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  tags     TaskTag[]
+
+  @@map("Task")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks TaskTag[]
+
+  @@map("Tag")
+}
+
+model TaskTag {
+  id     String @id @default(cuid())
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@map("_TaskTags")
+}
+
+model Worker {
+  id                String    @id @default(cuid())
+  name              String
+  type              String    // "HUMAN" o "AI"
+  responsibilities  String
+  status            String    // "FOUNDER", "EARLY_EMPLOYEE", "EMPLOYEE", "CONTRACTOR", etc.
+  salary            Float     @default(0)
+  paymentType       String    @default("FIXED") // "FIXED", "PERCENTAGE", "HYBRID"
+  percentage        Float?    // Si es por porcentaje
+  startDate         DateTime  @default(now())
+  paymentDate       Int?      // Día del mes (1-31)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Worker")
+}
+
+model AISolution {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // "VENTAS", "PROJECT_MANAGEMENT", "ADMINISTRATIVA", "OTRA"
+  type        String   @default("INDIVIDUAL") // "INDIVIDUAL" o "BUNDLE"
+  price       Float?
+  features    String?  // JSON string con características
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bundleItems BundleItem[] @relation("BundleSolutions")
+  bundles     BundleItem[] @relation("SolutionInBundles")
+
+  @@map("AISolution")
+}
+
+model BundleItem {
+  id         String @id @default(cuid())
+  bundleId   String
+  solutionId String
+
+  bundle   AISolution @relation("BundleSolutions", fields: [bundleId], references: [id], onDelete: Cascade)
+  solution AISolution @relation("SolutionInBundles", fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, solutionId])
+  @@map("_BundleItems")
+}
+
+
+
