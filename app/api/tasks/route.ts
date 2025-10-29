@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, description, listId, order, status, assignedTo, dueDate } = body
+    const { title, description, image, listId, order, status, assignedTo, dueDate } = body
 
     console.log("Creating task with data:", { title, listId, order })
 
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       data: {
         title,
         description: description || null,
+        image: image || null,
         listId,
         order: order ?? 0,
         status: status ?? "pending",

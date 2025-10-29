@@ -41,6 +41,7 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
+    image: "",
     startDate: new Date().toISOString().split('T')[0],
     dueDate: "",
   })
@@ -76,6 +77,7 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
         body: JSON.stringify({
           title: newTask.title,
           description: newTask.description,
+          image: newTask.image || null,
           listId: list.id,
           order: list.tasks.length,
           dueDate: dueDate,
@@ -86,6 +88,7 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
         setNewTask({
           title: "",
           description: "",
+          image: "",
           startDate: new Date().toISOString().split('T')[0],
           dueDate: "",
         })
@@ -174,7 +177,7 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
   }
 
   return (
-    <div ref={setDroppableRef} className="flex-shrink-0 w-72">
+    <div ref={setDroppableRef} className="flex-shrink-0 w-96">
       <Card className="h-full flex flex-col p-3 bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
         <div className="flex items-center justify-between mb-3">
           {isEditing ? (
@@ -271,6 +274,19 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
                   rows={3}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-image">URL de Imagen</Label>
+                <Input
+                  id="task-image"
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                  value={newTask.image}
+                  onChange={(e) =>
+                    setNewTask({ ...newTask, image: e.target.value })
+                  }
+                  className="bg-black border-gray-800 text-white"
+                />
+                <p className="text-xs text-gray-500">Opcional: URL de una imagen para la tarea</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="task-startDate">Fecha de Inicio</Label>
@@ -307,6 +323,7 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
                   setNewTask({
                     title: "",
                     description: "",
+                    image: "",
                     startDate: new Date().toISOString().split('T')[0],
                     dueDate: "",
                   })

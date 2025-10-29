@@ -16,12 +16,13 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, status, listId, order, assignedTo, dueDate, tagIds } = body
+    const { title, description, image, status, listId, order, assignedTo, dueDate, tagIds } = body
 
     const updateData: any = {}
 
     if (title !== undefined) updateData.title = title
     if (description !== undefined) updateData.description = description
+    if (image !== undefined) updateData.image = image
     if (status !== undefined) updateData.status = status
     if (listId !== undefined) updateData.listId = listId
     if (order !== undefined) updateData.order = order

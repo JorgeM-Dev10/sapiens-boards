@@ -28,6 +28,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const [editedTask, setEditedTask] = useState({
     title: task.title,
     description: task.description || "",
+    image: task.image || "",
     dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "",
   })
   const [newTagName, setNewTagName] = useState("")
@@ -129,6 +130,7 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         body: JSON.stringify({
           title: editedTask.title,
           description: editedTask.description,
+          image: editedTask.image || null,
           dueDate: editedTask.dueDate || null,
           tagIds: selectedTags,
         }),
@@ -252,6 +254,19 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
                 </Button>
               </div>
 
+            {task.image && (
+              <div className="relative w-full h-40 rounded-md overflow-hidden bg-gray-900">
+                <img
+                  src={task.image}
+                  alt={task.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              </div>
+            )}
+
             {task.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {task.description}
@@ -326,6 +341,32 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
               className="bg-black border-gray-800 text-white"
               rows={4}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-image">URL de Imagen</Label>
+            <Input
+              id="edit-image"
+              placeholder="https://ejemplo.com/imagen.jpg"
+              value={editedTask.image}
+              onChange={(e) =>
+                setEditedTask({ ...editedTask, image: e.target.value })
+              }
+              className="bg-black border-gray-800 text-white"
+            />
+            <p className="text-xs text-gray-500">Opcional: URL de una imagen para la tarea</p>
+            {editedTask.image && (
+              <div className="relative w-full h-40 rounded-md overflow-hidden bg-gray-900 border border-gray-800">
+                <img
+                  src={editedTask.image}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = ''
+                    e.currentTarget.alt = 'Error al cargar imagen'
+                  }}
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-dueDate">Fecha de Vencimiento</Label>

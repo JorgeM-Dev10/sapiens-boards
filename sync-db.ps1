@@ -12,3 +12,5 @@ npx prisma db push
 Write-Host "`n✅ ¡Base de datos sincronizada!" -ForegroundColor Green
 Write-Host "Ahora puedes agregar clientes y abrir proyectos." -ForegroundColor Green
 
+
+

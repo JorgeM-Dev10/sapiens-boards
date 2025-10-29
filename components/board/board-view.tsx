@@ -192,7 +192,7 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
             <div className="flex-shrink-0">
               <Button
                 variant="outline"
-                className="w-72 h-auto min-h-[100px] bg-[#1a1a1a] border-gray-800 text-white hover:bg-gray-900 hover:border-gray-700"
+                className="w-96 h-auto min-h-[100px] bg-[#1a1a1a] border-gray-800 text-white hover:bg-gray-900 hover:border-gray-700"
                 onClick={handleCreateList}
                 disabled={isCreatingList}
               >
