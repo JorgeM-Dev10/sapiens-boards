@@ -28,7 +28,15 @@ export default function RoadmapsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null)
   const [newBoard, setNewBoard] = useState({
+    title: "",
+    description: "",
+    image: "",
+  })
+  const [editBoard, setEditBoard] = useState({
     title: "",
     description: "",
     image: "",
@@ -99,6 +107,66 @@ export default function RoadmapsPage() {
       })
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleEditBoard = (board: Board, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingBoard(board)
+    setEditBoard({
+      title: board.title,
+      description: board.description || "",
+      image: board.image || "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdateBoard = async () => {
+    if (!editingBoard || !editBoard.title.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El título es requerido",
+      })
+      return
+    }
+
+    setIsEditing(true)
+
+    try {
+      const response = await fetch(`/api/boards/${editingBoard.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: editBoard.title,
+          description: editBoard.description || null,
+          image: editBoard.image || null,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Tablero actualizado",
+          description: "El tablero se ha actualizado exitosamente",
+        })
+        setIsEditDialogOpen(false)
+        setEditingBoard(null)
+        setEditBoard({ title: "", description: "", image: "" })
+        fetchBoards()
+      } else {
+        throw new Error("Error al actualizar el tablero")
+      }
+    } catch (error) {
+      console.error("Error updating board:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el tablero",
+      })
+    } finally {
+      setIsEditing(false)
     }
   }
 
@@ -228,6 +296,82 @@ export default function RoadmapsPage() {
         }
       />
 
+      {/* Diálogo de Edición */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Editar Tablero</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Modifica el nombre, descripción o URL de la imagen del tablero
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Título</Label>
+              <Input
+                id="edit-title"
+                placeholder="Mi Proyecto"
+                value={editBoard.title}
+                onChange={(e) =>
+                  setEditBoard({ ...editBoard, title: e.target.value })
+                }
+                className="bg-black border-gray-800 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descripción (opcional)</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Descripción del tablero..."
+                value={editBoard.description}
+                onChange={(e) =>
+                  setEditBoard({ ...editBoard, description: e.target.value })
+                }
+                className="bg-black border-gray-800 text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-image">URL de Imagen (opcional)</Label>
+              <Input
+                id="edit-image"
+                placeholder="Clic derecho en imagen > Copiar dirección de imagen"
+                value={editBoard.image}
+                onChange={(e) =>
+                  setEditBoard({ ...editBoard, image: e.target.value })
+                }
+                className="bg-black border-gray-800 text-white"
+              />
+              <p className="text-xs text-gray-500">
+                💡 Tip: En Google, haz clic derecho en la imagen y selecciona "Copiar dirección de imagen" (no "Copiar URL")
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditDialogOpen(false)
+                setEditingBoard(null)
+                setEditBoard({ title: "", description: "", image: "" })
+              }}
+              className="bg-transparent border-gray-800 text-white hover:bg-gray-900"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateBoard} disabled={isEditing} className="bg-blue-600 hover:bg-blue-700">
+              {isEditing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-3xl font-bold text-white mb-2">Roadmaps</h1>
         <p className="text-gray-400 mb-6">Gestiona tus proyectos y tareas</p>
@@ -277,6 +421,14 @@ export default function RoadmapsPage() {
                       )}
                     </div>
                     <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10"
+                        onClick={(e) => handleEditBoard(board, e)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
