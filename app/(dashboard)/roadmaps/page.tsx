@@ -420,11 +420,11 @@ export default function RoadmapsPage() {
                         <CardDescription className="text-gray-400 mt-1">{board.description}</CardDescription>
                       )}
                     </div>
-                    <div className="flex space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <div className="flex space-x-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10"
+                        className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 opacity-80 hover:opacity-100"
                         onClick={(e) => handleEditBoard(board, e)}
                         title="Editar tablero"
                       >
@@ -433,7 +433,7 @@ export default function RoadmapsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-600/10"
+                        className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-600/10 opacity-80 hover:opacity-100"
                         onClick={(e) => handleDeleteBoard(board.id, e)}
                         title="Eliminar tablero"
                       >
