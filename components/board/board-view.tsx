@@ -66,44 +66,134 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
       return
     }
 
-    // Find the target list
+    // Find the target list and task
     let targetListId = overId
+    let targetTask = null
     const targetList = board.lists.find((l) => l.id === overId)
     
     if (!targetList) {
       // Maybe dragged over a task, find its list
       for (const list of board.lists) {
-        if (list.tasks.some((t) => t.id === overId)) {
+        const foundTask = list.tasks.find((t) => t.id === overId)
+        if (foundTask) {
           targetListId = list.id
+          targetTask = foundTask
           break
         }
       }
+    } else {
+      // Dropped on a list, find the first task in that list
+      const sortedTasks = targetList.tasks.sort((a, b) => a.order - b.order)
+      targetTask = sortedTasks[0] || null
     }
 
-    // Update task with new list
-    try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          listId: targetListId,
-        }),
+    // Check if moving within the same list (reordering)
+    const isSameList = sourceListId === targetListId
+
+    if (isSameList) {
+      // Reordering within the same list
+      const sourceList = board.lists.find((l) => l.id === sourceListId)
+      if (!sourceList) {
+        setActiveId(null)
+        return
+      }
+
+      // Get all tasks sorted by order (excluding the dragged task)
+      const otherTasks = sourceList.tasks
+        .filter((t) => t.id !== activeId)
+        .sort((a, b) => a.order - b.order)
+      
+      let targetIndex: number
+      
+      if (targetTask) {
+        // Dragged over a specific task: insert before that task
+        targetIndex = otherTasks.findIndex((t) => t.id === targetTask.id)
+        if (targetIndex === -1) {
+          setActiveId(null)
+          return
+        }
+      } else {
+        // Dragged over empty area of the list: move to the end
+        targetIndex = otherTasks.length
+      }
+
+      // Create new array with dragged task inserted at target position
+      const reorderedTasks = [...otherTasks]
+      reorderedTasks.splice(targetIndex, 0, task)
+
+      // Update all tasks with sequential orders
+      const tasksToUpdate: Array<{ id: string; order: number }> = []
+      
+      reorderedTasks.forEach((t, index) => {
+        if (t.order !== index) {
+          tasksToUpdate.push({
+            id: t.id,
+            order: index,
+          })
+        }
       })
 
-      if (response.ok) {
+      // Update all affected tasks
+      try {
+        await Promise.all(
+          tasksToUpdate.map((t) =>
+            fetch(`/api/tasks/${t.id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ order: t.order }),
+            })
+          )
+        )
+
         onUpdate()
-      } else {
-        throw new Error("Error al mover la tarea")
+      } catch (error) {
+        console.error("Error reordering task:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo reordenar la tarea",
+        })
       }
-    } catch (error) {
-      console.error("Error moving task:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo mover la tarea",
-      })
+    } else {
+      // Moving to a different list
+      let newOrder = 0
+      
+      if (targetList) {
+        // Get the last task order in the target list
+        const sortedTasks = targetList.tasks.sort((a, b) => a.order - b.order)
+        if (sortedTasks.length > 0) {
+          newOrder = sortedTasks[sortedTasks.length - 1].order + 1
+        }
+      }
+
+      // Update task with new list and order
+      try {
+        const response = await fetch(`/api/tasks/${task.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            listId: targetListId,
+            order: newOrder,
+          }),
+        })
+
+        if (response.ok) {
+          onUpdate()
+        } else {
+          throw new Error("Error al mover la tarea")
+        }
+      } catch (error) {
+        console.error("Error moving task:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo mover la tarea",
+        })
+      }
     }
 
     setActiveId(null)
