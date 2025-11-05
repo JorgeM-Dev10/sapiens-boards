@@ -66,25 +66,32 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
       return
     }
 
-    // Find the target list and task
-    let targetListId = overId
+    // Find the target - check if it's a task or a list
+    let targetListId = null
     let targetTask = null
-    const targetList = board.lists.find((l) => l.id === overId)
     
-    if (!targetList) {
-      // Maybe dragged over a task, find its list
-      for (const list of board.lists) {
-        const foundTask = list.tasks.find((t) => t.id === overId)
-        if (foundTask) {
-          targetListId = list.id
-          targetTask = foundTask
-          break
-        }
+    // First check if it's a task
+    for (const list of board.lists) {
+      const foundTask = list.tasks.find((t) => t.id === overId)
+      if (foundTask) {
+        targetListId = list.id
+        targetTask = foundTask
+        break
       }
-    } else {
-      // Dropped on a list, find the first task in that list
-      const sortedTasks = targetList.tasks.sort((a, b) => a.order - b.order)
-      targetTask = sortedTasks[0] || null
+    }
+    
+    // If not a task, check if it's a list
+    if (!targetTask) {
+      const foundList = board.lists.find((l) => l.id === overId)
+      if (foundList) {
+        targetListId = foundList.id
+        // If dropped on empty list area, use null
+      }
+    }
+
+    if (!targetListId) {
+      setActiveId(null)
+      return
     }
 
     // Check if moving within the same list (reordering)
@@ -98,15 +105,29 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
         return
       }
 
-      // Get all tasks sorted by order (excluding the dragged task)
-      const otherTasks = sourceList.tasks
-        .filter((t) => t.id !== activeId)
-        .sort((a, b) => a.order - b.order)
+      // Get all tasks sorted by current order
+      const allTasks = [...sourceList.tasks].sort((a, b) => a.order - b.order)
+      const currentIndex = allTasks.findIndex((t) => t.id === activeId)
+      
+      if (currentIndex === -1) {
+        setActiveId(null)
+        return
+      }
+
+      // Remove the dragged task from the array
+      const otherTasks = allTasks.filter((t) => t.id !== activeId)
       
       let targetIndex: number
       
       if (targetTask) {
-        // Dragged over a specific task: insert before that task
+        // Dragged over a specific task: insert BEFORE that task (above it)
+        const targetTaskIndex = allTasks.findIndex((t) => t.id === targetTask.id)
+        if (targetTaskIndex === -1) {
+          setActiveId(null)
+          return
+        }
+        
+        // Find the index in otherTasks array (without the dragged task)
         targetIndex = otherTasks.findIndex((t) => t.id === targetTask.id)
         if (targetIndex === -1) {
           setActiveId(null)
@@ -116,6 +137,9 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
         // Dragged over empty area of the list: move to the end
         targetIndex = otherTasks.length
       }
+
+      // Ensure targetIndex is valid
+      targetIndex = Math.max(0, Math.min(targetIndex, otherTasks.length))
 
       // Create new array with dragged task inserted at target position
       const reorderedTasks = [...otherTasks]
@@ -160,11 +184,33 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
       // Moving to a different list
       let newOrder = 0
       
+      const targetList = board.lists.find((l) => l.id === targetListId)
       if (targetList) {
         // Get the last task order in the target list
         const sortedTasks = targetList.tasks.sort((a, b) => a.order - b.order)
         if (sortedTasks.length > 0) {
           newOrder = sortedTasks[sortedTasks.length - 1].order + 1
+        }
+        
+        // If dropped on a specific task in target list, insert before it
+        if (targetTask && targetList.id === targetListId) {
+          const targetTaskIndex = sortedTasks.findIndex((t) => t.id === targetTask.id)
+          if (targetTaskIndex !== -1) {
+            newOrder = sortedTasks[targetTaskIndex].order
+            // Shift other tasks down
+            const tasksToShift = sortedTasks.filter((t, idx) => idx >= targetTaskIndex)
+            await Promise.all(
+              tasksToShift.map((t) =>
+                fetch(`/api/tasks/${t.id}`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ order: t.order + 1 }),
+                })
+              )
+            )
+          }
         }
       }
 
