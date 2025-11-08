@@ -54,69 +54,71 @@ function SortableBoardCard({ board, onEdit, onDelete, onClick }: {
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <Card
-        className={`cursor-pointer bg-[#1a1a1a] border-gray-800 hover:border-blue-500 hover:shadow-xl transition-all group overflow-hidden relative ${
+        className={`cursor-pointer border-gray-800 hover:border-blue-500 hover:shadow-xl transition-all group overflow-hidden relative h-80 ${
           isDragging ? 'ring-2 ring-blue-500' : ''
         }`}
+        style={{
+          backgroundImage: board.image ? `url(${board.image})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundColor: board.image ? undefined : '#1a1a1a',
+        }}
         onClick={onClick}
       >
-        {board.image && (
-          <div className="w-full h-32 overflow-hidden bg-gray-900">
-            <img 
-              src={board.image} 
-              alt={board.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.parentElement!.style.display = 'none'
-              }}
-            />
-          </div>
-        )}
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-white">{board.title}</CardTitle>
-              {board.description && (
-                <CardDescription className="text-gray-400 mt-1">{board.description}</CardDescription>
-              )}
+        {/* Overlay semi-transparente para el contenido */}
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        
+        {/* Contenido con fondo semi-transparente */}
+        <div className="relative z-10 h-full flex flex-col">
+          <CardHeader className="flex-1 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-white drop-shadow-lg">{board.title}</CardTitle>
+                {board.description && (
+                  <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2">{board.description}</CardDescription>
+                )}
+              </div>
+              <div className="flex space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-white hover:text-blue-400 hover:bg-white/20 opacity-80 hover:opacity-100 backdrop-blur-sm"
+                  onClick={(e) => onEdit(board, e)}
+                  title="Editar tablero"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-white hover:text-red-400 hover:bg-white/20 opacity-80 hover:opacity-100 backdrop-blur-sm"
+                  onClick={(e) => onDelete(board.id, e)}
+                  title="Eliminar tablero"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 opacity-80 hover:opacity-100"
-                onClick={(e) => onEdit(board, e)}
-                title="Editar tablero"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-600/10 opacity-80 hover:opacity-100"
-                onClick={(e) => onDelete(board.id, e)}
-                title="Eliminar tablero"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+          </CardHeader>
+          <CardContent className="bg-black/40 backdrop-blur-sm rounded-lg mt-auto">
+            <div className="flex items-center justify-between text-sm text-white font-medium">
+              <span className="drop-shadow-md">{board.lists.length} listas</span>
+              <span className="drop-shadow-md">{getTaskCount(board)} tareas</span>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between text-sm text-gray-400">
-            <span>{board.lists.length} listas</span>
-            <span>{getTaskCount(board)} tareas</span>
-          </div>
-        </CardContent>
+          </CardContent>
+        </div>
+        
+        {/* Handle de drag */}
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-10"
+          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-20 bg-black/50 backdrop-blur-sm rounded"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="w-6 h-6 flex flex-col gap-1 justify-center">
-            <div className="w-full h-0.5 bg-gray-500"></div>
-            <div className="w-full h-0.5 bg-gray-500"></div>
-            <div className="w-full h-0.5 bg-gray-500"></div>
+            <div className="w-full h-0.5 bg-white"></div>
+            <div className="w-full h-0.5 bg-white"></div>
+            <div className="w-full h-0.5 bg-white"></div>
           </div>
         </div>
       </Card>
@@ -582,28 +584,30 @@ export default function RoadmapsPage() {
             </SortableContext>
             <DragOverlay>
               {activeBoard ? (
-                <Card className="cursor-pointer bg-[#1a1a1a] border-blue-500 shadow-xl opacity-90 w-80">
-                  {activeBoard.image && (
-                    <div className="w-full h-32 overflow-hidden bg-gray-900">
-                      <img 
-                        src={activeBoard.image} 
-                        alt={activeBoard.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="text-white">{activeBoard.title}</CardTitle>
-                    {activeBoard.description && (
-                      <CardDescription className="text-gray-400">{activeBoard.description}</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm text-gray-400">
-                      <span>{activeBoard.lists.length} listas</span>
-                      <span>{getTaskCount(activeBoard)} tareas</span>
-                    </div>
-                  </CardContent>
+                <Card 
+                  className="cursor-pointer border-blue-500 shadow-xl opacity-95 w-80 h-80"
+                  style={{
+                    backgroundImage: activeBoard.image ? `url(${activeBoard.image})` : undefined,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundColor: activeBoard.image ? undefined : '#1a1a1a',
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+                  <div className="relative z-10 h-full flex flex-col">
+                    <CardHeader className="flex-1 flex flex-col justify-between">
+                      <CardTitle className="text-white drop-shadow-lg">{activeBoard.title}</CardTitle>
+                      {activeBoard.description && (
+                        <CardDescription className="text-gray-200 drop-shadow-md line-clamp-2">{activeBoard.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="bg-black/40 backdrop-blur-sm rounded-lg mt-auto">
+                      <div className="flex items-center justify-between text-sm text-white font-medium">
+                        <span className="drop-shadow-md">{activeBoard.lists.length} listas</span>
+                        <span className="drop-shadow-md">{getTaskCount(activeBoard)} tareas</span>
+                      </div>
+                    </CardContent>
+                  </div>
                 </Card>
               ) : null}
             </DragOverlay>
