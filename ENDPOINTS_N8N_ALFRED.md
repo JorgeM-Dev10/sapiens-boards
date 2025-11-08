@@ -716,3 +716,5 @@ Los siguientes recursos aceptan múltiples nombres (sinónimos):
 
 **¡Listo!** Ahora puedes conectar tu agente de n8n "Alfred" con todas las funciones de la plataforma usando el endpoint `/api/alfred` con autenticación por API Key.
 
+
+

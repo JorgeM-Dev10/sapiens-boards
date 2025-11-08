@@ -417,11 +417,11 @@ export default function AISolutionsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {solutions.map((solution) => (
               <Card key={solution.id} className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
                 <CardHeader>
-                  <div className="flex items-center justify-center mb-4 h-32 overflow-hidden bg-gray-900 rounded-lg">
+                  <div className="flex items-center justify-center mb-4 h-64 overflow-hidden bg-gray-900 rounded-lg">
                     {solution.icon ? (
                       <img 
                         src={solution.icon} 
@@ -431,19 +431,19 @@ export default function AISolutionsPage() {
                           // Si falla la imagen, mostrar icono por defecto
                           e.currentTarget.style.display = 'none'
                           e.currentTarget.parentElement!.innerHTML = activeTab === "INDIVIDUAL" 
-                            ? '<svg class="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
-                            : '<svg class="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
+                            ? '<svg class="h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
+                            : '<svg class="h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
                         }}
                       />
                     ) : (
                       activeTab === "INDIVIDUAL" ? (
-                        <Bot className="h-16 w-16 text-gray-400" />
+                        <Bot className="h-24 w-24 text-gray-400" />
                       ) : (
-                        <Package className="h-16 w-16 text-gray-400" />
+                        <Package className="h-24 w-24 text-gray-400" />
                       )
                     )}
                   </div>
-                  <CardTitle className="text-white text-center">{solution.name}</CardTitle>
+                  <CardTitle className="text-white text-center text-xl">{solution.name}</CardTitle>
                   <div className="flex justify-center mt-2">
                     <Badge className={`${getCategoryColor(solution.category)} text-white`}>
                       {getCategoryLabel(solution.category)}

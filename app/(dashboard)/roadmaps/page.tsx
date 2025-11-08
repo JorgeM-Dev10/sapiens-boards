@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Loader2, Pencil, Trash2 } from "lucide-react"
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
+import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -17,8 +20,108 @@ interface Board {
   title: string
   description: string | null
   image: string | null
+  order: number
   createdAt: string
   lists: any[]
+}
+
+const getTaskCount = (board: Board) => {
+  return board.lists.reduce((total, list) => total + (list.tasks?.length || 0), 0)
+}
+
+// Componente para tarjeta sortable
+function SortableBoardCard({ board, onEdit, onDelete, onClick }: {
+  board: Board
+  onEdit: (board: Board, e: React.MouseEvent) => void
+  onDelete: (boardId: string, e: React.MouseEvent) => void
+  onClick: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: board.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <Card
+        className={`cursor-pointer bg-[#1a1a1a] border-gray-800 hover:border-blue-500 hover:shadow-xl transition-all group overflow-hidden relative ${
+          isDragging ? 'ring-2 ring-blue-500' : ''
+        }`}
+        onClick={onClick}
+      >
+        {board.image && (
+          <div className="w-full h-32 overflow-hidden bg-gray-900">
+            <img 
+              src={board.image} 
+              alt={board.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.parentElement!.style.display = 'none'
+              }}
+            />
+          </div>
+        )}
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-white">{board.title}</CardTitle>
+              {board.description && (
+                <CardDescription className="text-gray-400 mt-1">{board.description}</CardDescription>
+              )}
+            </div>
+            <div className="flex space-x-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 opacity-80 hover:opacity-100"
+                onClick={(e) => onEdit(board, e)}
+                title="Editar tablero"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-600/10 opacity-80 hover:opacity-100"
+                onClick={(e) => onDelete(board.id, e)}
+                title="Eliminar tablero"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between text-sm text-gray-400">
+            <span>{board.lists.length} listas</span>
+            <span>{getTaskCount(board)} tareas</span>
+          </div>
+        </CardContent>
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-6 h-6 flex flex-col gap-1 justify-center">
+            <div className="w-full h-0.5 bg-gray-500"></div>
+            <div className="w-full h-0.5 bg-gray-500"></div>
+            <div className="w-full h-0.5 bg-gray-500"></div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
 }
 
 export default function RoadmapsPage() {
@@ -26,6 +129,7 @@ export default function RoadmapsPage() {
   const { toast } = useToast()
   const [boards, setBoards] = useState<Board[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activeId, setActiveId] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -41,6 +145,14 @@ export default function RoadmapsPage() {
     description: "",
     image: "",
   })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
 
   useEffect(() => {
     fetchBoards()
@@ -201,9 +313,64 @@ export default function RoadmapsPage() {
     }
   }
 
-  const getTaskCount = (board: Board) => {
-    return board.lists.reduce((total, list) => total + (list.tasks?.length || 0), 0)
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
   }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      setActiveId(null)
+      return
+    }
+
+    const activeId = active.id as string
+    const overId = over.id as string
+
+    const oldIndex = boards.findIndex((board) => board.id === activeId)
+    const newIndex = boards.findIndex((board) => board.id === overId)
+
+    if (oldIndex === -1 || newIndex === -1) {
+      setActiveId(null)
+      return
+    }
+
+    // Reordenar localmente
+    const newBoards = [...boards]
+    const [movedBoard] = newBoards.splice(oldIndex, 1)
+    newBoards.splice(newIndex, 0, movedBoard)
+    setBoards(newBoards)
+
+    // Actualizar en el servidor
+    try {
+      const boardIds = newBoards.map((board) => board.id)
+      const response = await fetch("/api/boards/reorder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ boardIds }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar el orden")
+      }
+    } catch (error) {
+      console.error("Error reordering boards:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el orden de los tableros",
+      })
+      // Revertir cambios
+      fetchBoards()
+    }
+
+    setActiveId(null)
+  }
+
+  const activeBoard = activeId ? boards.find((board) => board.id === activeId) : null
 
   if (isLoading) {
     return (
@@ -392,65 +559,55 @@ export default function RoadmapsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {boards.map((board) => (
-              <Card
-                key={board.id}
-                className="cursor-pointer bg-[#1a1a1a] border-gray-800 hover:border-blue-500 hover:shadow-xl transition-all group overflow-hidden"
-                onClick={() => router.push(`/roadmaps/${board.id}`)}
-              >
-                {board.image && (
-                  <div className="w-full h-32 overflow-hidden bg-gray-900">
-                    <img 
-                      src={board.image} 
-                      alt={board.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Si la imagen falla, ocultar el contenedor
-                        e.currentTarget.parentElement!.style.display = 'none'
-                      }}
-                    />
-                  </div>
-                )}
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-white">{board.title}</CardTitle>
-                      {board.description && (
-                        <CardDescription className="text-gray-400 mt-1">{board.description}</CardDescription>
-                      )}
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={boards.map((board) => board.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {boards.map((board) => (
+                  <SortableBoardCard
+                    key={board.id}
+                    board={board}
+                    onEdit={handleEditBoard}
+                    onDelete={handleDeleteBoard}
+                    onClick={() => router.push(`/roadmaps/${board.id}`)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeBoard ? (
+                <Card className="cursor-pointer bg-[#1a1a1a] border-blue-500 shadow-xl opacity-90 w-80">
+                  {activeBoard.image && (
+                    <div className="w-full h-32 overflow-hidden bg-gray-900">
+                      <img 
+                        src={activeBoard.image} 
+                        alt={activeBoard.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 opacity-80 hover:opacity-100"
-                        onClick={(e) => handleEditBoard(board, e)}
-                        title="Editar tablero"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-600/10 opacity-80 hover:opacity-100"
-                        onClick={(e) => handleDeleteBoard(board.id, e)}
-                        title="Eliminar tablero"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="text-white">{activeBoard.title}</CardTitle>
+                    {activeBoard.description && (
+                      <CardDescription className="text-gray-400">{activeBoard.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-gray-400">
+                      <span>{activeBoard.lists.length} listas</span>
+                      <span>{getTaskCount(activeBoard)} tareas</span>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-gray-400">
-                    <span>{board.lists.length} listas</span>
-                    <span>{getTaskCount(board)} tareas</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, Pencil, Trash2, User, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,6 +39,7 @@ const paymentTypes = [
 ]
 
 export default function WorkersPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const [workers, setWorkers] = useState<Worker[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -445,7 +447,10 @@ export default function WorkersPage() {
                 {workers.map((worker) => (
                   <tr key={worker.id} className="border-b border-gray-800 hover:bg-gray-900/30 transition-colors">
                     <td className="p-4">
-                      <div className="flex items-center space-x-2">
+                      <div 
+                        className="flex items-center space-x-2 cursor-pointer hover:text-blue-400 transition-colors"
+                        onClick={() => router.push(`/workers/${worker.id}`)}
+                      >
                         {worker.type === "AI" ? (
                           <Bot className="h-5 w-5 text-blue-500" />
                         ) : (
@@ -471,7 +476,10 @@ export default function WorkersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEditClick(worker)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditClick(worker)
+                          }}
                           className="text-gray-400 hover:text-white hover:bg-gray-800"
                         >
                           <Pencil className="h-4 w-4" />
@@ -479,7 +487,10 @@ export default function WorkersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteWorker(worker.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteWorker(worker.id)
+                          }}
                           className="text-red-400 hover:text-red-300 hover:bg-red-600/10"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -659,6 +670,8 @@ export default function WorkersPage() {
     </div>
   )
 }
+
+
 
 
 

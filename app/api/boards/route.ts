@@ -23,7 +23,7 @@ export async function GET() {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        order: "asc",
       },
     })
 
@@ -55,11 +55,25 @@ export async function POST(request: Request) {
       )
     }
 
+    // Obtener el máximo order para poner el nuevo board al final
+    const maxOrder = await prisma.board.findFirst({
+      where: {
+        ownerId: session.user.id,
+      },
+      orderBy: {
+        order: "desc",
+      },
+      select: {
+        order: true,
+      },
+    })
+
     const board = await prisma.board.create({
       data: {
         title,
         description,
         image,
+        order: (maxOrder?.order ?? -1) + 1,
         ownerId: session.user.id,
       },
     })

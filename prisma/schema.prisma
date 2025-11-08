@@ -66,6 +66,7 @@ model Board {
   title       String
   description String?
   image       String?
+  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   ownerId     String
@@ -148,23 +149,41 @@ model TaskTag {
 }
 
 model Worker {
-  id                String    @id @default(cuid())
+  id                String       @id @default(cuid())
   name              String
-  type              String    // "HUMAN" o "AI"
+  type              String       // "HUMAN" o "AI"
   responsibilities  String
-  status            String    // "FOUNDER", "EARLY_EMPLOYEE", "EMPLOYEE", "CONTRACTOR", etc.
-  salary            Float     @default(0)
-  paymentType       String    @default("FIXED") // "FIXED", "PERCENTAGE", "HYBRID"
-  percentage        Float?    // Si es por porcentaje
-  startDate         DateTime  @default(now())
-  paymentDate       Int?      // Día del mes (1-31)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  status            String       // "FOUNDER", "EARLY_EMPLOYEE", "EMPLOYEE", "CONTRACTOR", etc.
+  salary            Float        @default(0)
+  paymentType       String       @default("FIXED") // "FIXED", "PERCENTAGE", "HYBRID"
+  percentage        Float?       // Si es por porcentaje
+  startDate         DateTime     @default(now())
+  paymentDate       Int?         // Día del mes (1-31)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   userId            String
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentLogs PaymentLog[]
 
   @@map("Worker")
+}
+
+model PaymentLog {
+  id          String   @id @default(cuid())
+  type        String   // "PAYMENT", "SALARY_INCREASE", "BONUS", "ADJUSTMENT"
+  amount      Float
+  previousSalary Float? // Salario anterior (para aumentos)
+  newSalary   Float?   // Nuevo salario (para aumentos)
+  description String?
+  paymentDate DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workerId    String
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@map("PaymentLog")
 }
 
 model AISolution {
