@@ -32,9 +32,10 @@ import { Textarea } from "@/components/ui/textarea"
 interface ListColumnProps {
   list: ListWithTasks
   onUpdate: () => void
+  boardImage?: string | null
 }
 
-export function ListColumn({ list, onUpdate }: ListColumnProps) {
+export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
   const { toast } = useToast()
   const [isAddingTask, setIsAddingTask] = useState(false)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
@@ -178,65 +179,79 @@ export function ListColumn({ list, onUpdate }: ListColumnProps) {
 
   return (
     <div ref={setDroppableRef} className="flex-shrink-0 w-96">
-      <Card className="h-full flex flex-col p-3 bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
-        <div className="flex items-center justify-between mb-3">
-          {isEditing ? (
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleUpdateTitle}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleUpdateTitle()
-                if (e.key === "Escape") {
-                  setTitle(list.title)
-                  setIsEditing(false)
-                }
-              }}
-              className="h-8 bg-black border-gray-800 text-white"
-              autoFocus
-            />
-          ) : (
-            <h3
-              className="font-semibold flex-1 cursor-pointer text-white"
-              onClick={() => setIsEditing(true)}
+      <Card 
+        className="h-full flex flex-col p-3 border-gray-800 hover:border-gray-700 transition-colors relative overflow-hidden"
+        style={{
+          backgroundImage: boardImage ? `url(${boardImage})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundColor: boardImage ? undefined : '#1a1a1a',
+        }}
+      >
+        {/* Overlay semi-transparente */}
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0"></div>
+        
+        {/* Contenido con z-index para estar sobre el overlay */}
+        <div className="relative z-10 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            {isEditing ? (
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleUpdateTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleUpdateTitle()
+                  if (e.key === "Escape") {
+                    setTitle(list.title)
+                    setIsEditing(false)
+                  }
+                }}
+                className="h-8 bg-black/70 border-gray-800 text-white backdrop-blur-sm"
+                autoFocus
+              />
+            ) : (
+              <h3
+                className="font-semibold flex-1 cursor-pointer text-white drop-shadow-lg"
+                onClick={() => setIsEditing(true)}
+              >
+                {list.title}
+              </h3>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 backdrop-blur-sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDeleteList} className="text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar lista
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 mb-3">
+            <SortableContext
+              items={list.tasks.map((task) => task.id)}
+              strategy={verticalListSortingStrategy}
             >
-              {list.title}
-            </h3>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDeleteList} className="text-red-600">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Eliminar lista
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              {list.tasks.map((task) => (
+                <TaskCard key={task.id} task={task} onUpdate={onUpdate} />
+              ))}
+            </SortableContext>
+          </div>
 
-        <div className="flex-1 overflow-y-auto space-y-2 mb-3">
-          <SortableContext
-            items={list.tasks.map((task) => task.id)}
-            strategy={verticalListSortingStrategy}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-white hover:text-white hover:bg-white/20 backdrop-blur-sm border border-white/20"
+            onClick={() => setIsAddingTask(true)}
           >
-            {list.tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onUpdate={onUpdate} />
-            ))}
-          </SortableContext>
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar tarea
+          </Button>
         </div>
-
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800"
-          onClick={() => setIsAddingTask(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Agregar tarea
-        </Button>
 
         {/* Dialog para crear tarea */}
         <Dialog open={isAddingTask} onOpenChange={setIsAddingTask}>

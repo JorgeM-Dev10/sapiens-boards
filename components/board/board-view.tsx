@@ -321,7 +321,7 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
               strategy={horizontalListSortingStrategy}
             >
               {board.lists.map((list) => (
-                <ListColumn key={list.id} list={list} onUpdate={onUpdate} />
+                <ListColumn key={list.id} list={list} onUpdate={onUpdate} boardImage={board.image} />
               ))}
             </SortableContext>
 
