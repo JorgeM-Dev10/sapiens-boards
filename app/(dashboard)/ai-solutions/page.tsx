@@ -417,66 +417,99 @@ export default function AISolutionsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {solutions.map((solution) => (
-              <Card key={solution.id} className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
-                <CardHeader>
-                  <div className="flex items-center justify-center mb-4 h-64 overflow-hidden bg-gray-900 rounded-lg">
-                    {solution.icon ? (
-                      <img 
-                        src={solution.icon} 
-                        alt={solution.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Si falla la imagen, mostrar icono por defecto
-                          e.currentTarget.style.display = 'none'
-                          e.currentTarget.parentElement!.innerHTML = activeTab === "INDIVIDUAL" 
-                            ? '<svg class="h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
-                            : '<svg class="h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
-                        }}
-                      />
-                    ) : (
-                      activeTab === "INDIVIDUAL" ? (
-                        <Bot className="h-24 w-24 text-gray-400" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {solutions.map((solution) => {
+              // Parsear características si existen
+              let featuresList: string[] = []
+              if (solution.features) {
+                try {
+                  // Intentar parsear como JSON primero
+                  const parsed = JSON.parse(solution.features)
+                  featuresList = Array.isArray(parsed) ? parsed : [solution.features]
+                } catch {
+                  // Si no es JSON, intentar separar por comas o saltos de línea
+                  featuresList = solution.features
+                    .split(/[,\n]/)
+                    .map(f => f.trim())
+                    .filter(f => f.length > 0)
+                }
+              }
+
+              return (
+                <Card key={solution.id} className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors flex flex-col h-full">
+                  <CardHeader className="flex-shrink-0">
+                    <div className="flex items-center justify-center mb-6 h-96 overflow-hidden bg-gray-900 rounded-lg">
+                      {solution.icon ? (
+                        <img 
+                          src={solution.icon} 
+                          alt={solution.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Si falla la imagen, mostrar icono por defecto
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.parentElement!.innerHTML = activeTab === "INDIVIDUAL" 
+                              ? '<svg class="h-32 w-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
+                              : '<svg class="h-32 w-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
+                          }}
+                        />
                       ) : (
-                        <Package className="h-24 w-24 text-gray-400" />
-                      )
+                        activeTab === "INDIVIDUAL" ? (
+                          <Bot className="h-32 w-32 text-gray-400" />
+                        ) : (
+                          <Package className="h-32 w-32 text-gray-400" />
+                        )
+                      )}
+                    </div>
+                    <CardTitle className="text-white text-center text-2xl mb-3">{solution.name}</CardTitle>
+                    <div className="flex justify-center">
+                      <Badge className={`${getCategoryColor(solution.category)} text-white text-sm px-3 py-1`}>
+                        {getCategoryLabel(solution.category)}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col">
+                    {solution.description && (
+                      <div className="mb-4">
+                        <p className="text-base text-gray-300 leading-relaxed">{solution.description}</p>
+                      </div>
                     )}
-                  </div>
-                  <CardTitle className="text-white text-center text-xl">{solution.name}</CardTitle>
-                  <div className="flex justify-center mt-2">
-                    <Badge className={`${getCategoryColor(solution.category)} text-white`}>
-                      {getCategoryLabel(solution.category)}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {solution.description && (
-                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">{solution.description}</p>
-                  )}
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditClick(solution)}
-                      className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
-                    >
-                      <Pencil className="mr-2 h-3 w-3" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteSolution(solution.id)}
-                      className="flex-1 bg-transparent border-red-800 text-red-400 hover:bg-red-600/10"
-                    >
-                      <Trash2 className="mr-2 h-3 w-3" />
-                      Eliminar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    {featuresList.length > 0 && (
+                      <div className="mb-6 flex-1">
+                        <h4 className="text-sm font-semibold text-white mb-3">Características:</h4>
+                        <ul className="space-y-2">
+                          {featuresList.map((feature, index) => (
+                            <li key={index} className="flex items-start text-sm text-gray-400">
+                              <span className="text-blue-500 mr-2 mt-1">•</span>
+                              <span className="flex-1">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="flex space-x-2 mt-auto pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(solution)}
+                        className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteSolution(solution.id)}
+                        className="flex-1 bg-transparent border-red-800 text-red-400 hover:bg-red-600/10"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
