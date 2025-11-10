@@ -157,6 +157,31 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
               </ul>
             </div>
           )}
+          {activeTab === "BUNDLE" && solution.bundleItems && solution.bundleItems.length > 0 && (
+            <div className="mb-6 flex-1">
+              <h4 className="text-sm font-semibold text-white mb-3">Soluciones incluidas:</h4>
+              <div className="space-y-2">
+                {solution.bundleItems.map((bundleItem: any, index: number) => {
+                  const includedSolution = bundleItem.solution
+                  if (!includedSolution) return null
+                  return (
+                    <div
+                      key={bundleItem.id || index}
+                      className="flex items-center justify-between p-2 rounded bg-gray-900/50 border border-gray-800"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <span className="text-sm text-gray-300">{includedSolution.name}</span>
+                      </div>
+                      <Badge className={`${getCategoryColor(includedSolution.category, includedSolution.categoryColor)} text-white text-xs`}>
+                        {getCategoryLabel(includedSolution.category)}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div className="flex space-x-2 mt-auto pt-4">
             <Button
               variant="outline"
@@ -615,8 +640,24 @@ export default function AISolutionsPage() {
                   </>
                 )}
                 {activeTab === "BUNDLE" && (
-                  <div className="space-y-2">
-                    <Label>Soluciones incluidas en el paquete</Label>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="icon-bundle">URL de Imagen (opcional)</Label>
+                      <Input
+                        id="icon-bundle"
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        value={newSolution.icon}
+                        onChange={(e) =>
+                          setNewSolution({ ...newSolution, icon: e.target.value })
+                        }
+                        className="bg-black border-gray-800 text-white"
+                      />
+                      <p className="text-xs text-gray-500">
+                        💡 Clic derecho en imagen → Copiar dirección de imagen
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Soluciones incluidas en el paquete</Label>
                     <div className="border border-gray-800 rounded-lg p-4 max-h-64 overflow-y-auto bg-black">
                       {allSolutions.length === 0 ? (
                         <p className="text-gray-500 text-sm">No hay soluciones individuales disponibles</p>
@@ -652,6 +693,7 @@ export default function AISolutionsPage() {
                       Seleccionadas: {newSolution.solutionIds.length} solución(es)
                     </p>
                   </div>
+                  </>
                 )}
               </div>
               <DialogFooter>
@@ -864,8 +906,24 @@ export default function AISolutionsPage() {
                 </>
               )}
               {editingSolution.type === "BUNDLE" && (
-                <div className="space-y-2">
-                  <Label>Soluciones incluidas en el paquete</Label>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-icon-bundle">URL de Imagen</Label>
+                    <Input
+                      id="edit-icon-bundle"
+                      value={editingSolution.icon || ""}
+                      onChange={(e) =>
+                        setEditingSolution({ ...editingSolution, icon: e.target.value })
+                      }
+                      className="bg-black border-gray-800 text-white"
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                    <p className="text-xs text-gray-500">
+                      💡 Clic derecho en imagen → Copiar dirección de imagen
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Soluciones incluidas en el paquete</Label>
                   <div className="border border-gray-800 rounded-lg p-4 max-h-64 overflow-y-auto bg-black">
                     {allSolutions.length === 0 ? (
                       <p className="text-gray-500 text-sm">No hay soluciones individuales disponibles</p>
@@ -909,6 +967,7 @@ export default function AISolutionsPage() {
                     )}
                   </div>
                 </div>
+                </>
               )}
             </div>
           )}
