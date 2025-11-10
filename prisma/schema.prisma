@@ -187,18 +187,20 @@ model PaymentLog {
 }
 
 model AISolution {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    String   // "VENTAS", "PROJECT_MANAGEMENT", "ADMINISTRATIVA", "OTRA"
-  type        String   @default("INDIVIDUAL") // "INDIVIDUAL" o "BUNDLE"
-  price       Float?
-  features    String?  // JSON string con características
-  icon        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  category      String   // Nombre de la categoría personalizada
+  categoryColor String?  // Color de la categoría (ej: "bg-blue-500")
+  type          String   @default("INDIVIDUAL") // "INDIVIDUAL" o "BUNDLE"
+  price         Float?
+  features      String?  // JSON string con características
+  icon          String?
+  order         Int      @default(0) // Orden para drag and drop
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   bundleItems BundleItem[] @relation("BundleSolutions")

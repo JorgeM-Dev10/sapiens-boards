@@ -225,15 +225,31 @@ async function handleCreate(resource: string, data: any, userId: string) {
       if (!data.name || !data.category) {
         throw new Error("name y category son requeridos")
       }
+      // Obtener el máximo order para ponerlo al final
+      const maxOrder = await prisma.aISolution.findFirst({
+        where: {
+          userId,
+          type: data.type || "INDIVIDUAL",
+        },
+        orderBy: {
+          order: "desc",
+        },
+        select: {
+          order: true,
+        },
+      })
+
       return await prisma.aISolution.create({
         data: {
           name: data.name,
           description: data.description || null,
           category: data.category,
+          categoryColor: data.categoryColor || null,
           type: data.type || "INDIVIDUAL",
           price: data.price ? parseFloat(data.price) : null,
           features: data.features || null,
           icon: data.icon || null,
+          order: (maxOrder?.order ?? -1) + 1,
           isActive: data.isActive !== undefined ? data.isActive : true,
           userId,
         },
@@ -457,10 +473,12 @@ async function handleUpdate(resource: string, id: string, data: any, userId: str
       if (data.name !== undefined) solutionUpdateData.name = data.name
       if (data.description !== undefined) solutionUpdateData.description = data.description
       if (data.category !== undefined) solutionUpdateData.category = data.category
+      if (data.categoryColor !== undefined) solutionUpdateData.categoryColor = data.categoryColor
       if (data.type !== undefined) solutionUpdateData.type = data.type
       if (data.price !== undefined) solutionUpdateData.price = data.price ? parseFloat(data.price) : null
       if (data.features !== undefined) solutionUpdateData.features = data.features
       if (data.icon !== undefined) solutionUpdateData.icon = data.icon
+      if (data.order !== undefined) solutionUpdateData.order = data.order
       if (data.isActive !== undefined) solutionUpdateData.isActive = data.isActive
 
       return await prisma.aISolution.update({
@@ -616,6 +634,8 @@ async function handleList(resource: string, userId: string) {
       throw new Error(`Recurso '${resource}' no válido`)
   }
 }
+
+
 
 
 

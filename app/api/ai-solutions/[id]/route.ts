@@ -20,6 +20,7 @@ export async function PATCH(
       name,
       description,
       category,
+      categoryColor,
       type,
       price,
       features,
@@ -37,6 +38,7 @@ export async function PATCH(
         ...(name && { name }),
         ...(description !== undefined && { description }),
         ...(category && { category }),
+        ...(categoryColor !== undefined && { categoryColor }),
         ...(type && { type }),
         ...(price !== undefined && { price }),
         ...(features !== undefined && { features }),
@@ -106,6 +108,8 @@ export async function DELETE(
     )
   }
 }
+
+
 
 
 

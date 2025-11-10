@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        order: "asc",
       },
     })
 
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       name,
       description,
       category,
+      categoryColor,
       type,
       price,
       features,
@@ -74,15 +75,31 @@ export async function POST(request: Request) {
       )
     }
 
+    // Obtener el máximo order para ponerlo al final
+    const maxOrder = await prisma.aISolution.findFirst({
+      where: {
+        userId: session.user.id,
+        type: type || "INDIVIDUAL",
+      },
+      orderBy: {
+        order: "desc",
+      },
+      select: {
+        order: true,
+      },
+    })
+
     const solution = await prisma.aISolution.create({
       data: {
         name,
         description,
         category,
+        categoryColor: categoryColor || null,
         type: type || "INDIVIDUAL",
         price,
         features,
         icon,
+        order: (maxOrder?.order ?? -1) + 1,
         isActive: isActive !== undefined ? isActive : true,
         userId: session.user.id,
         updatedAt: new Date(),
@@ -109,6 +126,8 @@ export async function POST(request: Request) {
     )
   }
 }
+
+
 
 
 
