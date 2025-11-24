@@ -7,7 +7,7 @@ import { TaskWithRelations } from "@/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Trash2, X } from "lucide-react"
+import { Calendar, Trash2, X, Check } from "lucide-react"
 import { getInitials, formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
@@ -200,6 +200,43 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     }
   }
 
+  const handleToggleComplete = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed'
+    
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      })
+
+      if (response.ok) {
+        if (onUpdate) onUpdate()
+        toast({
+          title: newStatus === 'completed' ? "Tarea completada" : "Tarea pendiente",
+          description: newStatus === 'completed' 
+            ? "¡Excelente trabajo! 🎉" 
+            : "La tarea está pendiente nuevamente",
+        })
+      } else {
+        throw new Error("Error al actualizar la tarea")
+      }
+    } catch (error) {
+      console.error("Error updating task status:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo actualizar el estado de la tarea",
+      })
+    }
+  }
+
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation()
 
@@ -231,19 +268,47 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     }
   }
 
+  const isCompleted = task.status === 'completed'
+
   return (
     <>
       <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
         <Card 
-          className={`cursor-grab active:cursor-grabbing hover:shadow-xl hover:border-blue-500 transition-all duration-200 group bg-black border-gray-800 ${
+          className={`cursor-grab active:cursor-grabbing hover:shadow-xl transition-all duration-200 group border-gray-800 ${
             isDragging ? 'shadow-2xl ring-2 ring-blue-500 rotate-2' : ''
+          } ${
+            isCompleted 
+              ? 'bg-green-500/30 border-green-500/70 hover:border-green-500' 
+              : 'bg-black hover:border-blue-500'
           }`}
           onClick={handleOpenDialog}
         >
           <CardContent className="p-3">
             <div className="space-y-2">
-              <div className="flex items-start justify-between">
-                <p className="text-sm font-medium flex-1 text-white">{task.title}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 flex-1">
+                  {/* Checkbox para marcar como completada */}
+                  <button
+                    onClick={handleToggleComplete}
+                    className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                      isCompleted
+                        ? 'bg-green-500 border-green-500 hover:bg-green-600'
+                        : 'border-gray-600 hover:border-green-500 bg-transparent'
+                    }`}
+                    title={isCompleted ? "Marcar como pendiente" : "Marcar como completada"}
+                  >
+                    {isCompleted && (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
+                  </button>
+                  <p className={`text-sm font-medium flex-1 transition-colors ${
+                    isCompleted 
+                      ? 'text-black line-through font-semibold drop-shadow-[0_1px_2px_rgba(255,255,255,0.3)]' 
+                      : 'text-white'
+                  }`}>
+                    {task.title}
+                  </p>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -268,7 +333,11 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             )}
 
             {task.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
+              <p className={`text-xs line-clamp-2 ${
+                isCompleted 
+                  ? 'text-black/80 drop-shadow-[0_1px_1px_rgba(255,255,255,0.2)]' 
+                  : 'text-muted-foreground'
+              }`}>
                 {task.description}
               </p>
             )}

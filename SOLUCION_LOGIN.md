@@ -145,3 +145,4 @@ Si estás corriendo localmente, los logs aparecerán en la terminal con prefijo 
 - [ ] Deployment en Vercel está actualizado
 - [ ] No hay errores en los logs de Vercel
 
+
