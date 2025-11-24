@@ -649,6 +649,7 @@ Los siguientes recursos aceptan múltiples nombres (sinónimos):
 - `ai-solutions`, `ai-solution`, `solution` o `solutions`
 - `tags` o `tag`
 - `timelines` o `timeline`
+- `orders` o `order`
 
 ### Respuestas
 
@@ -711,10 +712,91 @@ Los siguientes recursos aceptan múltiples nombres (sinónimos):
 | ai-solutions | ✅ | ✅ | ✅ | ✅ | ✅ |
 | tags | ✅ | ✅ | ✅ | ✅ | ✅ |
 | timelines | ✅ | ✅ | ✅ | ✅ | ✅ |
+| orders | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+---
+
+### 9. **ORDERS** (Pedidos)
+
+#### Crear Pedido
+```json
+POST /api/alfred
+{
+  "action": "create",
+  "resource": "orders",
+  "data": {
+    "items": [
+      {
+        "solutionId": "id-de-la-solucion-ai",  // REQUERIDO
+        "quantity": 2                          // REQUERIDO (número >= 1)
+      }
+    ],
+    "notes": "Notas opcionales del pedido",    // Opcional
+    "status": "PENDING"                        // Opcional (default: "PENDING")
+  },
+  "userId": "opcional" o "userEmail": "opcional"
+}
+```
+
+**Estados válidos:** `PENDING`, `CONFIRMED`, `PROCESSING`, `COMPLETED`, `CANCELLED`
+
+#### Leer Pedido
+```json
+POST /api/alfred
+{
+  "action": "read",
+  "resource": "orders",
+  "id": "id-del-pedido",
+  "userId": "opcional" o "userEmail": "opcional"
+}
+```
+
+#### Actualizar Pedido
+```json
+POST /api/alfred
+{
+  "action": "update",
+  "resource": "orders",
+  "id": "id-del-pedido",
+  "data": {
+    "status": "CONFIRMED",                     // Opcional
+    "notes": "Nuevas notas"                     // Opcional
+  },
+  "userId": "opcional" o "userEmail": "opcional"
+}
+```
+
+#### Eliminar Pedido
+```json
+POST /api/alfred
+{
+  "action": "delete",
+  "resource": "orders",
+  "id": "id-del-pedido",
+  "userId": "opcional" o "userEmail": "opcional"
+}
+```
+
+#### Listar Pedidos
+```json
+POST /api/alfred
+{
+  "action": "list",
+  "resource": "orders",
+  "userId": "opcional" o "userEmail": "opcional"
+}
+```
+
+**Respuesta incluye:**
+- Información del pedido (orderNumber, status, totalAmount, notes)
+- Items del pedido con detalles de la solución AI (name, price, category, etc.)
 
 ---
 
 **¡Listo!** Ahora puedes conectar tu agente de n8n "Alfred" con todas las funciones de la plataforma usando el endpoint `/api/alfred` con autenticación por API Key.
+
+
+
 
 
 

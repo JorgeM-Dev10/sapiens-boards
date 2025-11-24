@@ -32,3 +32,4 @@ WHERE "AISolution".id = subquery.id;
 -- WHERE table_name = 'AISolution' 
 -- AND column_name IN ('categoryColor', 'order');
 
+

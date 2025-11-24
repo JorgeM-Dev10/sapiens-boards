@@ -282,6 +282,93 @@ async function handleCreate(resource: string, data: any, userId: string) {
         },
       })
 
+    case "order":
+    case "orders":
+      if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        throw new Error("Se requiere al menos un item en el pedido")
+      }
+
+      // Generar número de pedido único
+      const generateOrderNumber = () => {
+        const timestamp = Date.now()
+        const random = Math.floor(Math.random() * 1000)
+        return `ORD-${timestamp}-${random}`
+      }
+
+      // Validar y calcular totales
+      let totalAmount = 0
+      const orderItemsData = []
+
+      for (const item of data.items) {
+        if (!item.solutionId) {
+          throw new Error("Cada item debe tener un solutionId")
+        }
+        if (!item.quantity || item.quantity < 1) {
+          throw new Error("Cada item debe tener una cantidad válida (>= 1)")
+        }
+
+        const solution = await prisma.aISolution.findUnique({
+          where: { id: item.solutionId },
+          select: { id: true, name: true, price: true, userId: true },
+        })
+
+        if (!solution) {
+          throw new Error(`Solución con id ${item.solutionId} no encontrada`)
+        }
+
+        if (solution.userId !== userId) {
+          throw new Error(`No tienes acceso a la solución ${solution.name}`)
+        }
+
+        if (!solution.price || solution.price <= 0) {
+          throw new Error(`La solución ${solution.name} no tiene un precio válido`)
+        }
+
+        const unitPrice = solution.price
+        const quantity = item.quantity
+        const totalPrice = unitPrice * quantity
+
+        totalAmount += totalPrice
+
+        orderItemsData.push({
+          solutionId: solution.id,
+          quantity,
+          unitPrice,
+          totalPrice,
+        })
+      }
+
+      return await prisma.order.create({
+        data: {
+          orderNumber: generateOrderNumber(),
+          status: data.status || "PENDING",
+          totalAmount,
+          notes: data.notes || null,
+          userId,
+          items: {
+            create: orderItemsData,
+          },
+        },
+        include: {
+          items: {
+            include: {
+              solution: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  category: true,
+                  categoryColor: true,
+                  type: true,
+                  price: true,
+                  icon: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
     default:
       throw new Error(`Recurso '${resource}' no válido`)
   }
@@ -361,6 +448,30 @@ async function handleRead(resource: string, id: string, userId: string) {
     case "timelines":
       return await prisma.clientTimeline.findUnique({
         where: { id },
+      })
+
+    case "order":
+    case "orders":
+      return await prisma.order.findFirst({
+        where: { id, userId },
+        include: {
+          items: {
+            include: {
+              solution: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  category: true,
+                  categoryColor: true,
+                  type: true,
+                  price: true,
+                  icon: true,
+                },
+              },
+            },
+          },
+        },
       })
 
     default:
@@ -510,6 +621,35 @@ async function handleUpdate(resource: string, id: string, data: any, userId: str
         data: timelineUpdateData,
       })
 
+    case "order":
+    case "orders":
+      const orderUpdateData: any = {}
+      if (data.status !== undefined) orderUpdateData.status = data.status
+      if (data.notes !== undefined) orderUpdateData.notes = data.notes
+
+      return await prisma.order.update({
+        where: { id, userId },
+        data: orderUpdateData,
+        include: {
+          items: {
+            include: {
+              solution: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  category: true,
+                  categoryColor: true,
+                  type: true,
+                  price: true,
+                  icon: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
     default:
       throw new Error(`Recurso '${resource}' no válido`)
   }
@@ -559,6 +699,11 @@ async function handleDelete(resource: string, id: string, userId: string) {
     case "timelines":
       await prisma.clientTimeline.delete({ where: { id } })
       return { success: true, message: "Timeline eliminado" }
+
+    case "order":
+    case "orders":
+      await prisma.order.delete({ where: { id, userId } })
+      return { success: true, message: "Pedido eliminado" }
 
     default:
       throw new Error(`Recurso '${resource}' no válido`)
@@ -627,6 +772,31 @@ async function handleList(resource: string, userId: string) {
     case "timeline":
     case "timelines":
       return await prisma.clientTimeline.findMany({
+        orderBy: { createdAt: "desc" },
+      })
+
+    case "order":
+    case "orders":
+      return await prisma.order.findMany({
+        where: { userId },
+        include: {
+          items: {
+            include: {
+              solution: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  category: true,
+                  categoryColor: true,
+                  type: true,
+                  price: true,
+                  icon: true,
+                },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       })
 

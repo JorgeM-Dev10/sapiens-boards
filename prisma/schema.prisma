@@ -25,6 +25,7 @@ model User {
   clients       Client[]
   workers       Worker[]
   aiSolutions   AISolution[]
+  orders        Order[]
 
   @@map("User")
 }
@@ -205,6 +206,7 @@ model AISolution {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   bundleItems BundleItem[] @relation("BundleSolutions")
   bundles     BundleItem[] @relation("SolutionInBundles")
+  orderItems  OrderItem[]
 
   @@map("AISolution")
 }
@@ -219,6 +221,38 @@ model BundleItem {
 
   @@unique([bundleId, solutionId])
   @@map("_BundleItems")
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique // Número de pedido único
+  status      String      @default("PENDING") // PENDING, CONFIRMED, PROCESSING, COMPLETED, CANCELLED
+  totalAmount Float
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      String
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@map("Order")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderId     String
+  solutionId  String
+
+  order    Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  solution AISolution  @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+
+  @@map("OrderItem")
 }
 
 

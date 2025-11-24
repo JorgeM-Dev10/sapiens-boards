@@ -30,20 +30,33 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
+        console.error("Error de autenticación:", result.error)
+        let errorMessage = "Email o contraseña incorrectos"
+        
+        // Mensajes más específicos según el error
+        if (result.error.includes("CredentialsSignin")) {
+          errorMessage = "Email o contraseña incorrectos"
+        } else if (result.error.includes("Configuration")) {
+          errorMessage = "Error de configuración del servidor. Contacta al administrador."
+        } else if (result.error.includes("AccessDenied")) {
+          errorMessage = "Acceso denegado"
+        }
+        
         toast({
           variant: "destructive",
           title: "Error de autenticación",
-          description: "Email o contraseña incorrectos",
+          description: errorMessage,
         })
-      } else {
+      } else if (result?.ok) {
         router.push("/clients")
         router.refresh()
       }
     } catch (error) {
+      console.error("Error al iniciar sesión:", error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Ocurrió un error al iniciar sesión",
+        description: error instanceof Error ? error.message : "Ocurrió un error al iniciar sesión",
       })
     } finally {
       setIsLoading(false)

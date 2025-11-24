@@ -67,3 +67,6 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
 
 
 
+
+
+
