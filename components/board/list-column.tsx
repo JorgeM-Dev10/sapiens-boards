@@ -185,8 +185,8 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
           backgroundColor: '#1a1a1a',
         }}
       >
-        {/* Overlay semi-transparente - sin imagen repetida, solo transparencia para ver fondo del tablero */}
-        <div className="absolute inset-0 bg-black/20 z-0"></div>
+        {/* Overlay muy transparente - sin imagen repetida, solo transparencia para ver fondo del tablero */}
+        <div className="absolute inset-0 bg-black/10 z-0"></div>
         
         {/* Contenido con z-index para estar sobre el overlay */}
         <div className="relative z-10 h-full flex flex-col">
