@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "create-admin": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/create-admin.ts"
+    "create-admin": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/create-admin.ts",
+    "test-auth": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/test-auth.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

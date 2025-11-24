@@ -22,6 +22,8 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
+    console.log("🔐 Intentando iniciar sesión con:", formData.email)
+
     try {
       const result = await signIn("credentials", {
         email: formData.email,
@@ -29,17 +31,23 @@ export default function LoginPage() {
         redirect: false,
       })
 
+      console.log("📋 Resultado de signIn:", result)
+
       if (result?.error) {
-        console.error("Error de autenticación:", result.error)
+        console.error("❌ Error de autenticación:", result.error)
+        console.error("📝 Detalles completos:", JSON.stringify(result, null, 2))
+        
         let errorMessage = "Email o contraseña incorrectos"
         
         // Mensajes más específicos según el error
-        if (result.error.includes("CredentialsSignin")) {
-          errorMessage = "Email o contraseña incorrectos"
-        } else if (result.error.includes("Configuration")) {
-          errorMessage = "Error de configuración del servidor. Contacta al administrador."
-        } else if (result.error.includes("AccessDenied")) {
+        if (result.error.includes("CredentialsSignin") || result.error === "CredentialsSignin") {
+          errorMessage = "Email o contraseña incorrectos. Verifica tus credenciales."
+        } else if (result.error.includes("Configuration") || result.error === "Configuration") {
+          errorMessage = "Error de configuración del servidor. Verifica NEXTAUTH_SECRET."
+        } else if (result.error.includes("AccessDenied") || result.error === "AccessDenied") {
           errorMessage = "Acceso denegado"
+        } else {
+          errorMessage = `Error: ${result.error}`
         }
         
         toast({
@@ -48,11 +56,19 @@ export default function LoginPage() {
           description: errorMessage,
         })
       } else if (result?.ok) {
+        console.log("✅ Login exitoso, redirigiendo...")
         router.push("/clients")
         router.refresh()
+      } else {
+        console.warn("⚠️ Resultado inesperado:", result)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Respuesta inesperada del servidor",
+        })
       }
     } catch (error) {
-      console.error("Error al iniciar sesión:", error)
+      console.error("💥 Error al iniciar sesión:", error)
       toast({
         variant: "destructive",
         title: "Error",
@@ -114,7 +130,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@sapienslabs.com"
+                placeholder="admin@sapiens.com"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })

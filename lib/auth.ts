@@ -11,7 +11,8 @@ if (!process.env.NEXTAUTH_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // No usar adapter con CredentialsProvider + JWT strategy
+  // adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -20,30 +21,43 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('🔐 [AUTH] Iniciando autorización para:', credentials?.email)
+        
         if (!credentials?.email || !credentials?.password) {
+          console.error('❌ [AUTH] Credenciales faltantes')
           throw new Error('Credenciales inválidas')
         }
 
         try {
+          console.log('🔍 [AUTH] Buscando usuario en base de datos...')
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
             },
           })
 
-          if (!user || !user.password) {
+          if (!user) {
+            console.error('❌ [AUTH] Usuario no encontrado:', credentials.email)
             throw new Error('Usuario no encontrado')
           }
 
+          if (!user.password) {
+            console.error('❌ [AUTH] Usuario sin contraseña:', credentials.email)
+            throw new Error('Usuario no encontrado')
+          }
+
+          console.log('🔑 [AUTH] Verificando contraseña...')
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           )
 
           if (!isPasswordValid) {
+            console.error('❌ [AUTH] Contraseña incorrecta para:', credentials.email)
             throw new Error('Contraseña incorrecta')
           }
 
+          console.log('✅ [AUTH] Autenticación exitosa para:', user.email)
           return {
             id: user.id,
             email: user.email,
@@ -51,8 +65,11 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
           }
         } catch (error) {
-          console.error('Error en autenticación:', error)
-          throw error
+          console.error('💥 [AUTH] Error en autenticación:', error)
+          if (error instanceof Error) {
+            throw error
+          }
+          throw new Error('Error desconocido en autenticación')
         }
       },
     }),
@@ -67,18 +84,26 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        token.picture = user.image
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token) {
         session.user.id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string | null | undefined
+        session.user.image = token.picture as string | null | undefined
       }
       return session
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  // Configuración adicional para CredentialsProvider
+  trustHost: true,
 }
 
 
