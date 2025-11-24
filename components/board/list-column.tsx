@@ -180,15 +180,15 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
   return (
     <div ref={setDroppableRef} className="flex-shrink-0 w-96">
       <Card 
-        className="h-full flex flex-col p-3 border-gray-800 hover:border-gray-700 transition-colors relative overflow-hidden"
+        className="h-full flex flex-col p-3 border-gray-800/50 hover:border-gray-700/50 transition-colors relative overflow-hidden"
         style={{
-          backgroundColor: '#1a1a1a',
+          backgroundColor: 'rgba(26, 26, 26, 0.3)',
+          backdropFilter: 'blur(1px)',
         }}
       >
-        {/* Overlay muy transparente - sin imagen repetida, solo transparencia para ver fondo del tablero */}
-        <div className="absolute inset-0 bg-black/10 z-0"></div>
+        {/* Sin overlay - completamente transparente para ver fondo del tablero */}
         
-        {/* Contenido con z-index para estar sobre el overlay */}
+        {/* Contenido con z-index y sombra de texto para legibilidad */}
         <div className="relative z-10 h-full flex flex-col">
           <div className="flex items-center justify-between mb-3">
             {isEditing ? (
@@ -208,7 +208,7 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
               />
             ) : (
               <h3
-                className="font-semibold flex-1 cursor-pointer text-white drop-shadow-lg"
+                className="font-semibold flex-1 cursor-pointer text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                 onClick={() => setIsEditing(true)}
               >
                 {list.title}

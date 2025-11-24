@@ -65,8 +65,8 @@ function SortableBoardCard({ board, onEdit, onDelete, onClick }: {
         }}
         onClick={onClick}
       >
-        {/* Overlay muy transparente para ver más la imagen */}
-        <div className="absolute inset-0 bg-black/20"></div>
+        {/* Overlay mínimo para ver la imagen claramente */}
+        <div className="absolute inset-0 bg-black/10"></div>
         
         {/* Contenido con fondo semi-transparente */}
         <div className="relative z-10 h-full flex flex-col">
