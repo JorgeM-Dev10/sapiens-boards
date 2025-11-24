@@ -285,18 +285,18 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-[#0a0a0a] relative">
-      {/* Imagen de fondo difuminada */}
+      {/* Imagen de fondo - blur reducido para ver más la imagen */}
       {board.image && (
         <div className="absolute inset-0 z-0">
           <div 
             className="absolute inset-0 bg-cover bg-center"
             style={{ 
               backgroundImage: `url(${board.image})`,
-              filter: 'blur(8px)',
-              opacity: 0.4,
+              filter: 'blur(2px)',
+              opacity: 0.7,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/50 via-[#0a0a0a]/80 to-[#0a0a0a]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/20 via-[#0a0a0a]/40 to-[#0a0a0a]/60" />
         </div>
       )}
 

@@ -65,8 +65,8 @@ function SortableBoardCard({ board, onEdit, onDelete, onClick }: {
         }}
         onClick={onClick}
       >
-        {/* Overlay semi-transparente para el contenido */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        {/* Overlay semi-transparente para el contenido - reducido para ver más la imagen */}
+        <div className="absolute inset-0 bg-black/30"></div>
         
         {/* Contenido con fondo semi-transparente */}
         <div className="relative z-10 h-full flex flex-col">
@@ -593,7 +593,7 @@ export default function RoadmapsPage() {
                     backgroundColor: activeBoard.image ? undefined : '#1a1a1a',
                   }}
                 >
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+                  <div className="absolute inset-0 bg-black/30"></div>
                   <div className="relative z-10 h-full flex flex-col">
                     <CardHeader className="flex-1 flex flex-col justify-between">
                       <CardTitle className="text-white drop-shadow-lg">{activeBoard.title}</CardTitle>

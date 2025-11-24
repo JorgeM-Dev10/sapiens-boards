@@ -182,14 +182,11 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
       <Card 
         className="h-full flex flex-col p-3 border-gray-800 hover:border-gray-700 transition-colors relative overflow-hidden"
         style={{
-          backgroundImage: boardImage ? `url(${boardImage})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundColor: boardImage ? undefined : '#1a1a1a',
+          backgroundColor: '#1a1a1a',
         }}
       >
-        {/* Overlay semi-transparente */}
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-0"></div>
+        {/* Overlay semi-transparente - sin imagen repetida, solo transparencia para ver fondo del tablero */}
+        <div className="absolute inset-0 bg-black/20 z-0"></div>
         
         {/* Contenido con z-index para estar sobre el overlay */}
         <div className="relative z-10 h-full flex flex-col">

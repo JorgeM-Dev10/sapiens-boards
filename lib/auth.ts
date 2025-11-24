@@ -10,6 +10,12 @@ if (!process.env.NEXTAUTH_SECRET) {
   console.error('💡 Genera un secreto con: openssl rand -base64 32')
 }
 
+// Validar NEXTAUTH_URL en producción
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
+  console.error('⚠️ ADVERTENCIA: NEXTAUTH_URL no está configurado en producción.')
+  console.error('💡 Configura NEXTAUTH_URL en Vercel con tu dominio completo (ej: https://sapiens-boards.vercel.app)')
+}
+
 export const authOptions: NextAuthOptions = {
   // No usar adapter con CredentialsProvider + JWT strategy
   // adapter: PrismaAdapter(prisma),
