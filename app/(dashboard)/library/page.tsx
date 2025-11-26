@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Filter } from "lucide-react"
+import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Filter, Trophy, Eye, BookOpen, Star, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -46,6 +46,7 @@ export default function LibraryPage() {
   const [selectedType, setSelectedType] = useState<string>("ALL")
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL")
   const [categories, setCategories] = useState<string[]>([])
+  const [viewedItems, setViewedItems] = useState<Set<string>>(new Set())
   const [newItem, setNewItem] = useState({
     title: "",
     description: "",
@@ -54,6 +55,14 @@ export default function LibraryPage() {
     category: "",
     thumbnail: "",
   })
+
+  // Cargar recursos vistos desde localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("library_viewed_items")
+    if (stored) {
+      setViewedItems(new Set(JSON.parse(stored)))
+    }
+  }, [])
 
   useEffect(() => {
     fetchLibraryItems()
@@ -308,14 +317,87 @@ export default function LibraryPage() {
   const handleViewItem = (item: LibraryItem) => {
     setViewingItem(item)
     setIsViewDialogOpen(true)
+    // Marcar como visto
+    const newViewed = new Set(viewedItems)
+    if (!newViewed.has(item.id)) {
+      newViewed.add(item.id)
+      setViewedItems(newViewed)
+      localStorage.setItem("library_viewed_items", JSON.stringify(Array.from(newViewed)))
+    }
   }
+
+  const getViewedCount = () => viewedItems.size
+  const getTotalCount = () => libraryItems.length
+  const getProgressPercentage = () => {
+    if (libraryItems.length === 0) return 0
+    return Math.round((viewedItems.size / libraryItems.length) * 100)
+  }
+  const getBadgeLevel = () => {
+    const percentage = getProgressPercentage()
+    if (percentage === 100) return { name: "Maestro", icon: Trophy, color: "text-yellow-400" }
+    if (percentage >= 75) return { name: "Experto", icon: Star, color: "text-purple-400" }
+    if (percentage >= 50) return { name: "Avanzado", icon: TrendingUp, color: "text-blue-400" }
+    if (percentage >= 25) return { name: "Intermedio", icon: BookOpen, color: "text-green-400" }
+    return { name: "Principiante", icon: Eye, color: "text-gray-400" }
+  }
+
+  const badgeLevel = getBadgeLevel()
+  const BadgeIcon = badgeLevel.icon
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
       <Header />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex items-center justify-between">
+          {/* Estadísticas Gamificables */}
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="bg-[#1a1a1a] border-gray-800">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Total Recursos</p>
+                    <p className="text-2xl font-bold text-white">{getTotalCount()}</p>
+                  </div>
+                  <BookOpen className="h-8 w-8 text-blue-400 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Vistos</p>
+                    <p className="text-2xl font-bold text-green-400">{getViewedCount()}</p>
+                  </div>
+                  <Eye className="h-8 w-8 text-green-400 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1a1a1a] border-gray-800">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Progreso</p>
+                    <p className="text-2xl font-bold text-purple-400">{getProgressPercentage()}%</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-purple-400 opacity-50" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1a1a1a] border-gray-800 border-2 border-yellow-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Nivel</p>
+                    <p className={`text-lg font-bold ${badgeLevel.color}`}>{badgeLevel.name}</p>
+                  </div>
+                  <BadgeIcon className={`h-8 w-8 ${badgeLevel.color} opacity-70`} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Librería</h1>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -429,7 +511,7 @@ export default function LibraryPage() {
           </div>
 
           {/* Filtros */}
-          <div className="mb-6 flex gap-4">
+          <div className="mb-4 flex gap-4">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-400" />
               <Select value={selectedType} onValueChange={setSelectedType}>
@@ -473,81 +555,119 @@ export default function LibraryPage() {
               <p>No hay recursos disponibles</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredItems.map((item) => (
-                <Card
-                  key={item.id}
-                  className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors flex flex-col h-full"
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className={`p-2 rounded-lg ${getTypeColor(item.type)}`}>
-                          {getTypeIcon(item.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-white text-lg truncate">
-                            {item.title}
-                          </CardTitle>
-                          {item.category && (
-                            <Badge
-                              variant="outline"
-                              className="mt-1 text-xs border-gray-700 text-gray-400"
-                            >
-                              {item.category}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1 flex flex-col">
-                    {item.description && (
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                        {item.description}
-                      </p>
-                    )}
-                    {item.thumbnail && item.type === "VIDEO" && (
-                      <div className="mb-4 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredItems.map((item) => {
+                const isViewed = viewedItems.has(item.id)
+                return (
+                  <Card
+                    key={item.id}
+                    className={`bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-all flex flex-col h-full overflow-hidden group ${
+                      isViewed ? "border-green-500/30" : ""
+                    }`}
+                  >
+                    {/* Thumbnail destacado - siempre visible */}
+                    <div className="relative w-full h-48 bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 overflow-hidden">
+                      {item.thumbnail ? (
                         <img
                           src={item.thumbnail}
                           alt={item.title}
-                          className="w-full h-32 object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            // Si la imagen falla, mostrar el fallback
+                            e.currentTarget.style.display = 'none'
+                          }}
                         />
+                      ) : null}
+                      {/* Fallback cuando no hay thumbnail */}
+                      {!item.thumbnail && (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800">
+                          <div className={`p-4 rounded-xl ${getTypeColor(item.type)} mb-2`}>
+                            {getTypeIcon(item.type)}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">{item.type}</p>
+                        </div>
+                      )}
+                      {/* Badge de tipo */}
+                      <div className="absolute top-2 left-2">
+                        <Badge className={`${getTypeColor(item.type)} border-0 text-xs`}>
+                          {getTypeIcon(item.type)}
+                          <span className="ml-1">{item.type}</span>
+                        </Badge>
                       </div>
-                    )}
-                    <div className="flex gap-2 mt-auto">
-                      <Button
-                        onClick={() => handleViewItem(item)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                        size="sm"
-                      >
-                        <Play className="mr-2 h-4 w-4" />
-                        Ver
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setEditingItem({ ...item })
-                          setIsEditDialogOpen(true)
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-700 text-gray-400 hover:bg-gray-800"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteItem(item.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-gray-700 text-gray-400 hover:bg-red-600/20 hover:border-red-500/50 hover:text-red-400"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {/* Badge de visto */}
+                      {isViewed && (
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-green-500/90 text-white border-0 text-xs">
+                            <Eye className="h-3 w-3 mr-1" />
+                            Visto
+                          </Badge>
+                        </div>
+                      )}
+                      {/* Overlay con play button */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 transform hover:scale-110 transition-transform">
+                          <Play className="h-8 w-8 text-white" fill="white" />
+                        </div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-white text-lg line-clamp-2 min-h-[3rem]">
+                        {item.title}
+                      </CardTitle>
+                      {item.category && (
+                        <Badge
+                          variant="outline"
+                          className="mt-2 text-xs border-gray-700 text-gray-400 w-fit"
+                        >
+                          {item.category}
+                        </Badge>
+                      )}
+                    </CardHeader>
+                    
+                    <CardContent className="flex-1 flex flex-col pt-0">
+                      {item.description && (
+                        <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-1">
+                          {item.description}
+                        </p>
+                      )}
+                      <div className="flex gap-2 mt-auto">
+                        <Button
+                          onClick={() => handleViewItem(item)}
+                          className={`flex-1 ${
+                            isViewed 
+                              ? "bg-green-600 hover:bg-green-700 text-white" 
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                          size="sm"
+                        >
+                          <Play className="mr-2 h-4 w-4" />
+                          {isViewed ? "Ver de nuevo" : "Ver"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setEditingItem({ ...item })
+                            setIsEditDialogOpen(true)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 text-gray-400 hover:bg-gray-800"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteItem(item.id)}
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 text-gray-400 hover:bg-red-600/20 hover:border-red-500/50 hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>
