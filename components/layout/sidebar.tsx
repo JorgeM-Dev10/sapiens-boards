@@ -13,7 +13,7 @@ const navigation = [
   { name: "Workers", href: "/workers", icon: Users },
   { name: "Soluciones AI", href: "/ai-solutions", icon: Sparkles },
   { name: "Librería", href: "/library", icon: BookOpen },
-  { name: "KPI Center", href: "/kpi-center", icon: BarChart3 },
+  { name: "Estadísticas", href: "/estadisticas", icon: BarChart3 },
   { name: "Bitácoras", href: "/bitacoras", icon: FileText },
 ]
 

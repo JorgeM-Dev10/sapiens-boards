@@ -67,11 +67,29 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
     return "text-gray-400"
   }
 
+  const getAvatarEmoji = (style: string) => {
+    if (style === "legend") return "👑"
+    if (style === "master") return "⭐"
+    if (style === "expert") return "🔥"
+    if (style === "advanced") return "💪"
+    if (style === "intermediate") return "🚀"
+    return "🌱"
+  }
+
+  const getAvatarColorClass = (style: string) => {
+    if (style === "legend") return "text-purple-400 border-purple-400 bg-purple-500/20"
+    if (style === "master") return "text-blue-400 border-blue-400 bg-blue-500/20"
+    if (style === "expert") return "text-green-400 border-green-400 bg-green-500/20"
+    if (style === "advanced") return "text-yellow-400 border-yellow-400 bg-yellow-500/20"
+    if (style === "intermediate") return "text-orange-400 border-orange-400 bg-orange-500/20"
+    return "text-gray-400 border-gray-400 bg-gray-500/20"
+  }
+
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <Card
-        className={`cursor-pointer border-gray-800 hover:border-blue-500 hover:shadow-xl transition-all group overflow-hidden relative h-80 ${
-          isDragging ? 'ring-2 ring-blue-500' : ''
+        className={`cursor-pointer border-2 border-gray-800 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-96 ${
+          isDragging ? 'ring-2 ring-blue-500 scale-105' : ''
         }`}
         style={{
           backgroundImage: bitacora.image ? `url(${bitacora.image})` : undefined,
@@ -81,25 +99,28 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
         }}
         onClick={onClick}
       >
-        <div className="absolute inset-0 bg-black/10"></div>
+        {/* Overlay con gradiente más pronunciado */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80"></div>
         
         <div className="relative z-10 h-full flex flex-col">
-          <CardHeader className="flex-1 flex flex-col justify-between">
+          <CardHeader className="flex-1 flex flex-col justify-between p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="text-white drop-shadow-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
+                <CardTitle className="text-white drop-shadow-lg text-xl font-bold flex items-center gap-2 mb-2">
+                  {bitacora.avatar && (
+                    <span className="text-3xl">{getAvatarEmoji(bitacora.avatar.avatarStyle)}</span>
+                  )}
                   {bitacora.title}
                 </CardTitle>
                 {bitacora.description && (
-                  <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2">{bitacora.description}</CardDescription>
+                  <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2 text-sm">{bitacora.description}</CardDescription>
                 )}
               </div>
               <div className="flex space-x-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:text-blue-400 hover:bg-white/20 opacity-80 hover:opacity-100 backdrop-blur-sm"
+                  className="h-8 w-8 text-white hover:text-blue-400 hover:bg-white/30 opacity-90 hover:opacity-100 backdrop-blur-md border border-white/20"
                   onClick={(e) => onEdit(bitacora, e)}
                   title="Editar bitácora"
                 >
@@ -108,7 +129,7 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white hover:text-red-400 hover:bg-white/20 opacity-80 hover:opacity-100 backdrop-blur-sm"
+                  className="h-8 w-8 text-white hover:text-red-400 hover:bg-red-500/30 opacity-90 hover:opacity-100 backdrop-blur-md border border-white/20"
                   onClick={(e) => onDelete(bitacora.id, e)}
                   title="Eliminar bitácora"
                 >
@@ -117,35 +138,54 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="bg-black/60 backdrop-blur-sm rounded-lg mt-auto">
+          <CardContent className="bg-gradient-to-t from-black/90 via-black/80 to-black/70 backdrop-blur-md rounded-t-2xl mt-auto p-4 border-t border-white/10">
             {bitacora.avatar && (
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white font-semibold">Nivel {bitacora.avatar.level}</span>
-                  <span className={`font-bold ${getLevelColor(bitacora.avatar.level)}`}>
-                    {bitacora.avatar.avatarStyle.toUpperCase()}
-                  </span>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center text-xl ${getAvatarColorClass(bitacora.avatar.avatarStyle)}`}>
+                      {getAvatarEmoji(bitacora.avatar.avatarStyle)}
+                    </div>
+                    <div>
+                      <span className="text-white font-bold text-sm">Nivel {bitacora.avatar.level}</span>
+                      <span className={`block text-xs font-semibold ${getLevelColor(bitacora.avatar.level)}`}>
+                        {bitacora.avatar.avatarStyle.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-yellow-400 font-bold text-sm">{bitacora.avatar.experience} XP</span>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                <div className="w-full bg-gray-800/50 rounded-full h-2.5 overflow-hidden border border-gray-700">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all"
+                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-full rounded-full transition-all shadow-lg shadow-blue-500/50"
                     style={{ width: `${Math.min((bitacora.avatar.experience % 1000) / 10, 100)}%` }}
                   />
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-2 text-xs text-white">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{bitacora.stats.totalHours.toFixed(1)}h</span>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-blue-500/50 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-4 w-4 text-blue-400" />
+                  <span className="text-xs text-gray-400">Horas</span>
+                </div>
+                <p className="text-white font-bold text-lg">{bitacora.stats.totalHours.toFixed(1)}h</p>
               </div>
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                <span>{bitacora.stats.totalTasks}</span>
+              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-green-500/50 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className="h-4 w-4 text-green-400" />
+                  <span className="text-xs text-gray-400">Tareas</span>
+                </div>
+                <p className="text-white font-bold text-lg">{bitacora.stats.totalTasks}</p>
               </div>
-              <div className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                <span>{bitacora.stats.totalSessions}</span>
+              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-purple-500/50 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="h-4 w-4 text-purple-400" />
+                  <span className="text-xs text-gray-400">Sesiones</span>
+                </div>
+                <p className="text-white font-bold text-lg">{bitacora.stats.totalSessions}</p>
               </div>
             </div>
           </CardContent>
@@ -154,13 +194,13 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-20 bg-black/50 backdrop-blur-sm rounded"
+          className="absolute top-3 right-3 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-20 bg-black/70 backdrop-blur-md rounded-lg border border-white/20"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="w-6 h-6 flex flex-col gap-1 justify-center">
-            <div className="w-full h-0.5 bg-white"></div>
-            <div className="w-full h-0.5 bg-white"></div>
-            <div className="w-full h-0.5 bg-white"></div>
+            <div className="w-full h-0.5 bg-white rounded"></div>
+            <div className="w-full h-0.5 bg-white rounded"></div>
+            <div className="w-full h-0.5 bg-white rounded"></div>
           </div>
         </div>
       </Card>

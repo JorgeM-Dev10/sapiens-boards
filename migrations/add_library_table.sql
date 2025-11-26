@@ -28,3 +28,5 @@ COMMENT ON TABLE "Library" IS 'Tabla para almacenar recursos de la librería de 
 COMMENT ON COLUMN "Library"."type" IS 'Tipo de recurso: VIDEO, PDF, LINK, DOCUMENT';
 COMMENT ON COLUMN "Library"."category" IS 'Categoría personalizada del recurso (ej: Tutoriales, Documentación, Recursos)';
 
+
+
