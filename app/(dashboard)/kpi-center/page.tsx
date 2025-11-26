@@ -91,7 +91,11 @@ export default function KPICenterPage() {
   }, [selectedUserId, selectedBoardId])
 
   useEffect(() => {
-    fetchUsers()
+    if (sessions && sessions.length > 0) {
+      fetchUsers()
+    } else {
+      setUsers([])
+    }
   }, [sessions])
 
   useEffect(() => {
@@ -350,30 +354,30 @@ export default function KPICenterPage() {
           {/* Filtros */}
           <div className="mb-6 flex gap-4">
             {activeView === "PERSON" && (
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <Select value={selectedUserId || ""} onValueChange={setSelectedUserId}>
                 <SelectTrigger className="w-[250px] bg-[#1a1a1a] border-gray-800 text-white">
                   <SelectValue placeholder="Seleccionar persona" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a1a] border-gray-800">
                   <SelectItem value="">Todas las personas</SelectItem>
-                  {users.map((user) => (
+                  {users && users.length > 0 && users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name}
+                      {user.name || "Usuario sin nombre"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
             {activeView === "CLIENT" && (
-              <Select value={selectedBoardId} onValueChange={setSelectedBoardId}>
+              <Select value={selectedBoardId || ""} onValueChange={setSelectedBoardId}>
                 <SelectTrigger className="w-[250px] bg-[#1a1a1a] border-gray-800 text-white">
                   <SelectValue placeholder="Seleccionar cliente/board" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a1a] border-gray-800">
                   <SelectItem value="">Todos los clientes</SelectItem>
-                  {boards.map((board) => (
+                  {boards && boards.length > 0 && boards.map((board) => (
                     <SelectItem key={board.id} value={board.id}>
-                      {board.title}
+                      {board.title || "Board sin título"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -624,6 +628,16 @@ function PersonView({
   selectedUserId: string
   users: Array<{ id: string; name: string }>
 }) {
+  if (!sessions || sessions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+        <Users className="h-16 w-16 mb-4 opacity-50" />
+        <p>No hay sesiones de trabajo registradas</p>
+        <p className="text-sm mt-2">Registra jornadas desde los boards para ver estadísticas</p>
+      </div>
+    )
+  }
+
   const filteredSessions = selectedUserId
     ? sessions.filter(s => s && s.userId === selectedUserId)
     : sessions.filter(s => s != null)
