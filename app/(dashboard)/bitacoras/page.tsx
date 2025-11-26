@@ -29,6 +29,8 @@ interface Bitacora {
     totalTasks: number
     totalSessions: number
     avatarStyle: string
+    rank: string
+    guild: string
   } | null
   stats: {
     totalHours: number
@@ -67,22 +69,28 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
     return "text-gray-400"
   }
 
-  const getAvatarEmoji = (style: string) => {
-    if (style === "legend") return "👑"
-    if (style === "master") return "⭐"
-    if (style === "expert") return "🔥"
-    if (style === "advanced") return "💪"
-    if (style === "intermediate") return "🚀"
+  const getAvatarEmoji = (rank: string) => {
+    if (rank === "Leyenda") return "👑"
+    if (rank === "Maestro") return "⭐"
+    if (rank === "Experto") return "🔥"
+    if (rank === "Aprendiz") return "💪"
     return "🌱"
   }
 
-  const getAvatarColorClass = (style: string) => {
-    if (style === "legend") return "text-purple-400 border-purple-400 bg-purple-500/20"
-    if (style === "master") return "text-blue-400 border-blue-400 bg-blue-500/20"
-    if (style === "expert") return "text-green-400 border-green-400 bg-green-500/20"
-    if (style === "advanced") return "text-yellow-400 border-yellow-400 bg-yellow-500/20"
-    if (style === "intermediate") return "text-orange-400 border-orange-400 bg-orange-500/20"
-    return "text-gray-400 border-gray-400 bg-gray-500/20"
+  const getRankColorClass = (rank: string) => {
+    if (rank === "Leyenda") return "text-purple-400 border-purple-400 bg-gradient-to-br from-purple-500/30 to-purple-600/20"
+    if (rank === "Maestro") return "text-blue-400 border-blue-400 bg-gradient-to-br from-blue-500/30 to-blue-600/20"
+    if (rank === "Experto") return "text-green-400 border-green-400 bg-gradient-to-br from-green-500/30 to-green-600/20"
+    if (rank === "Aprendiz") return "text-yellow-400 border-yellow-400 bg-gradient-to-br from-yellow-500/30 to-yellow-600/20"
+    return "text-gray-400 border-gray-400 bg-gradient-to-br from-gray-500/30 to-gray-600/20"
+  }
+
+  const getGuildBadgeColor = (rank: string) => {
+    if (rank === "Leyenda") return "bg-purple-500/20 text-purple-300 border-purple-400"
+    if (rank === "Maestro") return "bg-blue-500/20 text-blue-300 border-blue-400"
+    if (rank === "Experto") return "bg-green-500/20 text-green-300 border-green-400"
+    if (rank === "Aprendiz") return "bg-yellow-500/20 text-yellow-300 border-yellow-400"
+    return "bg-gray-500/20 text-gray-300 border-gray-400"
   }
 
   return (
@@ -108,9 +116,14 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               <div className="flex-1">
                 <CardTitle className="text-white drop-shadow-lg text-xl font-bold flex items-center gap-2 mb-2">
                   {bitacora.avatar && (
-                    <span className="text-3xl">{getAvatarEmoji(bitacora.avatar.avatarStyle)}</span>
+                    <span className="text-4xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Novato")}</span>
                   )}
-                  {bitacora.title}
+                  <span className="flex-1">{bitacora.title}</span>
+                  {bitacora.avatar && bitacora.avatar.rank && (
+                    <span className={`text-xs px-2 py-1 rounded-full border ${getGuildBadgeColor(bitacora.avatar.rank)}`}>
+                      {bitacora.avatar.rank} {bitacora.avatar.guild || "I"}
+                    </span>
+                  )}
                 </CardTitle>
                 {bitacora.description && (
                   <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2 text-sm">{bitacora.description}</CardDescription>
@@ -140,28 +153,82 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
           </CardHeader>
           <CardContent className="bg-gradient-to-t from-black/90 via-black/80 to-black/70 backdrop-blur-md rounded-t-2xl mt-auto p-4 border-t border-white/10">
             {bitacora.avatar && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-10 w-10 rounded-full border-2 flex items-center justify-center text-xl ${getAvatarColorClass(bitacora.avatar.avatarStyle)}`}>
-                      {getAvatarEmoji(bitacora.avatar.avatarStyle)}
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-16 w-16 rounded-full border-3 flex items-center justify-center text-3xl shadow-lg ${getRankColorClass(bitacora.avatar.rank || "Novato")}`}>
+                      {getAvatarEmoji(bitacora.avatar.rank || "Novato")}
                     </div>
-                    <div>
-                      <span className="text-white font-bold text-sm">Nivel {bitacora.avatar.level}</span>
-                      <span className={`block text-xs font-semibold ${getLevelColor(bitacora.avatar.level)}`}>
-                        {bitacora.avatar.avatarStyle.toUpperCase()}
-                      </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white font-bold text-base">{bitacora.avatar.rank || "Novato"}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${getGuildBadgeColor(bitacora.avatar.rank || "Novato")}`}>
+                          Gremio {bitacora.avatar.guild || "I"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-300">
+                        <span>Nivel {bitacora.avatar.level}</span>
+                        <span className="text-yellow-400 font-bold">• {bitacora.avatar.experience} XP</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-yellow-400 font-bold text-sm">{bitacora.avatar.experience} XP</span>
                   </div>
                 </div>
-                <div className="w-full bg-gray-800/50 rounded-full h-2.5 overflow-hidden border border-gray-700">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-blue-400 h-full rounded-full transition-all shadow-lg shadow-blue-500/50"
-                    style={{ width: `${Math.min((bitacora.avatar.experience % 1000) / 10, 100)}%` }}
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Progreso al siguiente gremio</span>
+                    <span className="text-yellow-400 font-semibold">
+                      {(() => {
+                        const xp = bitacora.avatar.experience
+                        let nextThreshold = 100
+                        if (xp < 100) nextThreshold = 100
+                        else if (xp < 200) nextThreshold = 200
+                        else if (xp < 300) nextThreshold = 300
+                        else if (xp < 500) nextThreshold = 500
+                        else if (xp < 1000) nextThreshold = 1000
+                        else if (xp < 1500) nextThreshold = 1500
+                        else if (xp < 2000) nextThreshold = 2000
+                        else if (xp < 3000) nextThreshold = 3000
+                        else if (xp < 4000) nextThreshold = 4000
+                        else if (xp < 5000) nextThreshold = 5000
+                        else if (xp < 6500) nextThreshold = 6500
+                        else if (xp < 8000) nextThreshold = 8000
+                        else if (xp < 10000) nextThreshold = 10000
+                        else if (xp < 30000) nextThreshold = 30000
+                        else if (xp < 50000) nextThreshold = 50000
+                        else nextThreshold = 100000
+                        const progress = Math.min(100, ((xp % (nextThreshold / 10)) / (nextThreshold / 10)) * 100)
+                        return `${Math.round(progress)}%`
+                      })()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-800/70 rounded-full h-3 overflow-hidden border border-gray-700/50 shadow-inner">
+                    <div
+                      className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 h-full rounded-full transition-all duration-500 shadow-lg shadow-yellow-500/50"
+                      style={{ 
+                        width: `${(() => {
+                          const xp = bitacora.avatar.experience
+                          let nextThreshold = 100
+                          if (xp < 100) nextThreshold = 100
+                          else if (xp < 200) nextThreshold = 200
+                          else if (xp < 300) nextThreshold = 300
+                          else if (xp < 500) nextThreshold = 500
+                          else if (xp < 1000) nextThreshold = 1000
+                          else if (xp < 1500) nextThreshold = 1500
+                          else if (xp < 2000) nextThreshold = 2000
+                          else if (xp < 3000) nextThreshold = 3000
+                          else if (xp < 4000) nextThreshold = 4000
+                          else if (xp < 5000) nextThreshold = 5000
+                          else if (xp < 6500) nextThreshold = 6500
+                          else if (xp < 8000) nextThreshold = 8000
+                          else if (xp < 10000) nextThreshold = 10000
+                          else if (xp < 30000) nextThreshold = 30000
+                          else if (xp < 50000) nextThreshold = 50000
+                          else return 100
+                          return Math.min(100, ((xp % (nextThreshold / 10)) / (nextThreshold / 10)) * 100)
+                        })()}%` 
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

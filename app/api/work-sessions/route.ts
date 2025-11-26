@@ -23,13 +23,48 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     // Calcular nivel: cada 100 XP = 1 nivel
     const level = Math.floor(experience / 100) + 1
 
-    // Determinar estilo del avatar según nivel
+    // Determinar rango/gremio según XP TOTAL (no nivel)
+    // Rangos: Novato, Aprendiz, Experto, Maestro, Leyenda
+    // Gremios dentro de cada rango: I, II, III
+    let rank = "Novato" // Rango base
+    let guild = "I" // Gremio base
     let avatarStyle = "basic"
-    if (level >= 50) avatarStyle = "legend"
-    else if (level >= 30) avatarStyle = "master"
-    else if (level >= 15) avatarStyle = "expert"
-    else if (level >= 5) avatarStyle = "advanced"
-    else if (level >= 2) avatarStyle = "intermediate"
+    
+    if (experience >= 10000) {
+      rank = "Leyenda"
+      if (experience >= 50000) guild = "III"
+      else if (experience >= 30000) guild = "II"
+      else guild = "I"
+      avatarStyle = "legend"
+    } else if (experience >= 5000) {
+      rank = "Maestro"
+      if (experience >= 8000) guild = "III"
+      else if (experience >= 6500) guild = "II"
+      else guild = "I"
+      avatarStyle = "master"
+    } else if (experience >= 2000) {
+      rank = "Experto"
+      if (experience >= 4000) guild = "III"
+      else if (experience >= 3000) guild = "II"
+      else guild = "I"
+      avatarStyle = "expert"
+    } else if (experience >= 500) {
+      rank = "Aprendiz"
+      if (experience >= 1500) guild = "III"
+      else if (experience >= 1000) guild = "II"
+      else guild = "I"
+      avatarStyle = "advanced"
+    } else if (experience >= 100) {
+      rank = "Novato"
+      if (experience >= 300) guild = "III"
+      else if (experience >= 200) guild = "II"
+      else guild = "I"
+      avatarStyle = "intermediate"
+    } else {
+      rank = "Novato"
+      guild = "I"
+      avatarStyle = "basic"
+    }
 
     if (bitacora.avatar) {
       await prisma.bitacoraAvatar.update({
@@ -41,6 +76,8 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalTasks,
           totalSessions,
           avatarStyle,
+          rank,
+          guild,
         },
       })
     } else {
@@ -53,6 +90,8 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalTasks,
           totalSessions,
           avatarStyle,
+          rank,
+          guild,
         },
       })
     }

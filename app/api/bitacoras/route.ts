@@ -119,6 +119,8 @@ export async function POST(request: Request) {
         totalTasks: 0,
         totalSessions: 0,
         avatarStyle: "basic",
+        rank: "Novato",
+        guild: "I",
       },
     })
 
