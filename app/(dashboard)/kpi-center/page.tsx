@@ -72,7 +72,18 @@ export default function KPICenterPage() {
   const [selectedBoardId, setSelectedBoardId] = useState<string>("")
   const [users, setUsers] = useState<Array<{ id: string; name: string }>>([])
   const [boards, setBoards] = useState<Array<{ id: string; title: string }>>([])
-  const [kpiData, setKpiData] = useState<KPIData | null>(null)
+  const [kpiData, setKpiData] = useState<KPIData>({
+    totalHoursToday: 0,
+    totalHoursWeek: 0,
+    totalHoursMonth: 0,
+    tasksCompletedToday: 0,
+    tasksCompletedWeek: 0,
+    averageHoursPerPerson: 0,
+    topClients: [],
+    hoursByPerson: [],
+    hoursByDay: [],
+    hoursByWorkType: [],
+  })
 
   useEffect(() => {
     fetchSessions()
@@ -255,9 +266,10 @@ export default function KPICenterPage() {
     last7Days.forEach(date => hoursByDayMap.set(date, 0))
     
     weekSessions.forEach(s => {
+      if (!s || !s.date) return
       const date = new Date(s.date).toISOString().split('T')[0]
       const existing = hoursByDayMap.get(date) || 0
-      hoursByDayMap.set(date, existing + s.durationMinutes / 60)
+      hoursByDayMap.set(date, existing + (s.durationMinutes || 0) / 60)
     })
     const hoursByDay = Array.from(hoursByDayMap.entries())
       .map(([date, hours]) => ({ date, hours }))
@@ -375,19 +387,19 @@ export default function KPICenterPage() {
             </div>
           ) : (
             <>
-              {activeView === "OVERVIEW" && kpiData && (
+              {activeView === "OVERVIEW" && (
                 <OverviewView kpiData={kpiData} />
               )}
               {activeView === "PERSON" && (
                 <PersonView 
-                  sessions={sessions} 
+                  sessions={sessions || []} 
                   selectedUserId={selectedUserId}
                   users={users}
                 />
               )}
               {activeView === "CLIENT" && (
                 <ClientView 
-                  sessions={sessions} 
+                  sessions={sessions || []} 
                   selectedBoardId={selectedBoardId}
                   boards={boards}
                 />
@@ -402,6 +414,18 @@ export default function KPICenterPage() {
 
 // Vista de Resumen General
 function OverviewView({ kpiData }: { kpiData: KPIData }) {
+  const hasData = kpiData.totalHoursWeek > 0 || kpiData.topClients.length > 0 || kpiData.hoursByPerson.length > 0
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+        <BarChart3 className="h-16 w-16 mb-4 opacity-50" />
+        <p className="text-lg mb-2">No hay datos aún</p>
+        <p className="text-sm">Registra jornadas de trabajo desde los boards para ver estadísticas aquí</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* KPIs principales */}
@@ -458,27 +482,34 @@ function OverviewView({ kpiData }: { kpiData: KPIData }) {
           <CardTitle className="text-white">Top 5 Clientes/Proyectos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {kpiData.topClients.map((client, index) => (
-              <div key={client.boardId} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">
-                    {index + 1}
+          {kpiData.topClients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+              <Building2 className="h-12 w-12 mb-2 opacity-50" />
+              <p>No hay datos de clientes aún</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {kpiData.topClients.map((client, index) => (
+                <div key={client.boardId} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">{client.boardTitle}</p>
+                      <p className="text-xs text-gray-400">{client.hours.toFixed(1)} horas</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-medium">{client.boardTitle}</p>
-                    <p className="text-xs text-gray-400">{client.hours.toFixed(1)} horas</p>
+                  <div className="w-32 bg-gray-800 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{ width: `${kpiData.topClients[0]?.hours > 0 ? (client.hours / kpiData.topClients[0].hours) * 100 : 0}%` }}
+                    />
                   </div>
                 </div>
-                <div className="w-32 bg-gray-800 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: `${(client.hours / kpiData.topClients[0].hours) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -488,25 +519,32 @@ function OverviewView({ kpiData }: { kpiData: KPIData }) {
           <CardTitle className="text-white">Horas por Persona (Últimos 30 días)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {kpiData.hoursByPerson.slice(0, 10).map((person) => (
-              <div key={person.userId} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-blue-400" />
-                  <p className="text-white font-medium">{person.userName}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <p className="text-white font-bold">{person.hours.toFixed(1)}h</p>
-                  <div className="w-32 bg-gray-800 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full"
-                      style={{ width: `${(person.hours / (kpiData.hoursByPerson[0]?.hours || 1)) * 100}%` }}
-                    />
+          {kpiData.hoursByPerson.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+              <Users className="h-12 w-12 mb-2 opacity-50" />
+              <p>No hay datos de personas aún</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {kpiData.hoursByPerson.slice(0, 10).map((person) => (
+                <div key={person.userId} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-blue-400" />
+                    <p className="text-white font-medium">{person.userName}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-white font-bold">{person.hours.toFixed(1)}h</p>
+                    <div className="w-32 bg-gray-800 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{ width: `${(person.hours / (kpiData.hoursByPerson[0]?.hours || 1)) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -544,25 +582,32 @@ function OverviewView({ kpiData }: { kpiData: KPIData }) {
           <CardTitle className="text-white">Horas por Tipo de Trabajo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {kpiData.hoursByWorkType.map((type) => (
-              <div key={type.type} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Activity className="h-5 w-5 text-purple-400" />
-                  <p className="text-white font-medium capitalize">{type.type}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <p className="text-white font-bold">{type.hours.toFixed(1)}h</p>
-                  <div className="w-32 bg-gray-800 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full"
-                      style={{ width: `${(type.hours / (kpiData.hoursByWorkType[0]?.hours || 1)) * 100}%` }}
-                    />
+          {kpiData.hoursByWorkType.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+              <Activity className="h-12 w-12 mb-2 opacity-50" />
+              <p>No hay datos de tipos de trabajo aún</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {kpiData.hoursByWorkType.map((type) => (
+                <div key={type.type} className="flex items-center justify-between p-3 bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Activity className="h-5 w-5 text-purple-400" />
+                    <p className="text-white font-medium capitalize">{type.type}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-white font-bold">{type.hours.toFixed(1)}h</p>
+                    <div className="w-32 bg-gray-800 rounded-full h-2">
+                      <div
+                        className="bg-purple-500 h-2 rounded-full"
+                        style={{ width: `${(type.hours / (kpiData.hoursByWorkType[0]?.hours || 1)) * 100}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
