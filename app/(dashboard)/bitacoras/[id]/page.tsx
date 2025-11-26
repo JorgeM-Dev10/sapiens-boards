@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
+import { XPNotification } from "@/components/gamification/xp-notification"
 
 interface WorkSession {
   id: string
@@ -51,6 +52,7 @@ interface Bitacora {
     totalTasks: number
     totalSessions: number
     avatarStyle: string
+    rank: string
   } | null
   workSessions: WorkSession[]
 }
@@ -64,6 +66,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [xpNotification, setXpNotification] = useState<{
+    xpGained: number
+    totalXP: number
+    levelUp: boolean
+    rankUp: string | null
+  } | null>(null)
   const [commitForm, setCommitForm] = useState({
     date: new Date().toISOString().split('T')[0],
     startTime: "09:00",
@@ -137,9 +145,25 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       })
 
       if (response.ok) {
+        const data = await response.json()
+        
+        // Calcular si hubo subida de nivel o rango
+        const levelUp = data.newLevel > data.previousLevel
+        const rankUp = data.newRank !== data.previousRank ? data.newRank : null
+        
+        // Mostrar notificación de XP
+        if (data.xpGained > 0) {
+          setXpNotification({
+            xpGained: data.xpGained,
+            totalXP: data.previousXP + data.xpGained,
+            levelUp,
+            rankUp,
+          })
+        }
+        
         toast({
           title: "Éxito",
-          description: "Commit registrado correctamente",
+          description: `Commit registrado! +${data.xpGained || 0} XP ganados`,
         })
         setIsCommitDialogOpen(false)
         setCommitForm({
@@ -235,8 +259,59 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   return (
     <div className="flex h-screen flex-col bg-black text-white">
       <Header />
+      {xpNotification && (
+        <XPNotification
+          xpGained={xpNotification.xpGained}
+          totalXP={xpNotification.totalXP}
+          levelUp={xpNotification.levelUp}
+          rankUp={xpNotification.rankUp || undefined}
+          onClose={() => setXpNotification(null)}
+        />
+      )}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl">
+          {/* Sistema de XP - Documentación */}
+          <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
+                  ⭐
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-bold text-lg mb-2">Sistema de Experiencia (XP)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className="bg-black/40 rounded-lg p-3 border border-blue-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-blue-400" />
+                        <span className="text-blue-400 font-semibold">Por Hora</span>
+                      </div>
+                      <p className="text-gray-300">1 XP por cada hora trabajada</p>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-green-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span className="text-green-400 font-semibold">Por Tarea</span>
+                      </div>
+                      <p className="text-gray-300">10 XP por cada tarea completada</p>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-purple-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-purple-400" />
+                        <span className="text-purple-400 font-semibold">Por Sesión</span>
+                      </div>
+                      <p className="text-gray-300">5 XP por cada commit registrado</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <p className="text-xs text-gray-400">
+                      <span className="text-yellow-400 font-semibold">Niveles:</span> Principiante (0-499 XP) • Intermedio (500-1999 XP) • Avanzado (2000-4999 XP) • Épico (5000-9999 XP) • Leyenda (10000+ XP)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Header con Avatar */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">

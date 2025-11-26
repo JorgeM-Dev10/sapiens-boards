@@ -17,7 +17,10 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
     const totalSessions = bitacora.workSessions.length
 
-    // Calcular experiencia: 1 XP por hora, 10 XP por tarea, 5 XP por sesión
+    // Sistema de Experiencia (XP):
+    // - 1 XP por cada hora trabajada (redondeado hacia abajo)
+    // - 10 XP por cada tarea completada
+    // - 5 XP por cada sesión/commit registrado
     const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
     
     // Calcular nivel: cada 100 XP = 1 nivel
@@ -259,11 +262,55 @@ export async function POST(request: Request) {
     })
 
     // Actualizar avatar si es una sesión de bitácora
+    let xpGained = 0
+    let previousXP = 0
+    let previousLevel = 1
+    let previousRank = "Principiante"
+    let newLevel = 1
+    let newRank = "Principiante"
+    
     if (bitacoraBoardId) {
+      // Obtener estado anterior
+      const bitacoraBefore = await prisma.bitacoraBoard.findUnique({
+        where: { id: bitacoraBoardId },
+        include: { avatar: true, workSessions: true },
+      })
+      
+      if (bitacoraBefore?.avatar) {
+        previousXP = bitacoraBefore.avatar.experience
+        previousLevel = bitacoraBefore.avatar.level
+        previousRank = bitacoraBefore.avatar.rank || "Principiante"
+      }
+      
+      // Calcular XP ganada en este commit
+      // Sistema de XP: 1 XP por hora, 10 XP por tarea, 5 XP por sesión
+      const hoursGained = durationMinutes / 60
+      const tasksGained = tasksCompleted || 0
+      xpGained = Math.floor(hoursGained) + (tasksGained * 10) + 5
+      
       await updateBitacoraAvatar(bitacoraBoardId, durationMinutes, tasksCompleted || 0)
+      
+      // Obtener estado nuevo
+      const bitacoraAfter = await prisma.bitacoraBoard.findUnique({
+        where: { id: bitacoraBoardId },
+        include: { avatar: true },
+      })
+      
+      if (bitacoraAfter?.avatar) {
+        newLevel = bitacoraAfter.avatar.level
+        newRank = bitacoraAfter.avatar.rank || "Principiante"
+      }
     }
 
-    return NextResponse.json(sessionData)
+    return NextResponse.json({
+      ...sessionData,
+      xpGained,
+      previousXP,
+      previousLevel,
+      previousRank,
+      newLevel,
+      newRank,
+    })
   } catch (error) {
     console.error("Error creating work session:", error)
     return NextResponse.json(
