@@ -219,19 +219,19 @@ export default function EstadisticasPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-end gap-3 h-64">
+                  <div className="flex items-end gap-2 h-48">
                     {hoursByDay.map((day) => (
                       <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="w-full bg-gray-800 rounded-t flex flex-col justify-end relative group" style={{ height: '240px' }}>
+                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '180px' }}>
                           <div
-                            className="bg-gradient-to-t from-blue-600 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:to-blue-300 cursor-pointer"
+                            className="bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 cursor-pointer shadow-lg shadow-blue-500/30"
                             style={{ 
                               height: `${(day.hours / maxHours) * 100}%`,
                               minHeight: day.hours > 0 ? '4px' : '0'
                             }}
                           />
                           {day.hours > 0 && (
-                            <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                            <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/95 backdrop-blur-sm text-white text-xs px-2 py-1 rounded border border-gray-700 whitespace-nowrap z-10 shadow-lg">
                               {day.hours.toFixed(1)}h
                             </div>
                           )}
@@ -269,9 +269,9 @@ export default function EstadisticasPage() {
                               <span className="text-white font-medium capitalize">{type.type}</span>
                               <span className="text-white font-bold">{type.hours.toFixed(1)}h</span>
                             </div>
-                            <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
                               <div
-                                className="bg-gradient-to-r from-purple-600 to-purple-400 h-full rounded-full transition-all"
+                                className="bg-gradient-to-r from-purple-600 via-purple-500 to-purple-400 h-full rounded-full transition-all shadow-lg shadow-purple-500/30"
                                 style={{ width: `${(type.hours / maxWorkTypeHours) * 100}%` }}
                               />
                             </div>
@@ -302,16 +302,16 @@ export default function EstadisticasPage() {
                           <div key={bitacora.title} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold text-xs shadow-lg">
                                   {index + 1}
                                 </div>
                                 <span className="text-white font-medium">{bitacora.title}</span>
                               </div>
                               <span className="text-white font-bold">{bitacora.hours.toFixed(1)}h</span>
                             </div>
-                            <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
                               <div
-                                className="bg-gradient-to-r from-green-600 to-green-400 h-full rounded-full transition-all"
+                                className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 h-full rounded-full transition-all shadow-lg shadow-green-500/30"
                                 style={{ width: `${(bitacora.hours / maxBitacoraHours) * 100}%` }}
                               />
                             </div>

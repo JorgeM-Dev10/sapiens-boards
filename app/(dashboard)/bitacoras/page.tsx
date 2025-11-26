@@ -30,7 +30,6 @@ interface Bitacora {
     totalSessions: number
     avatarStyle: string
     rank: string
-    guild: string
   } | null
   stats: {
     totalHours: number
@@ -71,32 +70,32 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
 
   const getAvatarEmoji = (rank: string) => {
     if (rank === "Leyenda") return "👑"
-    if (rank === "Maestro") return "⭐"
-    if (rank === "Experto") return "🔥"
-    if (rank === "Aprendiz") return "💪"
+    if (rank === "Épico") return "⭐"
+    if (rank === "Avanzado") return "🔥"
+    if (rank === "Intermedio") return "💪"
     return "🌱"
   }
 
   const getRankColorClass = (rank: string) => {
     if (rank === "Leyenda") return "text-purple-400 border-purple-400 bg-gradient-to-br from-purple-500/30 to-purple-600/20"
-    if (rank === "Maestro") return "text-blue-400 border-blue-400 bg-gradient-to-br from-blue-500/30 to-blue-600/20"
-    if (rank === "Experto") return "text-green-400 border-green-400 bg-gradient-to-br from-green-500/30 to-green-600/20"
-    if (rank === "Aprendiz") return "text-yellow-400 border-yellow-400 bg-gradient-to-br from-yellow-500/30 to-yellow-600/20"
+    if (rank === "Épico") return "text-blue-400 border-blue-400 bg-gradient-to-br from-blue-500/30 to-blue-600/20"
+    if (rank === "Avanzado") return "text-green-400 border-green-400 bg-gradient-to-br from-green-500/30 to-green-600/20"
+    if (rank === "Intermedio") return "text-yellow-400 border-yellow-400 bg-gradient-to-br from-yellow-500/30 to-yellow-600/20"
     return "text-gray-400 border-gray-400 bg-gradient-to-br from-gray-500/30 to-gray-600/20"
   }
 
-  const getGuildBadgeColor = (rank: string) => {
+  const getRankBadgeColor = (rank: string) => {
     if (rank === "Leyenda") return "bg-purple-500/20 text-purple-300 border-purple-400"
-    if (rank === "Maestro") return "bg-blue-500/20 text-blue-300 border-blue-400"
-    if (rank === "Experto") return "bg-green-500/20 text-green-300 border-green-400"
-    if (rank === "Aprendiz") return "bg-yellow-500/20 text-yellow-300 border-yellow-400"
+    if (rank === "Épico") return "bg-blue-500/20 text-blue-300 border-blue-400"
+    if (rank === "Avanzado") return "bg-green-500/20 text-green-300 border-green-400"
+    if (rank === "Intermedio") return "bg-yellow-500/20 text-yellow-300 border-yellow-400"
     return "bg-gray-500/20 text-gray-300 border-gray-400"
   }
 
   return (
     <div ref={setNodeRef} style={style} className="relative">
       <Card
-        className={`cursor-pointer border-2 border-gray-800 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-96 ${
+        className={`cursor-pointer border-2 border-gray-800 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-[28rem] ${
           isDragging ? 'ring-2 ring-blue-500 scale-105' : ''
         }`}
         style={{
@@ -116,12 +115,12 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               <div className="flex-1">
                 <CardTitle className="text-white drop-shadow-lg text-xl font-bold flex items-center gap-2 mb-2">
                   {bitacora.avatar && (
-                    <span className="text-4xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Novato")}</span>
+                    <span className="text-5xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Principiante")}</span>
                   )}
                   <span className="flex-1">{bitacora.title}</span>
                   {bitacora.avatar && bitacora.avatar.rank && (
-                    <span className={`text-xs px-2 py-1 rounded-full border ${getGuildBadgeColor(bitacora.avatar.rank)}`}>
-                      {bitacora.avatar.rank} {bitacora.avatar.guild || "I"}
+                    <span className={`text-sm px-3 py-1.5 rounded-full border font-semibold ${getRankBadgeColor(bitacora.avatar.rank)}`}>
+                      {bitacora.avatar.rank}
                     </span>
                   )}
                 </CardTitle>
@@ -156,15 +155,12 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               <div className="mb-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`h-16 w-16 rounded-full border-3 flex items-center justify-center text-3xl shadow-lg ${getRankColorClass(bitacora.avatar.rank || "Novato")}`}>
-                      {getAvatarEmoji(bitacora.avatar.rank || "Novato")}
+                    <div className={`h-20 w-20 rounded-full border-3 flex items-center justify-center text-4xl shadow-lg ${getRankColorClass(bitacora.avatar.rank || "Principiante")}`}>
+                      {getAvatarEmoji(bitacora.avatar.rank || "Principiante")}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-bold text-base">{bitacora.avatar.rank || "Novato"}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${getGuildBadgeColor(bitacora.avatar.rank || "Novato")}`}>
-                          Gremio {bitacora.avatar.guild || "I"}
-                        </span>
+                        <span className="text-white font-bold text-lg">{bitacora.avatar.rank || "Principiante"}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-300">
                         <span>Nivel {bitacora.avatar.level}</span>
@@ -175,7 +171,7 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>Progreso al siguiente gremio</span>
+                    <span>Progreso al siguiente nivel</span>
                     <span className="text-yellow-400 font-semibold">
                       {(() => {
                         const xp = bitacora.avatar.experience
@@ -207,24 +203,14 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                       style={{ 
                         width: `${(() => {
                           const xp = bitacora.avatar.experience
-                          let nextThreshold = 100
-                          if (xp < 100) nextThreshold = 100
-                          else if (xp < 200) nextThreshold = 200
-                          else if (xp < 300) nextThreshold = 300
-                          else if (xp < 500) nextThreshold = 500
-                          else if (xp < 1000) nextThreshold = 1000
-                          else if (xp < 1500) nextThreshold = 1500
+                          let nextThreshold = 500
+                          if (xp < 500) nextThreshold = 500
                           else if (xp < 2000) nextThreshold = 2000
-                          else if (xp < 3000) nextThreshold = 3000
-                          else if (xp < 4000) nextThreshold = 4000
                           else if (xp < 5000) nextThreshold = 5000
-                          else if (xp < 6500) nextThreshold = 6500
-                          else if (xp < 8000) nextThreshold = 8000
                           else if (xp < 10000) nextThreshold = 10000
-                          else if (xp < 30000) nextThreshold = 30000
-                          else if (xp < 50000) nextThreshold = 50000
                           else return 100
-                          return Math.min(100, ((xp % (nextThreshold / 10)) / (nextThreshold / 10)) * 100)
+                          const currentLevelStart = xp < 500 ? 0 : xp < 2000 ? 500 : xp < 5000 ? 2000 : xp < 10000 ? 5000 : 10000
+                          return Math.min(100, ((xp - currentLevelStart) / (nextThreshold - currentLevelStart)) * 100)
                         })()}%` 
                       }}
                     />

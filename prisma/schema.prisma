@@ -327,8 +327,7 @@ model BitacoraAvatar {
   totalTasks      Int      @default(0) // Tareas completadas
   totalSessions   Int      @default(0) // Sesiones registradas
   avatarStyle     String   @default("basic") // Estilo del avatar según nivel
-  rank            String   @default("Novato") // Rango: Novato, Aprendiz, Experto, Maestro, Leyenda
-  guild           String   @default("I") // Gremio: I, II, III
+  rank            String   @default("Principiante") // Nivel: Principiante, Intermedio, Avanzado, Épico, Leyenda
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
