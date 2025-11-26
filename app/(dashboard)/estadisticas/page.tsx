@@ -218,40 +218,44 @@ export default function EstadisticasPage() {
                     Horas por Día (Últimos 7 días)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-end justify-center gap-4 h-40 px-4">
-                    {hoursByDay.map((day) => (
-                      <div key={day.date} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
-                        <div className="w-full flex flex-col items-center gap-1">
-                          {day.hours > 0 && (
-                            <div className="text-xs text-blue-400 font-semibold mb-1">
-                              {day.hours.toFixed(1)}h
-                            </div>
-                          )}
-                          <div className="w-full bg-gray-800/30 rounded-lg flex flex-col justify-end relative group border border-gray-700/50" style={{ height: '140px', minHeight: '140px' }}>
+                <CardContent className="py-6">
+                  <div className="flex items-end justify-between gap-2 h-48">
+                    {hoursByDay.map((day) => {
+                      const barHeight = day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 5) : 2
+                      return (
+                        <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
+                          {/* Valor de horas arriba */}
+                          <div className={`text-xs font-bold transition-opacity ${day.hours > 0 ? 'text-blue-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
+                            {day.hours.toFixed(1)}h
+                          </div>
+                          
+                          {/* Barra */}
+                          <div 
+                            className="w-full rounded-t-lg transition-all duration-300 relative"
+                            style={{ 
+                              height: `${barHeight}%`,
+                              minHeight: day.hours > 0 ? '20px' : '4px',
+                              maxHeight: '100%'
+                            }}
+                          >
                             <div
-                              className={`w-full rounded-lg transition-all duration-300 cursor-pointer ${
+                              className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
                                 day.hours > 0 
-                                  ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 shadow-lg shadow-blue-500/40' 
-                                  : 'bg-gray-700/30'
+                                  ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 shadow-lg shadow-blue-500/50 border-t-2 border-blue-300/50' 
+                                  : 'bg-gray-700/20 border-t border-gray-600/30'
                               }`}
-                              style={{ 
-                                height: `${day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 8) : 4}%`,
-                                minHeight: day.hours > 0 ? '8px' : '4px'
-                              }}
                             />
                           </div>
+                          
+                          {/* Día de la semana */}
+                          <div className="text-center pt-1">
+                            <p className="text-xs text-gray-400 font-medium">
+                              {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-center mt-1">
-                          <p className="text-xs text-gray-400 font-medium">
-                            {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                          </p>
-                          {day.hours === 0 && (
-                            <p className="text-xs text-gray-500 mt-0.5">0.0h</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
