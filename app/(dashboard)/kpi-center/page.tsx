@@ -80,15 +80,11 @@ export default function KPICenterPage() {
   }, [selectedUserId, selectedBoardId])
 
   useEffect(() => {
-    if (sessions.length > 0) {
-      fetchUsers()
-    }
+    fetchUsers()
   }, [sessions])
 
   useEffect(() => {
-    if (sessions.length > 0) {
-      calculateKPIs()
-    }
+    calculateKPIs()
   }, [sessions])
 
   const fetchSessions = async () => {
@@ -126,17 +122,20 @@ export default function KPICenterPage() {
     try {
       // Obtener usuarios únicos de las sesiones
       const uniqueUsers = new Map<string, { id: string; name: string }>()
-      sessions.forEach(s => {
-        if (!uniqueUsers.has(s.userId)) {
-          uniqueUsers.set(s.userId, {
-            id: s.userId,
-            name: s.user.name
-          })
-        }
-      })
+      if (sessions && sessions.length > 0) {
+        sessions.forEach(s => {
+          if (s && s.user && s.userId && !uniqueUsers.has(s.userId)) {
+            uniqueUsers.set(s.userId, {
+              id: s.userId,
+              name: s.user.name || "Usuario desconocido"
+            })
+          }
+        })
+      }
       setUsers(Array.from(uniqueUsers.values()))
     } catch (error) {
       console.error("Error fetching users:", error)
+      setUsers([])
     }
   }
 
@@ -153,6 +152,22 @@ export default function KPICenterPage() {
   }
 
   const calculateKPIs = () => {
+    if (!sessions || sessions.length === 0) {
+      setKpiData({
+        totalHoursToday: 0,
+        totalHoursWeek: 0,
+        totalHoursMonth: 0,
+        tasksCompletedToday: 0,
+        tasksCompletedWeek: 0,
+        averageHoursPerPerson: 0,
+        topClients: [],
+        hoursByPerson: [],
+        hoursByDay: [],
+        hoursByWorkType: [],
+      })
+      return
+    }
+
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const weekAgo = new Date(today)
@@ -160,18 +175,20 @@ export default function KPICenterPage() {
     const monthAgo = new Date(today)
     monthAgo.setMonth(monthAgo.getMonth() - 1)
 
-    // Filtrar sesiones
-    const todaySessions = sessions.filter(s => {
+    // Filtrar sesiones válidas
+    const validSessions = sessions.filter(s => s && s.date && s.durationMinutes != null)
+    
+    const todaySessions = validSessions.filter(s => {
       const sessionDate = new Date(s.date)
       return sessionDate >= today
     })
 
-    const weekSessions = sessions.filter(s => {
+    const weekSessions = validSessions.filter(s => {
       const sessionDate = new Date(s.date)
       return sessionDate >= weekAgo
     })
 
-    const monthSessions = sessions.filter(s => {
+    const monthSessions = validSessions.filter(s => {
       const sessionDate = new Date(s.date)
       return sessionDate >= monthAgo
     })
@@ -187,15 +204,16 @@ export default function KPICenterPage() {
 
     // Horas por persona
     const hoursByPersonMap = new Map<string, { userId: string; userName: string; hours: number }>()
-    sessions.forEach(s => {
-      const hours = s.durationMinutes / 60
+    validSessions.forEach(s => {
+      if (!s.user) return
+      const hours = (s.durationMinutes || 0) / 60
       const existing = hoursByPersonMap.get(s.userId)
       if (existing) {
         existing.hours += hours
       } else {
         hoursByPersonMap.set(s.userId, {
           userId: s.userId,
-          userName: s.user.name,
+          userName: s.user.name || "Usuario desconocido",
           hours
         })
       }
@@ -209,15 +227,16 @@ export default function KPICenterPage() {
 
     // Top clientes/boards
     const hoursByBoardMap = new Map<string, { boardId: string; boardTitle: string; hours: number }>()
-    sessions.forEach(s => {
-      const hours = s.durationMinutes / 60
+    validSessions.forEach(s => {
+      if (!s.board) return
+      const hours = (s.durationMinutes || 0) / 60
       const existing = hoursByBoardMap.get(s.boardId)
       if (existing) {
         existing.hours += hours
       } else {
         hoursByBoardMap.set(s.boardId, {
           boardId: s.boardId,
-          boardTitle: s.board.title,
+          boardTitle: s.board.title || "Board desconocido",
           hours
         })
       }
@@ -246,10 +265,11 @@ export default function KPICenterPage() {
 
     // Horas por tipo de trabajo
     const hoursByWorkTypeMap = new Map<string, number>()
-    sessions.forEach(s => {
-      const hours = s.durationMinutes / 60
-      const existing = hoursByWorkTypeMap.get(s.workType) || 0
-      hoursByWorkTypeMap.set(s.workType, existing + hours)
+    validSessions.forEach(s => {
+      const hours = (s.durationMinutes || 0) / 60
+      const workType = s.workType || "dev"
+      const existing = hoursByWorkTypeMap.get(workType) || 0
+      hoursByWorkTypeMap.set(workType, existing + hours)
     })
     const hoursByWorkType = Array.from(hoursByWorkTypeMap.entries())
       .map(([type, hours]) => ({ type, hours }))
@@ -560,8 +580,8 @@ function PersonView({
   users: Array<{ id: string; name: string }>
 }) {
   const filteredSessions = selectedUserId
-    ? sessions.filter(s => s.userId === selectedUserId)
-    : sessions
+    ? sessions.filter(s => s && s.userId === selectedUserId)
+    : sessions.filter(s => s != null)
 
   const userStats = new Map<string, {
     userId: string
@@ -573,25 +593,27 @@ function PersonView({
   }>()
 
   filteredSessions.forEach(s => {
+    if (!s || !s.user || !s.board) return
+    
     const stats = userStats.get(s.userId) || {
       userId: s.userId,
-      userName: s.user.name,
+      userName: s.user.name || "Usuario desconocido",
       totalHours: 0,
       tasksCompleted: 0,
       sessionsCount: 0,
       boards: new Map()
     }
     
-    stats.totalHours += s.durationMinutes / 60
-    stats.tasksCompleted += s.tasksCompleted
+    stats.totalHours += (s.durationMinutes || 0) / 60
+    stats.tasksCompleted += s.tasksCompleted || 0
     stats.sessionsCount += 1
 
     const boardHours = stats.boards.get(s.boardId) || {
       boardId: s.boardId,
-      boardTitle: s.board.title,
+      boardTitle: s.board.title || "Board desconocido",
       hours: 0
     }
-    boardHours.hours += s.durationMinutes / 60
+    boardHours.hours += (s.durationMinutes || 0) / 60
     stats.boards.set(s.boardId, boardHours)
 
     userStats.set(s.userId, stats)
@@ -661,8 +683,8 @@ function ClientView({
   boards: Array<{ id: string; title: string }>
 }) {
   const filteredSessions = selectedBoardId
-    ? sessions.filter(s => s.boardId === selectedBoardId)
-    : sessions
+    ? sessions.filter(s => s && s.boardId === selectedBoardId)
+    : sessions.filter(s => s != null)
 
   const boardStats = new Map<string, {
     boardId: string
@@ -674,25 +696,27 @@ function ClientView({
   }>()
 
   filteredSessions.forEach(s => {
+    if (!s || !s.user || !s.board) return
+    
     const stats = boardStats.get(s.boardId) || {
       boardId: s.boardId,
-      boardTitle: s.board.title,
+      boardTitle: s.board.title || "Board desconocido",
       totalHours: 0,
       tasksCompleted: 0,
       sessionsCount: 0,
       people: new Map()
     }
     
-    stats.totalHours += s.durationMinutes / 60
-    stats.tasksCompleted += s.tasksCompleted
+    stats.totalHours += (s.durationMinutes || 0) / 60
+    stats.tasksCompleted += s.tasksCompleted || 0
     stats.sessionsCount += 1
 
     const personHours = stats.people.get(s.userId) || {
       userId: s.userId,
-      userName: s.user.name,
+      userName: s.user.name || "Usuario desconocido",
       hours: 0
     }
-    personHours.hours += s.durationMinutes / 60
+    personHours.hours += (s.durationMinutes || 0) / 60
     stats.people.set(s.userId, personHours)
 
     boardStats.set(s.boardId, stats)
