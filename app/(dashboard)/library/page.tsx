@@ -720,7 +720,10 @@ export default function LibraryPage() {
                       </div>
                       {/* Overlay con play/view button - solo para videos */}
                       {item.type === "VIDEO" && (
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div 
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                          onClick={() => handleViewItem(item)}
+                        >
                           <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 transform hover:scale-110 transition-transform">
                             <Play className="h-8 w-8 text-white" fill="white" />
                           </div>
@@ -728,7 +731,10 @@ export default function LibraryPage() {
                       )}
                       {/* Overlay para PDFs y documentos */}
                       {(item.type === "PDF" || item.type === "DOCUMENT" || item.type === "LINK") && (
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div 
+                          className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                          onClick={() => handleViewItem(item)}
+                        >
                           <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 transform hover:scale-105 transition-transform">
                             <p className="text-white text-sm font-medium">Ver {item.type === "PDF" ? "PDF" : item.type === "DOCUMENT" ? "Documento" : "Enlace"}</p>
                           </div>
