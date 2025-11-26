@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Filter, Trophy, Eye, BookOpen, Star, TrendingUp } from "lucide-react"
+import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Trophy, Eye, BookOpen, Star, TrendingUp, GraduationCap, FileImage, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -43,18 +43,32 @@ export default function LibraryPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingItem, setEditingItem] = useState<LibraryItem | null>(null)
   const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
-  const [selectedType, setSelectedType] = useState<string>("ALL")
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL")
+  const [activeTab, setActiveTab] = useState<"CURSOS" | "DIAGRAMAS" | "DOCUMENTOS">("CURSOS")
   const [categories, setCategories] = useState<string[]>([])
   const [viewedItems, setViewedItems] = useState<Set<string>>(new Set())
   const [newItem, setNewItem] = useState({
     title: "",
     description: "",
     url: "",
-    type: "VIDEO",
+    type: "VIDEO", // Se ajustará según activeTab
     category: "",
     thumbnail: "",
   })
+
+  // Ajustar tipo cuando cambia el tab
+  useEffect(() => {
+    switch (activeTab) {
+      case "CURSOS":
+        setNewItem(prev => ({ ...prev, type: "VIDEO" }))
+        break
+      case "DIAGRAMAS":
+        setNewItem(prev => ({ ...prev, type: "PDF" }))
+        break
+      case "DOCUMENTOS":
+        setNewItem(prev => ({ ...prev, type: "DOCUMENT" }))
+        break
+    }
+  }, [activeTab])
 
   // Cargar recursos vistos desde localStorage
   useEffect(() => {
@@ -70,7 +84,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     filterItems()
-  }, [libraryItems, selectedType, selectedCategory])
+  }, [libraryItems, activeTab])
 
   const fetchLibraryItems = async () => {
     try {
@@ -99,12 +113,22 @@ export default function LibraryPage() {
   const filterItems = () => {
     let filtered = [...libraryItems]
 
-    if (selectedType !== "ALL") {
-      filtered = filtered.filter((item) => item.type === selectedType)
-    }
-
-    if (selectedCategory !== "ALL") {
-      filtered = filtered.filter((item) => item.category === selectedCategory)
+    // Filtrar según el tab activo
+    switch (activeTab) {
+      case "CURSOS":
+        // Solo videos
+        filtered = filtered.filter((item) => item.type === "VIDEO")
+        break
+      case "DIAGRAMAS":
+        // Solo PDFs (diagramas de procesos)
+        filtered = filtered.filter((item) => item.type === "PDF")
+        break
+      case "DOCUMENTOS":
+        // Documentos generales (DOCUMENT y LINK)
+        filtered = filtered.filter((item) => 
+          item.type === "DOCUMENT" || item.type === "LINK"
+        )
+        break
     }
 
     setFilteredItems(filtered)
@@ -326,11 +350,15 @@ export default function LibraryPage() {
     }
   }
 
-  const getViewedCount = () => viewedItems.size
-  const getTotalCount = () => libraryItems.length
+  const getViewedCount = () => {
+    // Contar solo los vistos del tab actual
+    return filteredItems.filter(item => viewedItems.has(item.id)).length
+  }
+  const getTotalCount = () => filteredItems.length
   const getProgressPercentage = () => {
-    if (libraryItems.length === 0) return 0
-    return Math.round((viewedItems.size / libraryItems.length) * 100)
+    if (filteredItems.length === 0) return 0
+    const viewedInTab = filteredItems.filter(item => viewedItems.has(item.id)).length
+    return Math.round((viewedInTab / filteredItems.length) * 100)
   }
   const getBadgeLevel = () => {
     const percentage = getProgressPercentage()
@@ -421,7 +449,11 @@ export default function LibraryPage() {
                       value={newItem.title}
                       onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
                       className="bg-gray-900 border-gray-700 text-white"
-                      placeholder="Ej: Tutorial de React"
+                      placeholder={
+                        activeTab === "CURSOS" ? "Ej: Tutorial de React" :
+                        activeTab === "DIAGRAMAS" ? "Ej: Diagrama de proceso - Cliente X" :
+                        "Ej: Documento de referencia"
+                      }
                     />
                   </div>
                   <div>
@@ -445,12 +477,21 @@ export default function LibraryPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                        <SelectItem value="VIDEO">Video</SelectItem>
-                        <SelectItem value="PDF">PDF</SelectItem>
-                        <SelectItem value="LINK">Enlace</SelectItem>
-                        <SelectItem value="DOCUMENT">Documento</SelectItem>
+                        {activeTab === "CURSOS" && <SelectItem value="VIDEO">Video</SelectItem>}
+                        {activeTab === "DIAGRAMAS" && <SelectItem value="PDF">PDF</SelectItem>}
+                        {activeTab === "DOCUMENTOS" && (
+                          <>
+                            <SelectItem value="DOCUMENT">Documento</SelectItem>
+                            <SelectItem value="LINK">Enlace</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {activeTab === "CURSOS" && "Los cursos son videos educativos"}
+                      {activeTab === "DIAGRAMAS" && "Los diagramas son PDFs de procesos de clientes"}
+                      {activeTab === "DOCUMENTOS" && "Documentos generales y enlaces"}
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="url">URL *</Label>
@@ -486,7 +527,11 @@ export default function LibraryPage() {
                       value={newItem.category}
                       onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                       className="bg-gray-900 border-gray-700 text-white"
-                      placeholder="Ej: Tutoriales, Documentación, Recursos"
+                      placeholder={
+                        activeTab === "CURSOS" ? "Ej: React, Next.js, TypeScript" :
+                        activeTab === "DIAGRAMAS" ? "Ej: Nombre del cliente o proceso" :
+                        "Ej: Documentación, Referencias, Guías"
+                      }
                     />
                   </div>
                 </div>
@@ -510,38 +555,50 @@ export default function LibraryPage() {
             </Dialog>
           </div>
 
-          {/* Filtros */}
-          <div className="mb-4 flex gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-[180px] bg-[#1a1a1a] border-gray-800 text-white">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                  <SelectItem value="ALL">Todos los tipos</SelectItem>
-                  <SelectItem value="VIDEO">Video</SelectItem>
-                  <SelectItem value="PDF">PDF</SelectItem>
-                  <SelectItem value="LINK">Enlace</SelectItem>
-                  <SelectItem value="DOCUMENT">Documento</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {categories.length > 0 && (
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px] bg-[#1a1a1a] border-gray-800 text-white">
-                  <SelectValue placeholder="Categoría" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                  <SelectItem value="ALL">Todas las categorías</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          {/* Tabs */}
+          <div className="flex space-x-2 mb-4 border-b border-gray-800">
+            <button
+              onClick={() => {
+                setActiveTab("CURSOS")
+                setNewItem({ ...newItem, type: "VIDEO" })
+              }}
+              className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 ${
+                activeTab === "CURSOS"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              Cursos
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("DIAGRAMAS")
+                setNewItem({ ...newItem, type: "PDF" })
+              }}
+              className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 ${
+                activeTab === "DIAGRAMAS"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <FileImage className="h-4 w-4" />
+              Diagramas
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("DOCUMENTOS")
+                setNewItem({ ...newItem, type: "DOCUMENT" })
+              }}
+              className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 ${
+                activeTab === "DOCUMENTOS"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <FolderOpen className="h-4 w-4" />
+              Documentos
+            </button>
           </div>
 
           {/* Grid de recursos */}
