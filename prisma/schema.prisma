@@ -26,6 +26,7 @@ model User {
   workers       Worker[]
   aiSolutions   AISolution[]
   orders        Order[]
+  libraryItems  Library[]
 
   @@map("User")
 }
@@ -253,6 +254,23 @@ model OrderItem {
   solution AISolution  @relation(fields: [solutionId], references: [id], onDelete: Cascade)
 
   @@map("OrderItem")
+}
+
+model Library {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  url         String
+  type        String   // "VIDEO", "PDF", "LINK", "DOCUMENT"
+  category    String?  // Categoría personalizada (ej: "Tutoriales", "Documentación", "Recursos")
+  thumbnail   String?  // URL de thumbnail para videos
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Library")
 }
 
 
