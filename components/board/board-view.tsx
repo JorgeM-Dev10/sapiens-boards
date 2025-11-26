@@ -7,8 +7,9 @@ import { BoardWithLists } from "@/types"
 import { ListColumn } from "./list-column"
 import { TaskCard } from "./task-card"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { RegisterWorkSessionDialog } from "./register-work-session-dialog"
 
 interface BoardViewProps {
   board: BoardWithLists
@@ -303,10 +304,15 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
       {/* Contenido */}
       <div className="relative z-10 h-full flex flex-col">
         <div className="px-6 py-4 border-b border-gray-800 bg-[#0a0a0a]/30 backdrop-blur-sm">
-          <h1 className="text-2xl font-bold text-white">{board.title}</h1>
-          {board.description && (
-            <p className="text-gray-400 mt-1">{board.description}</p>
-          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">{board.title}</h1>
+              {board.description && (
+                <p className="text-gray-400 mt-1">{board.description}</p>
+              )}
+            </div>
+            <RegisterWorkSessionDialog boardId={board.id} boardLists={board.lists} onSuccess={onUpdate} />
+          </div>
         </div>
 
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">

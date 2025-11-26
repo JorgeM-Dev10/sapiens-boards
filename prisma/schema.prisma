@@ -27,6 +27,7 @@ model User {
   aiSolutions   AISolution[]
   orders        Order[]
   libraryItems  Library[]
+  workSessions  WorkSession[]
 
   @@map("User")
 }
@@ -73,9 +74,10 @@ model Board {
   updatedAt   DateTime @updatedAt
   ownerId     String
 
-  owner   User          @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members BoardMember[]
-  lists   List[]
+  owner        User          @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members      BoardMember[]
+  lists        List[]
+  workSessions WorkSession[]
 
   @@map("Board")
 }
@@ -100,8 +102,9 @@ model List {
   updatedAt DateTime @updatedAt
   boardId   String
 
-  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  tasks Task[]
+  board        Board         @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  workSessions WorkSession[]
 
   @@map("List")
 }
@@ -271,6 +274,28 @@ model Library {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("Library")
+}
+
+model WorkSession {
+  id              String   @id @default(cuid())
+  userId          String
+  boardId         String
+  listId          String?
+  date            DateTime // Fecha del trabajo
+  startTime       String   // Formato HH:mm
+  endTime         String   // Formato HH:mm
+  durationMinutes Int      // Calculado automáticamente
+  tasksCompleted  Int      @default(0)
+  description     String?  // Texto libre: qué hizo
+  workType        String   @default("dev") // dev, diseño, ops, calls, etc
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  list  List? @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  @@map("WorkSession")
 }
 
 
