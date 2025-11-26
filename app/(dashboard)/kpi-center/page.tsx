@@ -8,12 +8,13 @@ import { useToast } from "@/hooks/use-toast"
 import { 
   BarChart3, 
   Users, 
-  Building2, 
   Clock, 
   CheckCircle, 
   TrendingUp,
   Calendar,
-  Activity
+  Activity,
+  FileText,
+  Briefcase
 } from "lucide-react"
 import {
   Select,
@@ -65,13 +66,11 @@ interface KPIData {
 
 export default function KPICenterPage() {
   const { toast } = useToast()
-  const [activeView, setActiveView] = useState<"OVERVIEW" | "PERSON" | "CLIENT">("OVERVIEW")
+  const [activeView, setActiveView] = useState<"OVERVIEW" | "BITACORAS">("OVERVIEW")
   const [sessions, setSessions] = useState<WorkSession[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedUserId, setSelectedUserId] = useState<string>("")
-  const [selectedBoardId, setSelectedBoardId] = useState<string>("")
   const [users, setUsers] = useState<Array<{ id: string; name: string }>>([])
-  const [boards, setBoards] = useState<Array<{ id: string; title: string }>>([])
   const [kpiData, setKpiData] = useState<KPIData>({
     totalHoursToday: 0,
     totalHoursWeek: 0,
@@ -87,8 +86,7 @@ export default function KPICenterPage() {
 
   useEffect(() => {
     fetchSessions()
-    fetchBoards()
-  }, [selectedUserId, selectedBoardId])
+  }, [selectedUserId])
 
   useEffect(() => {
     if (sessions && sessions.length > 0) {
@@ -107,7 +105,6 @@ export default function KPICenterPage() {
       setIsLoading(true)
       const params = new URLSearchParams()
       if (selectedUserId) params.append("userId", selectedUserId)
-      if (selectedBoardId) params.append("boardId", selectedBoardId)
       
       // Últimos 30 días por defecto
       const endDate = new Date()
@@ -154,17 +151,6 @@ export default function KPICenterPage() {
     }
   }
 
-  const fetchBoards = async () => {
-    try {
-      const response = await fetch("/api/boards")
-      if (response.ok) {
-        const data = await response.json()
-        setBoards(data)
-      }
-    } catch (error) {
-      console.error("Error fetching boards:", error)
-    }
-  }
 
   const calculateKPIs = () => {
     if (!sessions || sessions.length === 0) {
@@ -328,32 +314,21 @@ export default function KPICenterPage() {
               Resumen General
             </button>
             <button
-              onClick={() => setActiveView("PERSON")}
+              onClick={() => setActiveView("BITACORAS")}
               className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 ${
-                activeView === "PERSON"
+                activeView === "BITACORAS"
                   ? "text-blue-500 border-b-2 border-blue-500"
                   : "text-gray-400 hover:text-white"
               }`}
             >
               <Users className="h-4 w-4" />
-              Por Persona
-            </button>
-            <button
-              onClick={() => setActiveView("CLIENT")}
-              className={`px-4 py-2 font-semibold transition-colors flex items-center gap-2 ${
-                activeView === "CLIENT"
-                  ? "text-blue-500 border-b-2 border-blue-500"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              <Building2 className="h-4 w-4" />
-              Por Cliente
+              Bitácoras
             </button>
           </div>
 
           {/* Filtros */}
           <div className="mb-6 flex gap-4">
-            {activeView === "PERSON" && (
+            {activeView === "BITACORAS" && (
               <Select value={selectedUserId || ""} onValueChange={setSelectedUserId}>
                 <SelectTrigger className="w-[250px] bg-[#1a1a1a] border-gray-800 text-white">
                   <SelectValue placeholder="Seleccionar persona" />
@@ -363,21 +338,6 @@ export default function KPICenterPage() {
                   {users && users.length > 0 && users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name || "Usuario sin nombre"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {activeView === "CLIENT" && (
-              <Select value={selectedBoardId || ""} onValueChange={setSelectedBoardId}>
-                <SelectTrigger className="w-[250px] bg-[#1a1a1a] border-gray-800 text-white">
-                  <SelectValue placeholder="Seleccionar cliente/board" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                  <SelectItem value="">Todos los clientes</SelectItem>
-                  {boards && boards.length > 0 && boards.map((board) => (
-                    <SelectItem key={board.id} value={board.id}>
-                      {board.title || "Board sin título"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -394,18 +354,11 @@ export default function KPICenterPage() {
               {activeView === "OVERVIEW" && (
                 <OverviewView kpiData={kpiData} />
               )}
-              {activeView === "PERSON" && (
-                <PersonView 
+              {activeView === "BITACORAS" && (
+                <BitacorasView 
                   sessions={sessions || []} 
                   selectedUserId={selectedUserId}
                   users={users}
-                />
-              )}
-              {activeView === "CLIENT" && (
-                <ClientView 
-                  sessions={sessions || []} 
-                  selectedBoardId={selectedBoardId}
-                  boards={boards}
                 />
               )}
             </>
@@ -488,7 +441,7 @@ function OverviewView({ kpiData }: { kpiData: KPIData }) {
         <CardContent>
           {kpiData.topClients.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <Building2 className="h-12 w-12 mb-2 opacity-50" />
+              <Briefcase className="h-12 w-12 mb-2 opacity-50" />
               <p>No hay datos de clientes aún</p>
             </div>
           ) : (
@@ -618,8 +571,8 @@ function OverviewView({ kpiData }: { kpiData: KPIData }) {
   )
 }
 
-// Vista por Persona
-function PersonView({ 
+// Vista de Bitácoras
+function BitacorasView({ 
   sessions, 
   selectedUserId,
   users 
@@ -631,9 +584,9 @@ function PersonView({
   if (!sessions || sessions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-        <Users className="h-16 w-16 mb-4 opacity-50" />
+        <FileText className="h-16 w-16 mb-4 opacity-50" />
         <p>No hay sesiones de trabajo registradas</p>
-        <p className="text-sm mt-2">Registra jornadas desde los boards para ver estadísticas</p>
+        <p className="text-sm mt-2">Registra jornadas desde los boards para ver bitácoras</p>
       </div>
     )
   }
@@ -642,48 +595,34 @@ function PersonView({
     ? sessions.filter(s => s && s.userId === selectedUserId)
     : sessions.filter(s => s != null)
 
-  const userStats = new Map<string, {
-    userId: string
-    userName: string
-    totalHours: number
-    tasksCompleted: number
-    sessionsCount: number
-    boards: Map<string, { boardId: string; boardTitle: string; hours: number }>
-  }>()
-
+  // Agrupar sesiones por usuario
+  const userSessionsMap = new Map<string, WorkSession[]>()
   filteredSessions.forEach(s => {
-    if (!s || !s.user || !s.board) return
-    
-    const stats = userStats.get(s.userId) || {
-      userId: s.userId,
-      userName: s.user.name || "Usuario desconocido",
-      totalHours: 0,
-      tasksCompleted: 0,
-      sessionsCount: 0,
-      boards: new Map()
-    }
-    
-    stats.totalHours += (s.durationMinutes || 0) / 60
-    stats.tasksCompleted += s.tasksCompleted || 0
-    stats.sessionsCount += 1
-
-    const boardHours = stats.boards.get(s.boardId) || {
-      boardId: s.boardId,
-      boardTitle: s.board.title || "Board desconocido",
-      hours: 0
-    }
-    boardHours.hours += (s.durationMinutes || 0) / 60
-    stats.boards.set(s.boardId, boardHours)
-
-    userStats.set(s.userId, stats)
+    if (!s || !s.user) return
+    const userSessions = userSessionsMap.get(s.userId) || []
+    userSessions.push(s)
+    userSessionsMap.set(s.userId, userSessions)
   })
 
-  const statsArray = Array.from(userStats.values())
+  // Ordenar sesiones por fecha (más recientes primero)
+  userSessionsMap.forEach((sessions, userId) => {
+    sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  })
 
-  if (statsArray.length === 0) {
+  const usersArray = Array.from(userSessionsMap.keys()).map(userId => {
+    const sessions = userSessionsMap.get(userId) || []
+    const firstSession = sessions[0]
+    return {
+      userId,
+      userName: firstSession?.user?.name || "Usuario desconocido",
+      sessions
+    }
+  })
+
+  if (usersArray.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-        <Users className="h-16 w-16 mb-4 opacity-50" />
+        <FileText className="h-16 w-16 mb-4 opacity-50" />
         <p>No hay datos disponibles</p>
       </div>
     )
@@ -691,146 +630,156 @@ function PersonView({
 
   return (
     <div className="space-y-6">
-      {statsArray.map((stats) => (
-        <Card key={stats.userId} className="bg-[#1a1a1a] border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">{stats.userName}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+      {usersArray.map(({ userId, userName, sessions: userSessions }) => {
+        // Calcular estadísticas del usuario
+        const totalHours = userSessions.reduce((sum, s) => sum + (s.durationMinutes || 0) / 60, 0)
+        const totalTasks = userSessions.reduce((sum, s) => sum + (s.tasksCompleted || 0), 0)
+        
+        // Agrupar por proyecto
+        const projectsMap = new Map<string, { boardId: string; boardTitle: string; hours: number; sessions: WorkSession[] }>()
+        userSessions.forEach(s => {
+          if (!s.board) return
+          const project = projectsMap.get(s.boardId) || {
+            boardId: s.boardId,
+            boardTitle: s.board.title || "Proyecto desconocido",
+            hours: 0,
+            sessions: []
+          }
+          project.hours += (s.durationMinutes || 0) / 60
+          project.sessions.push(s)
+          projectsMap.set(s.boardId, project)
+        })
+
+        // Agrupar por día
+        const daysMap = new Map<string, { date: string; hours: number; sessions: WorkSession[] }>()
+        userSessions.forEach(s => {
+          if (!s.date) return
+          const dateStr = new Date(s.date).toISOString().split('T')[0]
+          const day = daysMap.get(dateStr) || {
+            date: dateStr,
+            hours: 0,
+            sessions: []
+          }
+          day.hours += (s.durationMinutes || 0) / 60
+          day.sessions.push(s)
+          daysMap.set(dateStr, day)
+        })
+
+        const projects = Array.from(projectsMap.values()).sort((a, b) => b.hours - a.hours)
+        const days = Array.from(daysMap.values()).sort((a, b) => b.date.localeCompare(a.date))
+
+        return (
+          <Card key={userId} className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  {userName}
+                </CardTitle>
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {totalHours.toFixed(1)}h totales
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    {totalTasks} tareas
+                  </span>
+                  <span>{userSessions.length} sesiones</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Proyectos trabajados */}
               <div>
-                <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
-                <p className="text-2xl font-bold text-white">{stats.totalHours.toFixed(1)}h</p>
+                <p className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Proyectos Trabajados
+                </p>
+                <div className="space-y-2">
+                  {projects.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No hay proyectos registrados</p>
+                  ) : (
+                    projects.map((project) => (
+                      <div key={project.boardId} className="p-3 bg-gray-900 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-white font-medium">{project.boardTitle}</p>
+                          <p className="text-white font-bold">{project.hours.toFixed(1)}h</p>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {project.sessions.length} sesión{project.sessions.length !== 1 ? 'es' : ''}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
+
+              {/* Actividad por día */}
               <div>
-                <p className="text-xs text-gray-400 mb-1">Tareas Completadas</p>
-                <p className="text-2xl font-bold text-white">{stats.tasksCompleted}</p>
+                <p className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Actividad por Día
+                </p>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {days.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No hay actividad registrada</p>
+                  ) : (
+                    days.map((day) => (
+                      <div key={day.date} className="p-3 bg-gray-900 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-white font-medium">
+                            {new Date(day.date).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                          <p className="text-white font-bold">{day.hours.toFixed(1)}h</p>
+                        </div>
+                        <div className="space-y-1 mt-2">
+                          {day.sessions.map((session) => (
+                            <div key={session.id} className="text-xs text-gray-400 pl-2 border-l-2 border-gray-700">
+                              <div className="flex items-center justify-between">
+                                <span>
+                                  {session.startTime} - {session.endTime}
+                                </span>
+                                <span className="flex items-center gap-2">
+                                  <span className="capitalize">{session.workType}</span>
+                                  <span>•</span>
+                                  <span>{(session.durationMinutes || 0) / 60}h</span>
+                                </span>
+                              </div>
+                              {session.board && (
+                                <div className="text-gray-500 mt-1">
+                                  {session.board.title}
+                                </div>
+                              )}
+                              {session.description && (
+                                <div className="text-gray-400 mt-1 italic">
+                                  {session.description}
+                                </div>
+                              )}
+                              {session.tasksCompleted > 0 && (
+                                <div className="text-green-400 mt-1">
+                                  ✓ {session.tasksCompleted} tarea{session.tasksCompleted !== 1 ? 's' : ''} completada{session.tasksCompleted !== 1 ? 's' : ''}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Sesiones</p>
-                <p className="text-2xl font-bold text-white">{stats.sessionsCount}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400 mb-3">Tiempo por Cliente/Proyecto</p>
-              <div className="space-y-2">
-                {Array.from(stats.boards.values())
-                  .sort((a, b) => b.hours - a.hours)
-                  .map((board) => (
-                    <div key={board.boardId} className="flex items-center justify-between p-2 bg-gray-900 rounded">
-                      <p className="text-white text-sm">{board.boardTitle}</p>
-                      <p className="text-white font-medium">{board.hours.toFixed(1)}h</p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }
 
-// Vista por Cliente
-function ClientView({ 
-  sessions, 
-  selectedBoardId,
-  boards 
-}: { 
-  sessions: WorkSession[]
-  selectedBoardId: string
-  boards: Array<{ id: string; title: string }>
-}) {
-  const filteredSessions = selectedBoardId
-    ? sessions.filter(s => s && s.boardId === selectedBoardId)
-    : sessions.filter(s => s != null)
-
-  const boardStats = new Map<string, {
-    boardId: string
-    boardTitle: string
-    totalHours: number
-    tasksCompleted: number
-    sessionsCount: number
-    people: Map<string, { userId: string; userName: string; hours: number }>
-  }>()
-
-  filteredSessions.forEach(s => {
-    if (!s || !s.user || !s.board) return
-    
-    const stats = boardStats.get(s.boardId) || {
-      boardId: s.boardId,
-      boardTitle: s.board.title || "Board desconocido",
-      totalHours: 0,
-      tasksCompleted: 0,
-      sessionsCount: 0,
-      people: new Map()
-    }
-    
-    stats.totalHours += (s.durationMinutes || 0) / 60
-    stats.tasksCompleted += s.tasksCompleted || 0
-    stats.sessionsCount += 1
-
-    const personHours = stats.people.get(s.userId) || {
-      userId: s.userId,
-      userName: s.user.name || "Usuario desconocido",
-      hours: 0
-    }
-    personHours.hours += (s.durationMinutes || 0) / 60
-    stats.people.set(s.userId, personHours)
-
-    boardStats.set(s.boardId, stats)
-  })
-
-  const statsArray = Array.from(boardStats.values()).sort((a, b) => b.totalHours - a.totalHours)
-
-  if (statsArray.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-        <Building2 className="h-16 w-16 mb-4 opacity-50" />
-        <p>No hay datos disponibles</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      {statsArray.map((stats) => (
-        <Card key={stats.boardId} className="bg-[#1a1a1a] border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white">{stats.boardTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
-                <p className="text-2xl font-bold text-white">{stats.totalHours.toFixed(1)}h</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Tareas Completadas</p>
-                <p className="text-2xl font-bold text-white">{stats.tasksCompleted}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Sesiones</p>
-                <p className="text-2xl font-bold text-white">{stats.sessionsCount}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400 mb-3">Horas por Persona</p>
-              <div className="space-y-2">
-                {Array.from(stats.people.values())
-                  .sort((a, b) => b.hours - a.hours)
-                  .map((person) => (
-                    <div key={person.userId} className="flex items-center justify-between p-2 bg-gray-900 rounded">
-                      <p className="text-white text-sm">{person.userName}</p>
-                      <p className="text-white font-medium">{person.hours.toFixed(1)}h</p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
 
