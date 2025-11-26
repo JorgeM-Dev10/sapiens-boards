@@ -8,6 +8,7 @@ export const config = {
     "/ai-solutions/:path*",
     "/library/:path*",
     "/kpi-center/:path*",
+    "/bitacoras/:path*",
   ]
 }
 

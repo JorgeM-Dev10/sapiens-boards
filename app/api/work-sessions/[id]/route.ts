@@ -3,6 +3,64 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+// Función para actualizar el avatar de la bitácora
+async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: number, tasksCompleted: number) {
+  try {
+    const bitacora = await prisma.bitacoraBoard.findUnique({
+      where: { id: bitacoraBoardId },
+      include: { avatar: true, workSessions: true },
+    })
+
+    if (!bitacora) return
+
+    const totalHours = bitacora.workSessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
+    const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
+    const totalSessions = bitacora.workSessions.length
+
+    // Calcular experiencia: 1 XP por hora, 10 XP por tarea, 5 XP por sesión
+    const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
+    
+    // Calcular nivel: cada 100 XP = 1 nivel
+    const level = Math.floor(experience / 100) + 1
+
+    // Determinar estilo del avatar según nivel
+    let avatarStyle = "basic"
+    if (level >= 50) avatarStyle = "legend"
+    else if (level >= 30) avatarStyle = "master"
+    else if (level >= 15) avatarStyle = "expert"
+    else if (level >= 5) avatarStyle = "advanced"
+    else if (level >= 2) avatarStyle = "intermediate"
+
+    if (bitacora.avatar) {
+      await prisma.bitacoraAvatar.update({
+        where: { id: bitacora.avatar.id },
+        data: {
+          level,
+          experience,
+          totalHours,
+          totalTasks,
+          totalSessions,
+          avatarStyle,
+        },
+      })
+    } else {
+      await prisma.bitacoraAvatar.create({
+        data: {
+          bitacoraBoardId,
+          level,
+          experience,
+          totalHours,
+          totalTasks,
+          totalSessions,
+          avatarStyle,
+        },
+      })
+    }
+  } catch (error) {
+    console.error("Error updating bitacora avatar:", error)
+  }
+}
+
 // Función auxiliar para calcular minutos entre dos horas
 function calculateMinutes(startTime: string, endTime: string): number {
   const [startHours, startMins] = startTime.split(":").map(Number)
@@ -163,8 +221,19 @@ export async function PATCH(
             title: true,
           },
         },
+        bitacoraBoard: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
     })
+
+    // Actualizar avatar si es una sesión de bitácora
+    if (updatedSession.bitacoraBoardId) {
+      await updateBitacoraAvatar(updatedSession.bitacoraBoardId, updatedSession.durationMinutes, updatedSession.tasksCompleted || 0)
+    }
 
     return NextResponse.json(updatedSession)
   } catch (error) {
