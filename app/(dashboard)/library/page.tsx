@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Trophy, Eye, BookOpen, Star, TrendingUp, GraduationCap, FileImage, FolderOpen } from "lucide-react"
+import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Trophy, Eye, BookOpen, Star, TrendingUp, GraduationCap, FileImage, FolderOpen, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -54,6 +54,8 @@ export default function LibraryPage() {
     category: "",
     thumbnail: "",
   })
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Ajustar tipo cuando cambia el tab
   useEffect(() => {
@@ -135,11 +137,29 @@ export default function LibraryPage() {
   }
 
   const handleCreateItem = async () => {
-    if (!newItem.title.trim() || !newItem.url.trim()) {
+    if (!newItem.title.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Título y URL son requeridos",
+        description: "El título es requerido",
+      })
+      return
+    }
+
+    if (activeTab === "DIAGRAMAS" && !uploadedFile && !newItem.url.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debes subir un archivo PDF o proporcionar una URL",
+      })
+      return
+    }
+
+    if (activeTab !== "DIAGRAMAS" && !newItem.url.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "La URL es requerida",
       })
       return
     }
@@ -163,17 +183,20 @@ export default function LibraryPage() {
       if (response.ok) {
         toast({
           title: "Éxito",
-          description: "Recurso agregado correctamente",
+          description: activeTab === "DIAGRAMAS" 
+            ? "Diagrama subido correctamente" 
+            : "Recurso agregado correctamente",
         })
         setIsCreateDialogOpen(false)
         setNewItem({
           title: "",
           description: "",
           url: "",
-          type: "VIDEO",
+          type: activeTab === "CURSOS" ? "VIDEO" : activeTab === "DIAGRAMAS" ? "PDF" : "DOCUMENT",
           category: "",
           thumbnail: "",
         })
+        setUploadedFile(null)
         fetchLibraryItems()
       } else {
         const error = await response.json()
@@ -427,18 +450,40 @@ export default function LibraryPage() {
 
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Librería</h1>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+              setIsCreateDialogOpen(open)
+              if (!open) {
+                // Resetear formulario al cerrar
+                setNewItem({
+                  title: "",
+                  description: "",
+                  url: "",
+                  type: activeTab === "CURSOS" ? "VIDEO" : activeTab === "DIAGRAMAS" ? "PDF" : "DOCUMENT",
+                  category: "",
+                  thumbnail: "",
+                })
+                setUploadedFile(null)
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                   <Plus className="mr-2 h-4 w-4" />
-                  Nuevo Recurso
+                  {activeTab === "CURSOS" ? "Agregar Nuevo Curso" :
+                   activeTab === "DIAGRAMAS" ? "Agregar Diagrama" :
+                   "Agregar Documento"}
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Agregar Nuevo Recurso</DialogTitle>
+                  <DialogTitle>
+                    {activeTab === "CURSOS" ? "Agregar Nuevo Curso" :
+                     activeTab === "DIAGRAMAS" ? "Agregar Diagrama" :
+                     "Agregar Documento"}
+                  </DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Agrega un nuevo recurso a tu librería de conocimiento
+                    {activeTab === "CURSOS" ? "Agrega un nuevo curso a tu librería" :
+                     activeTab === "DIAGRAMAS" ? "Sube un diagrama PDF de proceso de cliente" :
+                     "Agrega un documento o enlace a tu librería"}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -493,21 +538,104 @@ export default function LibraryPage() {
                       {activeTab === "DOCUMENTOS" && "Documentos generales y enlaces"}
                     </p>
                   </div>
-                  <div>
-                    <Label htmlFor="url">URL *</Label>
-                    <Input
-                      id="url"
-                      value={newItem.url}
-                      onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
-                      className="bg-gray-900 border-gray-700 text-white"
-                      placeholder="https://..."
-                    />
-                    {newItem.type === "VIDEO" && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        Soporta YouTube, Vimeo o URLs directas de video (.mp4, .webm, etc.)
-                      </p>
-                    )}
-                  </div>
+                  {activeTab === "DIAGRAMAS" ? (
+                    <div>
+                      <Label htmlFor="pdf-upload">Subir PDF *</Label>
+                      <div className="mt-2">
+                        <label
+                          htmlFor="pdf-upload"
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-700 border-dashed rounded-lg cursor-pointer bg-gray-900 hover:bg-gray-800 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            {uploadedFile ? (
+                              <>
+                                <FileText className="w-10 h-10 mb-2 text-blue-400" />
+                                <p className="mb-2 text-sm text-white">{uploadedFile.name}</p>
+                                <p className="text-xs text-gray-400">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-10 h-10 mb-2 text-gray-400" />
+                                <p className="mb-2 text-sm text-gray-400">
+                                  <span className="font-semibold">Click para subir</span> o arrastra el archivo
+                                </p>
+                                <p className="text-xs text-gray-500">PDF (MAX. 10MB)</p>
+                              </>
+                            )}
+                          </div>
+                          <input
+                            id="pdf-upload"
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                if (file.size > 10 * 1024 * 1024) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "El archivo es demasiado grande. Máximo 10MB",
+                                  })
+                                  return
+                                }
+                                setUploadedFile(file)
+                                setIsUploading(true)
+                                try {
+                                  // Convertir a base64
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => {
+                                    const base64String = reader.result as string
+                                    setNewItem({ ...newItem, url: base64String })
+                                    setIsUploading(false)
+                                  }
+                                  reader.onerror = () => {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error",
+                                      description: "Error al leer el archivo",
+                                    })
+                                    setIsUploading(false)
+                                  }
+                                  reader.readAsDataURL(file)
+                                } catch (error) {
+                                  console.error("Error uploading file:", error)
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "Error al procesar el archivo",
+                                  })
+                                  setIsUploading(false)
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                      {isUploading && (
+                        <p className="text-xs text-blue-400 mt-2">Subiendo archivo...</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="url">URL *</Label>
+                      <Input
+                        id="url"
+                        value={newItem.url}
+                        onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
+                        className="bg-gray-900 border-gray-700 text-white"
+                        placeholder={
+                          activeTab === "CURSOS" ? "https://youtube.com/..." :
+                          "https://..."
+                        }
+                      />
+                      {newItem.type === "VIDEO" && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Soporta YouTube, Vimeo o URLs directas de video (.mp4, .webm, etc.)
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {newItem.type === "VIDEO" && (
                     <div>
                       <Label htmlFor="thumbnail">Thumbnail (opcional)</Label>
@@ -545,10 +673,16 @@ export default function LibraryPage() {
                   </Button>
                   <Button
                     onClick={handleCreateItem}
-                    disabled={isCreating}
+                    disabled={isCreating || isUploading}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {isCreating ? "Creando..." : "Crear"}
+                    {isCreating ? (
+                      activeTab === "DIAGRAMAS" ? "Subiendo..." : "Creando..."
+                    ) : (
+                      activeTab === "CURSOS" ? "Crear Curso" :
+                      activeTab === "DIAGRAMAS" ? "Subir Diagrama" :
+                      "Crear Documento"
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
