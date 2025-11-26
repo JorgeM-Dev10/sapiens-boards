@@ -624,7 +624,7 @@ export default function BitacorasPage() {
           ) : (
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
               <SortableContext items={bitacoras.map((b) => b.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {bitacoras.map((bitacora) => (
                     <SortableBitacoraCard
                       key={bitacora.id}

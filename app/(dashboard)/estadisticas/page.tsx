@@ -219,19 +219,19 @@ export default function EstadisticasPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-end gap-2 h-48">
+                  <div className="flex items-end gap-2 h-32">
                     {hoursByDay.map((day) => (
-                      <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '180px' }}>
+                      <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5">
+                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '120px' }}>
                           <div
                             className="bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 cursor-pointer shadow-lg shadow-blue-500/30"
                             style={{ 
                               height: `${(day.hours / maxHours) * 100}%`,
-                              minHeight: day.hours > 0 ? '4px' : '0'
+                              minHeight: day.hours > 0 ? '3px' : '0'
                             }}
                           />
                           {day.hours > 0 && (
-                            <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/95 backdrop-blur-sm text-white text-xs px-2 py-1 rounded border border-gray-700 whitespace-nowrap z-10 shadow-lg">
+                            <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/95 backdrop-blur-sm text-white text-xs px-2 py-1 rounded border border-gray-700 whitespace-nowrap z-10 shadow-lg">
                               {day.hours.toFixed(1)}h
                             </div>
                           )}
