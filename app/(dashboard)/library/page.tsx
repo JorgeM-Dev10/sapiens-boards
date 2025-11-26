@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, Trophy, Eye, BookOpen, Star, TrendingUp, GraduationCap, FileImage, FolderOpen, Upload } from "lucide-react"
+import { Plus, Pencil, Trash2, Video, FileText, Link as LinkIcon, X, Play, ExternalLink, GraduationCap, FileImage, FolderOpen, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -45,7 +45,6 @@ export default function LibraryPage() {
   const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
   const [activeTab, setActiveTab] = useState<"CURSOS" | "DIAGRAMAS" | "DOCUMENTOS">("CURSOS")
   const [categories, setCategories] = useState<string[]>([])
-  const [viewedItems, setViewedItems] = useState<Set<string>>(new Set())
   const [newItem, setNewItem] = useState({
     title: "",
     description: "",
@@ -72,13 +71,6 @@ export default function LibraryPage() {
     }
   }, [activeTab])
 
-  // Cargar recursos vistos desde localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("library_viewed_items")
-    if (stored) {
-      setViewedItems(new Set(JSON.parse(stored)))
-    }
-  }, [])
 
   useEffect(() => {
     fetchLibraryItems()
@@ -364,85 +356,31 @@ export default function LibraryPage() {
   const handleViewItem = (item: LibraryItem) => {
     setViewingItem(item)
     setIsViewDialogOpen(true)
-    // Marcar como visto
-    const newViewed = new Set(viewedItems)
-    if (!newViewed.has(item.id)) {
-      newViewed.add(item.id)
-      setViewedItems(newViewed)
-      localStorage.setItem("library_viewed_items", JSON.stringify(Array.from(newViewed)))
-    }
   }
 
-  const getViewedCount = () => {
-    // Contar solo los vistos del tab actual
-    return filteredItems.filter(item => viewedItems.has(item.id)).length
-  }
   const getTotalCount = () => filteredItems.length
-  const getProgressPercentage = () => {
-    if (filteredItems.length === 0) return 0
-    const viewedInTab = filteredItems.filter(item => viewedItems.has(item.id)).length
-    return Math.round((viewedInTab / filteredItems.length) * 100)
-  }
-  const getBadgeLevel = () => {
-    const percentage = getProgressPercentage()
-    if (percentage === 100) return { name: "Maestro", icon: Trophy, color: "text-yellow-400" }
-    if (percentage >= 75) return { name: "Experto", icon: Star, color: "text-purple-400" }
-    if (percentage >= 50) return { name: "Avanzado", icon: TrendingUp, color: "text-blue-400" }
-    if (percentage >= 25) return { name: "Intermedio", icon: BookOpen, color: "text-green-400" }
-    return { name: "Principiante", icon: Eye, color: "text-gray-400" }
-  }
-
-  const badgeLevel = getBadgeLevel()
-  const BadgeIcon = badgeLevel.icon
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
       <Header />
       <div className="flex-1 overflow-y-auto p-4">
         <div className="mx-auto max-w-7xl">
-          {/* Estadísticas Gamificables */}
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Estadísticas */}
+          <div className="mb-4">
             <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Total Recursos</p>
+                    <p className="text-xs text-gray-400 mb-1">
+                      {activeTab === "CURSOS" ? "Total Cursos" :
+                       activeTab === "DIAGRAMAS" ? "Total Diagramas" :
+                       "Total Documentos"}
+                    </p>
                     <p className="text-2xl font-bold text-white">{getTotalCount()}</p>
                   </div>
-                  <BookOpen className="h-8 w-8 text-blue-400 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#1a1a1a] border-gray-800">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Vistos</p>
-                    <p className="text-2xl font-bold text-green-400">{getViewedCount()}</p>
-                  </div>
-                  <Eye className="h-8 w-8 text-green-400 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#1a1a1a] border-gray-800">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Progreso</p>
-                    <p className="text-2xl font-bold text-purple-400">{getProgressPercentage()}%</p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-purple-400 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-[#1a1a1a] border-gray-800 border-2 border-yellow-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">Nivel</p>
-                    <p className={`text-lg font-bold ${badgeLevel.color}`}>{badgeLevel.name}</p>
-                  </div>
-                  <BadgeIcon className={`h-8 w-8 ${badgeLevel.color} opacity-70`} />
+                  {activeTab === "CURSOS" && <GraduationCap className="h-8 w-8 text-blue-400 opacity-50" />}
+                  {activeTab === "DIAGRAMAS" && <FileImage className="h-8 w-8 text-blue-400 opacity-50" />}
+                  {activeTab === "DOCUMENTOS" && <FolderOpen className="h-8 w-8 text-blue-400 opacity-50" />}
                 </div>
               </CardContent>
             </Card>
@@ -747,35 +685,30 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredItems.map((item) => {
-                const isViewed = viewedItems.has(item.id)
-                return (
+              {filteredItems.map((item) => (
                   <Card
                     key={item.id}
-                    className={`bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-all flex flex-col h-full overflow-hidden group ${
-                      isViewed ? "border-green-500/30" : ""
-                    }`}
+                    className="bg-[#1a1a1a] border-gray-800 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 flex flex-col h-full overflow-hidden group cursor-pointer"
                   >
                     {/* Thumbnail destacado - siempre visible */}
                     <div className="relative w-full h-48 bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 overflow-hidden">
-                      {item.thumbnail ? (
+                      {item.thumbnail && item.type === "VIDEO" ? (
                         <img
                           src={item.thumbnail}
                           alt={item.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
-                            // Si la imagen falla, mostrar el fallback
                             e.currentTarget.style.display = 'none'
                           }}
                         />
                       ) : null}
-                      {/* Fallback cuando no hay thumbnail */}
-                      {!item.thumbnail && (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800">
-                          <div className={`p-4 rounded-xl ${getTypeColor(item.type)} mb-2`}>
+                      {/* Fallback cuando no hay thumbnail o es PDF/DOCUMENT */}
+                      {(!item.thumbnail || item.type === "PDF" || item.type === "DOCUMENT" || item.type === "LINK") && (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 group-hover:from-gray-700 group-hover:via-gray-800 group-hover:to-gray-700 transition-all duration-300">
+                          <div className={`p-4 rounded-xl ${getTypeColor(item.type)} mb-2 group-hover:scale-110 transition-transform duration-300`}>
                             {getTypeIcon(item.type)}
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">{item.type}</p>
+                          <p className="text-xs text-gray-500 mt-2 group-hover:text-gray-400 transition-colors">{item.type}</p>
                         </div>
                       )}
                       {/* Badge de tipo */}
@@ -785,21 +718,22 @@ export default function LibraryPage() {
                           <span className="ml-1">{item.type}</span>
                         </Badge>
                       </div>
-                      {/* Badge de visto */}
-                      {isViewed && (
-                        <div className="absolute top-2 right-2">
-                          <Badge className="bg-green-500/90 text-white border-0 text-xs">
-                            <Eye className="h-3 w-3 mr-1" />
-                            Visto
-                          </Badge>
+                      {/* Overlay con play/view button - solo para videos */}
+                      {item.type === "VIDEO" && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 transform hover:scale-110 transition-transform">
+                            <Play className="h-8 w-8 text-white" fill="white" />
+                          </div>
                         </div>
                       )}
-                      {/* Overlay con play button */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-3 transform hover:scale-110 transition-transform">
-                          <Play className="h-8 w-8 text-white" fill="white" />
+                      {/* Overlay para PDFs y documentos */}
+                      {(item.type === "PDF" || item.type === "DOCUMENT" || item.type === "LINK") && (
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 transform hover:scale-105 transition-transform">
+                            <p className="text-white text-sm font-medium">Ver {item.type === "PDF" ? "PDF" : item.type === "DOCUMENT" ? "Documento" : "Enlace"}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     
                     <CardHeader className="pb-3">
@@ -825,15 +759,11 @@ export default function LibraryPage() {
                       <div className="flex gap-2 mt-auto">
                         <Button
                           onClick={() => handleViewItem(item)}
-                          className={`flex-1 ${
-                            isViewed 
-                              ? "bg-green-600 hover:bg-green-700 text-white" 
-                              : "bg-blue-600 hover:bg-blue-700 text-white"
-                          }`}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                           size="sm"
                         >
                           <Play className="mr-2 h-4 w-4" />
-                          {isViewed ? "Ver de nuevo" : "Ver"}
+                          Ver
                         </Button>
                         <Button
                           onClick={() => {
@@ -857,8 +787,7 @@ export default function LibraryPage() {
                       </div>
                     </CardContent>
                   </Card>
-                )
-              })}
+              ))}
             </div>
           )}
         </div>
