@@ -219,27 +219,37 @@ export default function EstadisticasPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-end justify-center gap-3 h-32">
+                  <div className="flex items-end justify-center gap-4 h-40 px-4">
                     {hoursByDay.map((day) => (
-                      <div key={day.date} className="flex flex-col items-center gap-1.5" style={{ width: '60px' }}>
-                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '120px', maxWidth: '50px' }}>
-                          <div
-                            className="bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 cursor-pointer shadow-lg shadow-blue-500/30 w-full"
-                            style={{ 
-                              height: `${(day.hours / maxHours) * 100}%`,
-                              minHeight: day.hours > 0 ? '3px' : '0'
-                            }}
-                          />
+                      <div key={day.date} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+                        <div className="w-full flex flex-col items-center gap-1">
                           {day.hours > 0 && (
-                            <div className="absolute -top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/95 backdrop-blur-sm text-white text-xs px-2 py-1 rounded border border-gray-700 whitespace-nowrap z-10 shadow-lg">
+                            <div className="text-xs text-blue-400 font-semibold mb-1">
                               {day.hours.toFixed(1)}h
                             </div>
                           )}
+                          <div className="w-full bg-gray-800/30 rounded-lg flex flex-col justify-end relative group border border-gray-700/50" style={{ height: '140px', minHeight: '140px' }}>
+                            <div
+                              className={`w-full rounded-lg transition-all duration-300 cursor-pointer ${
+                                day.hours > 0 
+                                  ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 shadow-lg shadow-blue-500/40' 
+                                  : 'bg-gray-700/30'
+                              }`}
+                              style={{ 
+                                height: `${day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 8) : 4}%`,
+                                minHeight: day.hours > 0 ? '8px' : '4px'
+                              }}
+                            />
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-400 font-medium text-center">
-                          {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                        </p>
-                        <p className="text-xs text-white font-semibold">{day.hours.toFixed(1)}h</p>
+                        <div className="text-center mt-1">
+                          <p className="text-xs text-gray-400 font-medium">
+                            {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
+                          </p>
+                          {day.hours === 0 && (
+                            <p className="text-xs text-gray-500 mt-0.5">0.0h</p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
