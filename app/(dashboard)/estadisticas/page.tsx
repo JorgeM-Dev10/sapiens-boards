@@ -219,12 +219,12 @@ export default function EstadisticasPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-end gap-2 h-32">
+                  <div className="flex items-end justify-center gap-3 h-32">
                     {hoursByDay.map((day) => (
-                      <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5">
-                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '120px' }}>
+                      <div key={day.date} className="flex flex-col items-center gap-1.5" style={{ width: '60px' }}>
+                        <div className="w-full bg-gray-800/50 rounded-t flex flex-col justify-end relative group" style={{ height: '120px', maxWidth: '50px' }}>
                           <div
-                            className="bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 cursor-pointer shadow-lg shadow-blue-500/30"
+                            className="bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t transition-all hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 cursor-pointer shadow-lg shadow-blue-500/30 w-full"
                             style={{ 
                               height: `${(day.hours / maxHours) * 100}%`,
                               minHeight: day.hours > 0 ? '3px' : '0'
@@ -236,7 +236,7 @@ export default function EstadisticasPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 font-medium">
+                        <p className="text-xs text-gray-400 font-medium text-center">
                           {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
                         </p>
                         <p className="text-xs text-white font-semibold">{day.hours.toFixed(1)}h</p>
