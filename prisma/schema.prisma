@@ -79,6 +79,7 @@ model Board {
   members      BoardMember[]
   lists        List[]
   workSessions WorkSession[]
+  bitacoraBoards BitacoraBoard[]
 
   @@map("Board")
 }
@@ -307,11 +308,13 @@ model BitacoraBoard {
   description String?
   image       String?
   order       Int      @default(0)
+  boardId     String?  // Roadmap asociado (opcional)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String   // El dueño de la bitácora
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board        Board?        @relation(fields: [boardId], references: [id], onDelete: SetNull)
   workSessions WorkSession[]
   avatar       BitacoraAvatar?
 

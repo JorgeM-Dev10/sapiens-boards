@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, Calendar as CalendarIcon, Clock, CheckCircle, FileText, TrendingUp, Award } from "lucide-react"
+import { Loader2, Plus, Calendar as CalendarIcon, Clock, CheckCircle, FileText, TrendingUp, Award, Pencil, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -64,17 +64,19 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   const { toast } = useToast()
   const [bitacora, setBitacora] = useState<Bitacora | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false)
+  const [isRegistroDialogOpen, setIsRegistroDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingSession, setEditingSession] = useState<WorkSession | null>(null)
   const [xpNotification, setXpNotification] = useState<{
     xpGained: number
     totalXP: number
     levelUp: boolean
     rankUp: string | null
   } | null>(null)
-  const [commitForm, setCommitForm] = useState({
+  const [registroForm, setRegistroForm] = useState({
     date: new Date().toISOString().split('T')[0],
     startTime: "09:00",
     endTime: "17:00",
@@ -115,10 +117,10 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleSubmitCommit = async (e: React.FormEvent) => {
+  const handleSubmitRegistro = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!commitForm.startTime || !commitForm.endTime) {
+    if (!registroForm.startTime || !registroForm.endTime) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -137,12 +139,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         },
         body: JSON.stringify({
           bitacoraBoardId: params.id,
-          date: commitForm.date,
-          startTime: commitForm.startTime,
-          endTime: commitForm.endTime,
-          tasksCompleted: commitForm.tasksCompleted || 0,
-          description: commitForm.description || null,
-          workType: commitForm.workType,
+          date: registroForm.date,
+          startTime: registroForm.startTime,
+          endTime: registroForm.endTime,
+          tasksCompleted: registroForm.tasksCompleted || 0,
+          description: registroForm.description || null,
+          workType: registroForm.workType,
         }),
       })
 
@@ -165,10 +167,10 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         
         toast({
           title: "Éxito",
-          description: `Commit registrado! +${data.xpGained || 0} XP ganados`,
+          description: `Registro guardado! +${data.xpGained || 0} XP ganados`,
         })
-        setIsCommitDialogOpen(false)
-        setCommitForm({
+        setIsRegistroDialogOpen(false)
+        setRegistroForm({
           date: new Date().toISOString().split('T')[0],
           startTime: "09:00",
           endTime: "17:00",
@@ -182,15 +184,15 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.error || "Error al registrar el commit",
+          description: error.error || "Error al registrar el trabajo",
         })
       }
     } catch (error) {
-      console.error("Error submitting commit:", error)
+      console.error("Error submitting registro:", error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al registrar el commit",
+        description: "Error al registrar el trabajo",
       })
     } finally {
       setIsSubmitting(false)
@@ -310,7 +312,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <FileText className="h-4 w-4 text-purple-400" />
                         <span className="text-purple-400 font-semibold">Por Sesión</span>
                       </div>
-                      <p className="text-gray-300">5 XP por cada commit registrado</p>
+                      <p className="text-gray-300">5 XP por cada registro de trabajo</p>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-700">
@@ -327,7 +329,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <motion.div 
-                className={`relative h-24 w-24 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
+                className={`relative h-32 w-32 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 animate={{ 
                   boxShadow: [
@@ -395,29 +397,29 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
-            <Dialog open={isCommitDialogOpen} onOpenChange={setIsCommitDialogOpen}>
+            <Dialog open={isRegistroDialogOpen} onOpenChange={setIsRegistroDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="mr-2 h-4 w-4" />
-                  Registrar Commit
+                  Registrar Trabajo
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Registrar Commit Diario</DialogTitle>
+                  <DialogTitle>Registrar Trabajo Diario</DialogTitle>
                   <DialogDescription className="text-gray-400">
                     Registra tu trabajo del día
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmitCommit}>
+                <form onSubmit={handleSubmitRegistro}>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="date">Fecha *</Label>
                       <Input
                         id="date"
                         type="date"
-                        value={commitForm.date}
-                        onChange={(e) => setCommitForm({ ...commitForm, date: e.target.value })}
+                        value={registroForm.date}
+                        onChange={(e) => setRegistroForm({ ...registroForm, date: e.target.value })}
                         className="bg-gray-900 border-gray-700 text-white"
                         required
                       />
@@ -428,8 +430,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <Input
                           id="startTime"
                           type="time"
-                          value={commitForm.startTime}
-                          onChange={(e) => setCommitForm({ ...commitForm, startTime: e.target.value })}
+                          value={registroForm.startTime}
+                          onChange={(e) => setRegistroForm({ ...registroForm, startTime: e.target.value })}
                           className="bg-gray-900 border-gray-700 text-white"
                           required
                         />
@@ -439,8 +441,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <Input
                           id="endTime"
                           type="time"
-                          value={commitForm.endTime}
-                          onChange={(e) => setCommitForm({ ...commitForm, endTime: e.target.value })}
+                          value={registroForm.endTime}
+                          onChange={(e) => setRegistroForm({ ...registroForm, endTime: e.target.value })}
                           className="bg-gray-900 border-gray-700 text-white"
                           required
                         />
@@ -452,16 +454,16 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         id="tasksCompleted"
                         type="number"
                         min="0"
-                        value={commitForm.tasksCompleted}
-                        onChange={(e) => setCommitForm({ ...commitForm, tasksCompleted: parseInt(e.target.value) || 0 })}
+                        value={registroForm.tasksCompleted}
+                        onChange={(e) => setRegistroForm({ ...registroForm, tasksCompleted: parseInt(e.target.value) || 0 })}
                         className="bg-gray-900 border-gray-700 text-white"
                       />
                     </div>
                     <div>
                       <Label htmlFor="workType">Tipo de Trabajo</Label>
                       <Select
-                        value={commitForm.workType}
-                        onValueChange={(value) => setCommitForm({ ...commitForm, workType: value })}
+                        value={registroForm.workType}
+                        onValueChange={(value) => setRegistroForm({ ...registroForm, workType: value })}
                       >
                         <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                           <SelectValue />
@@ -480,8 +482,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       <Label htmlFor="description">¿Qué trabajaste hoy? *</Label>
                       <Textarea
                         id="description"
-                        value={commitForm.description}
-                        onChange={(e) => setCommitForm({ ...commitForm, description: e.target.value })}
+                        value={registroForm.description}
+                        onChange={(e) => setRegistroForm({ ...registroForm, description: e.target.value })}
                         className="bg-gray-900 border-gray-700 text-white"
                         placeholder="Describe qué trabajaste durante esta sesión..."
                         rows={4}
@@ -493,7 +495,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => setIsCommitDialogOpen(false)}
+                      onClick={() => setIsRegistroDialogOpen(false)}
                       className="text-gray-400 hover:text-white"
                     >
                       Cancelar
@@ -503,7 +505,167 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       disabled={isSubmitting}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      {isSubmitting ? "Guardando..." : "Guardar Commit"}
+                      {isSubmitting ? "Guardando..." : "Guardar Registro"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog de Edición */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Editar Registro de Trabajo</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Modifica los datos del registro
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  if (!editingSession) return
+                  
+                  setIsSubmitting(true)
+                  try {
+                    const response = await fetch(`/api/work-sessions/${editingSession.id}`, {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        date: registroForm.date,
+                        startTime: registroForm.startTime,
+                        endTime: registroForm.endTime,
+                        tasksCompleted: registroForm.tasksCompleted || 0,
+                        description: registroForm.description || null,
+                        workType: registroForm.workType,
+                      }),
+                    })
+
+                    if (response.ok) {
+                      toast({
+                        title: "Éxito",
+                        description: "Registro actualizado",
+                      })
+                      setIsEditDialogOpen(false)
+                      setEditingSession(null)
+                      fetchBitacora()
+                    } else {
+                      const error = await response.json()
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: error.error || "Error al actualizar el registro",
+                      })
+                    }
+                  } catch (error) {
+                    console.error("Error updating registro:", error)
+                    toast({
+                      variant: "destructive",
+                      title: "Error",
+                      description: "Error al actualizar el registro",
+                    })
+                  } finally {
+                    setIsSubmitting(false)
+                  }
+                }}>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-date">Fecha *</Label>
+                      <Input
+                        id="edit-date"
+                        type="date"
+                        value={registroForm.date}
+                        onChange={(e) => setRegistroForm({ ...registroForm, date: e.target.value })}
+                        className="bg-gray-900 border-gray-700 text-white"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-startTime">Hora Inicio *</Label>
+                        <Input
+                          id="edit-startTime"
+                          type="time"
+                          value={registroForm.startTime}
+                          onChange={(e) => setRegistroForm({ ...registroForm, startTime: e.target.value })}
+                          className="bg-gray-900 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-endTime">Hora Fin *</Label>
+                        <Input
+                          id="edit-endTime"
+                          type="time"
+                          value={registroForm.endTime}
+                          onChange={(e) => setRegistroForm({ ...registroForm, endTime: e.target.value })}
+                          className="bg-gray-900 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-tasksCompleted">Tareas Completadas</Label>
+                      <Input
+                        id="edit-tasksCompleted"
+                        type="number"
+                        min="0"
+                        value={registroForm.tasksCompleted}
+                        onChange={(e) => setRegistroForm({ ...registroForm, tasksCompleted: parseInt(e.target.value) || 0 })}
+                        className="bg-gray-900 border-gray-700 text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-workType">Tipo de Trabajo</Label>
+                      <Select
+                        value={registroForm.workType}
+                        onValueChange={(value) => setRegistroForm({ ...registroForm, workType: value })}
+                      >
+                        <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-800">
+                          <SelectItem value="dev">Desarrollo</SelectItem>
+                          <SelectItem value="diseño">Diseño</SelectItem>
+                          <SelectItem value="ops">Operaciones</SelectItem>
+                          <SelectItem value="calls">Llamadas/Reuniones</SelectItem>
+                          <SelectItem value="testing">Testing</SelectItem>
+                          <SelectItem value="documentation">Documentación</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-description">¿Qué trabajaste hoy? *</Label>
+                      <Textarea
+                        id="edit-description"
+                        value={registroForm.description}
+                        onChange={(e) => setRegistroForm({ ...registroForm, description: e.target.value })}
+                        className="bg-gray-900 border-gray-700 text-white"
+                        placeholder="Describe qué trabajaste durante esta sesión..."
+                        rows={4}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-6">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setIsEditDialogOpen(false)
+                        setEditingSession(null)
+                      }}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isSubmitting ? "Guardando..." : "Guardar Cambios"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -567,7 +729,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">Calendario de Commits</CardTitle>
+                    <CardTitle className="text-white">Calendario de Registros</CardTitle>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -654,12 +816,65 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       {selectedDateSessions.map((session) => (
                         <div key={session.id} className="p-3 bg-gray-900 rounded-lg border-l-4 border-blue-500">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-white text-sm font-medium">
-                              {session.startTime} - {session.endTime}
-                            </span>
-                            <span className="text-blue-400 text-sm font-bold">
-                              {(session.durationMinutes / 60).toFixed(1)}h
-                            </span>
+                            <div className="flex-1">
+                              <span className="text-white text-sm font-medium">
+                                {session.startTime} - {session.endTime}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-blue-400 text-sm font-bold">
+                                {(session.durationMinutes / 60).toFixed(1)}h
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                onClick={() => {
+                                  setEditingSession(session)
+                                  setRegistroForm({
+                                    date: session.date.split('T')[0],
+                                    startTime: session.startTime,
+                                    endTime: session.endTime,
+                                    tasksCompleted: session.tasksCompleted,
+                                    description: session.description || "",
+                                    workType: session.workType,
+                                  })
+                                  setIsEditDialogOpen(true)
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                onClick={async () => {
+                                  if (!confirm("¿Estás seguro de eliminar este registro?")) return
+                                  try {
+                                    const response = await fetch(`/api/work-sessions/${session.id}`, {
+                                      method: "DELETE",
+                                    })
+                                    if (response.ok) {
+                                      toast({
+                                        title: "Éxito",
+                                        description: "Registro eliminado",
+                                      })
+                                      fetchBitacora()
+                                    } else {
+                                      throw new Error("Error al eliminar")
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error",
+                                      description: "No se pudo eliminar el registro",
+                                    })
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="text-xs text-gray-400 mb-1 capitalize">
                             {session.workType}
@@ -680,19 +895,19 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   ) : (
                     <div className="text-center py-8 text-gray-400">
                       <CalendarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No hay commits registrados para este día</p>
+                      <p>No hay registros para este día</p>
                       <Button
                         className="mt-4 bg-blue-600 hover:bg-blue-700"
                         onClick={() => {
-                          setCommitForm({
-                            ...commitForm,
+                          setRegistroForm({
+                            ...registroForm,
                             date: format(selectedDate, 'yyyy-MM-dd'),
                           })
-                          setIsCommitDialogOpen(true)
+                          setIsRegistroDialogOpen(true)
                         }}
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Registrar Commit
+                        Registrar Trabajo
                       </Button>
                     </div>
                   )}

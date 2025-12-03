@@ -131,7 +131,7 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                       const imageUrl = getAvatarImageUrl(bitacora.avatar.rank || "Principiante", bitacora.avatar.avatarImageUrl)
                       return imageUrl ? (
                         <motion.div
-                          className="relative w-12 h-12 rounded-full overflow-hidden"
+                          className="relative w-16 h-16 rounded-full overflow-hidden"
                           whileHover={{ scale: 1.15, rotate: 5 }}
                           animate={{ 
                             scale: [1, 1.05, 1],
@@ -201,7 +201,7 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <motion.div 
-                      className={`h-20 w-20 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg relative ${getRankColorClass(bitacora.avatar.rank || "Principiante")}`}
+                      className={`h-28 w-28 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg relative ${getRankColorClass(bitacora.avatar.rank || "Principiante")}`}
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       animate={{ 
                         scale: [1, 1.03, 1],

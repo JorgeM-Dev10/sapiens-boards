@@ -162,22 +162,164 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Los commits no se pueden editar una vez registrados
-  return NextResponse.json(
-    { error: "Los commits no se pueden editar una vez registrados" },
-    { status: 403 }
-  )
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const body = await request.json()
+    const {
+      boardId,
+      bitacoraBoardId,
+      listId,
+      date,
+      startTime,
+      endTime,
+      tasksCompleted,
+      description,
+      workType,
+    } = body
+
+    // Verificar que la sesión pertenece al usuario
+    const existingSession = await prisma.workSession.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
+    })
+
+    if (!existingSession) {
+      return NextResponse.json(
+        { error: "Registro de trabajo no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    // Calcular duración si se actualizan las horas
+    let durationMinutes = existingSession.durationMinutes
+    if (startTime && endTime) {
+      durationMinutes = calculateMinutes(startTime, endTime)
+      if (durationMinutes <= 0) {
+        return NextResponse.json(
+          { error: "La hora de fin debe ser mayor que la hora de inicio" },
+          { status: 400 }
+        )
+      }
+    }
+
+    const updatedSession = await prisma.workSession.update({
+      where: {
+        id,
+      },
+      data: {
+        ...(boardId !== undefined && { boardId: boardId || null }),
+        ...(bitacoraBoardId !== undefined && { bitacoraBoardId: bitacoraBoardId || null }),
+        ...(listId !== undefined && { listId: listId || null }),
+        ...(date && { date: new Date(date) }),
+        ...(startTime && { startTime }),
+        ...(endTime && { endTime }),
+        ...(durationMinutes !== existingSession.durationMinutes && { durationMinutes }),
+        ...(tasksCompleted !== undefined && { tasksCompleted }),
+        ...(description !== undefined && { description }),
+        ...(workType && { workType }),
+        updatedAt: new Date(),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        board: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        list: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        bitacoraBoard: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    })
+
+    // Actualizar avatar si es una sesión de bitácora
+    if (updatedSession.bitacoraBoardId) {
+      await updateBitacoraAvatar(updatedSession.bitacoraBoardId, updatedSession.durationMinutes, updatedSession.tasksCompleted || 0)
+    }
+
+    return NextResponse.json(updatedSession)
+  } catch (error) {
+    console.error("Error updating work session:", error)
+    return NextResponse.json(
+      { error: "Error al actualizar el registro de trabajo" },
+      { status: 500 }
+    )
+  }
 }
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Los commits no se pueden borrar una vez registrados
-  return NextResponse.json(
-    { error: "Los commits no se pueden borrar una vez registrados" },
-    { status: 403 }
-  )
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    // Verificar que la sesión pertenece al usuario y obtener bitacoraBoardId antes de borrar
+    const existingSession = await prisma.workSession.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
+    })
+
+    if (!existingSession) {
+      return NextResponse.json(
+        { error: "Registro de trabajo no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    const bitacoraBoardId = existingSession.bitacoraBoardId
+
+    await prisma.workSession.delete({
+      where: {
+        id,
+      },
+    })
+
+    // Actualizar avatar después de borrar
+    if (bitacoraBoardId) {
+      await updateBitacoraAvatar(bitacoraBoardId, 0, 0)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error deleting work session:", error)
+    return NextResponse.json(
+      { error: "Error al eliminar el registro de trabajo" },
+      { status: 500 }
+    )
+  }
 }
 
 
