@@ -22,6 +22,7 @@ interface Bitacora {
   description: string | null
   image: string | null
   order: number
+  boardId: string | null
   createdAt: string
   avatar: {
     level: number
@@ -32,6 +33,10 @@ interface Bitacora {
     avatarStyle: string
     rank: string
     avatarImageUrl: string | null
+  } | null
+  board?: {
+    id: string
+    title: string
   } | null
   stats: {
     totalHours: number
@@ -333,7 +338,10 @@ export default function BitacorasPage() {
     title: "",
     description: "",
     image: "",
+    boardId: "",
   })
+  const [availableBoards, setAvailableBoards] = useState<Array<{ id: string, title: string }>>([])
+  const [allBoards, setAllBoards] = useState<Array<{ id: string, title: string }>>([])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -345,7 +353,20 @@ export default function BitacorasPage() {
 
   useEffect(() => {
     fetchBitacoras()
+    fetchBoards()
   }, [])
+
+  const fetchBoards = async () => {
+    try {
+      const response = await fetch("/api/boards")
+      if (response.ok) {
+        const data = await response.json()
+        setAllBoards(data.map((b: any) => ({ id: b.id, title: b.title })))
+      }
+    } catch (error) {
+      console.error("Error fetching boards:", error)
+    }
+  }
 
   const fetchBitacoras = async () => {
     try {
@@ -421,13 +442,28 @@ export default function BitacorasPage() {
     }
   }
 
-  const handleEdit = (bitacora: Bitacora, e: React.MouseEvent) => {
+  const handleEdit = async (bitacora: Bitacora, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingBitacora(bitacora)
+    
+    // Obtener bitácoras para ver qué roadmaps ya están asignados
+    const response = await fetch("/api/bitacoras")
+    const bitacorasData = response.ok ? await response.json() : []
+    const assignedBoardIds = bitacorasData
+      .filter((b: any) => b.id !== bitacora.id && b.boardId)
+      .map((b: any) => b.boardId)
+    
+    // Filtrar roadmaps disponibles (excluir los ya asignados, excepto el de esta bitácora)
+    const available = allBoards.filter(b => 
+      !assignedBoardIds.includes(b.id) || b.id === (bitacora as any).boardId
+    )
+    setAvailableBoards(available)
+    
     setEditBitacora({
       title: bitacora.title,
       description: bitacora.description || "",
       image: bitacora.image || "",
+      boardId: (bitacora as any).boardId || "",
     })
     setIsEditDialogOpen(true)
   }
@@ -746,6 +782,30 @@ export default function BitacorasPage() {
                     }
                     className="bg-gray-900 border-gray-700 text-white"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="edit-boardId">Roadmap a Conectar</Label>
+                  <Select
+                    value={editBitacora.boardId}
+                    onValueChange={(value) =>
+                      setEditBitacora({ ...editBitacora, boardId: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                      <SelectValue placeholder="Selecciona un roadmap (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-800">
+                      <SelectItem value="">Sin roadmap</SelectItem>
+                      {availableBoards.map((board) => (
+                        <SelectItem key={board.id} value={board.id}>
+                          {board.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Al conectar un roadmap, las tareas completadas se registrarán automáticamente en esta bitácora
+                  </p>
                 </div>
               </div>
               <DialogFooter>

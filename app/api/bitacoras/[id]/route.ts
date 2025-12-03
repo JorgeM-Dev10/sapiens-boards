@@ -23,6 +23,12 @@ export async function GET(
       },
       include: {
         avatar: true,
+        board: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         workSessions: {
           orderBy: {
             date: "desc",
@@ -68,7 +74,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, image, order } = body
+    const { title, description, image, order, boardId } = body
 
     // Verificar que la bitácora pertenece al usuario
     const existing = await prisma.bitacoraBoard.findFirst({
@@ -85,6 +91,38 @@ export async function PATCH(
       )
     }
 
+    // Si se está asignando un boardId, verificar que no esté asignado a otra bitácora
+    if (boardId !== undefined && boardId !== null && boardId !== "") {
+      const boardInUse = await prisma.bitacoraBoard.findFirst({
+        where: {
+          boardId,
+          id: { not: id }, // Excluir la bitácora actual
+        },
+      })
+
+      if (boardInUse) {
+        return NextResponse.json(
+          { error: "Este roadmap ya está asignado a otra bitácora" },
+          { status: 400 }
+        )
+      }
+
+      // Verificar que el board existe y pertenece al usuario
+      const board = await prisma.board.findFirst({
+        where: {
+          id: boardId,
+          ownerId: session.user.id,
+        },
+      })
+
+      if (!board) {
+        return NextResponse.json(
+          { error: "Roadmap no encontrado o no tienes permisos" },
+          { status: 404 }
+        )
+      }
+    }
+
     const updated = await prisma.bitacoraBoard.update({
       where: {
         id,
@@ -94,10 +132,17 @@ export async function PATCH(
         ...(description !== undefined && { description }),
         ...(image !== undefined && { image }),
         ...(order !== undefined && { order }),
+        ...(boardId !== undefined && { boardId: boardId || null }),
         updatedAt: new Date(),
       },
       include: {
         avatar: true,
+        board: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
     })
 

@@ -17,6 +17,12 @@ export async function GET() {
       },
       include: {
         avatar: true,
+        board: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         workSessions: {
           select: {
             id: true,

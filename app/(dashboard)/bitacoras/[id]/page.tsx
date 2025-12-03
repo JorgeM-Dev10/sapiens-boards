@@ -40,6 +40,7 @@ interface Bitacora {
   title: string
   description: string | null
   image: string | null
+  boardId: string | null
   user: {
     id: string
     name: string
@@ -56,6 +57,10 @@ interface Bitacora {
     rank: string
     avatarImageUrl: string | null
   } | null
+  board?: {
+    id: string
+    title: string
+  } | null
   workSessions: WorkSession[]
 }
 
@@ -70,6 +75,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<WorkSession | null>(null)
+  const [isTasksDialogOpen, setIsTasksDialogOpen] = useState(false)
   const [xpNotification, setXpNotification] = useState<{
     xpGained: number
     totalXP: number
@@ -208,6 +214,23 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     })
   }
 
+  // Obtener todas las tareas completadas de todos los registros
+  const getAllCompletedTasks = () => {
+    if (!bitacora) return []
+    const tasks: Array<{ date: string, description: string, tasksCompleted: number, workType: string }> = []
+    bitacora.workSessions.forEach(session => {
+      if (session.tasksCompleted > 0) {
+        tasks.push({
+          date: session.date,
+          description: session.description || 'Sin descripción',
+          tasksCompleted: session.tasksCompleted,
+          workType: session.workType,
+        })
+      }
+    })
+    return tasks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }
+
   const getTotalHoursForDate = (date: Date) => {
     const sessions = getSessionsForDate(date)
     return sessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
@@ -287,7 +310,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <motion.div 
-                className={`relative h-40 w-40 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl bg-gradient-to-br from-gray-900 to-black ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
+                className={`relative h-24 w-24 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg bg-gradient-to-br from-gray-900 to-black ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
                 whileHover={{ scale: 1.05 }}
                 animate={{ 
                   boxShadow: [
@@ -309,7 +332,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <motion.img 
                           src={imageUrl} 
                           alt={bitacora.avatar.rank}
-                          className="w-full h-full object-contain p-2"
+                          className="w-full h-full object-contain p-1"
                           animate={{ 
                             scale: [1, 1.02, 1],
                           }}
@@ -644,7 +667,10 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-[#1a1a1a] border-gray-800">
+              <Card 
+                className="bg-[#1a1a1a] border-gray-800 cursor-pointer hover:border-green-500/50 transition-colors"
+                onClick={() => setIsTasksDialogOpen(true)}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -914,6 +940,52 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Dialog de Listado de Tareas */}
+          <Dialog open={isTasksDialogOpen} onOpenChange={setIsTasksDialogOpen}>
+            <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-white flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  Tareas Completadas
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Listado de todas las tareas registradas en esta bitácora
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4">
+                {getAllCompletedTasks().length > 0 ? (
+                  <div className="space-y-3">
+                    {getAllCompletedTasks().map((task, index) => (
+                      <div key={index} className="p-4 bg-gray-900 rounded-lg border-l-4 border-green-500">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-green-400 font-semibold">
+                                {task.tasksCompleted} tarea{task.tasksCompleted !== 1 ? 's' : ''} completada{task.tasksCompleted !== 1 ? 's' : ''}
+                              </span>
+                              <span className="text-xs text-gray-400 capitalize">
+                                • {task.workType}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-300 mt-1">{task.description}</p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              {format(parseISO(task.date), 'EEEE, d MMMM yyyy', { locale: es })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No hay tareas registradas aún</p>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
