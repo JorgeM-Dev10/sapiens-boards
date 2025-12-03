@@ -283,64 +283,22 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       )}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl">
-          {/* Sistema de XP - Documentación */}
-          <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50 mb-6">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
-                  ⭐
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-bold text-lg mb-2">Sistema de Experiencia (XP)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div className="bg-black/40 rounded-lg p-3 border border-blue-500/30">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Clock className="h-4 w-4 text-blue-400" />
-                        <span className="text-blue-400 font-semibold">Por Hora</span>
-                      </div>
-                      <p className="text-gray-300">1 XP por cada hora trabajada</p>
-                    </div>
-                    <div className="bg-black/40 rounded-lg p-3 border border-green-500/30">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                        <span className="text-green-400 font-semibold">Por Tarea</span>
-                      </div>
-                      <p className="text-gray-300">10 XP por cada tarea completada</p>
-                    </div>
-                    <div className="bg-black/40 rounded-lg p-3 border border-purple-500/30">
-                      <div className="flex items-center gap-2 mb-1">
-                        <FileText className="h-4 w-4 text-purple-400" />
-                        <span className="text-purple-400 font-semibold">Por Sesión</span>
-                      </div>
-                      <p className="text-gray-300">5 XP por cada registro de trabajo</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-gray-700">
-                    <p className="text-xs text-gray-400">
-                      <span className="text-yellow-400 font-semibold">Niveles:</span> Principiante (0-499 XP) • Intermedio (500-1999 XP) • Avanzado (2000-4999 XP) • Épico (5000-9999 XP) • Leyenda (10000+ XP)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Header con Avatar */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <motion.div 
-                className={`relative h-32 w-32 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
-                whileHover={{ scale: 1.1, rotate: 5 }}
+                className={`relative h-40 w-40 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl bg-gradient-to-br from-gray-900 to-black ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
+                whileHover={{ scale: 1.05 }}
                 animate={{ 
                   boxShadow: [
-                    "0 0 20px rgba(59, 130, 246, 0.5)",
-                    "0 0 30px rgba(59, 130, 246, 0.8)",
-                    "0 0 20px rgba(59, 130, 246, 0.5)"
+                    "0 0 25px rgba(59, 130, 246, 0.4)",
+                    "0 0 35px rgba(59, 130, 246, 0.6)",
+                    "0 0 25px rgba(59, 130, 246, 0.4)"
                   ]
                 }}
                 transition={{ 
                   boxShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                  scale: { type: "spring", stiffness: 300 }
+                  scale: { type: "spring", stiffness: 200, damping: 15 }
                 }}
               >
                 {bitacora.avatar ? (
@@ -351,34 +309,33 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <motion.img 
                           src={imageUrl} 
                           alt={bitacora.avatar.rank}
-                          className="w-full h-full object-contain p-1.5"
+                          className="w-full h-full object-contain p-2"
                           animate={{ 
-                            scale: [1, 1.03, 1],
-                            opacity: [1, 0.95, 1]
+                            scale: [1, 1.02, 1],
                           }}
                           transition={{ 
-                            duration: 3,
+                            duration: 4,
                             repeat: Infinity,
                             ease: "easeInOut"
                           }}
                         />
-                        {/* Efecto de brillo rotativo */}
+                        {/* Efecto de brillo rotativo más sutil */}
                         <motion.div 
-                          className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/30 to-transparent pointer-events-none"
+                          className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/15 to-transparent pointer-events-none"
                           animate={{ rotate: 360 }}
                           transition={{ 
-                            duration: 8,
+                            duration: 10,
                             repeat: Infinity,
                             ease: "linear"
                           }}
                         />
                       </>
                     ) : (
-                      <span className="text-4xl">{getAvatarEmoji(bitacora.avatar.rank)}</span>
+                      <span className="text-5xl">{getAvatarEmoji(bitacora.avatar.rank)}</span>
                     )
                   })()
                 ) : (
-                  <span className="text-4xl">🌱</span>
+                  <span className="text-5xl">🌱</span>
                 )}
               </motion.div>
               <div>
@@ -915,6 +872,48 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               </Card>
             </div>
           </div>
+
+          {/* Sistema de XP - Documentación (debajo del calendario) */}
+          <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50 mt-6">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-2xl flex-shrink-0">
+                  ⭐
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-bold text-lg mb-2">Sistema de Experiencia (XP)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className="bg-black/40 rounded-lg p-3 border border-blue-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="h-4 w-4 text-blue-400" />
+                        <span className="text-blue-400 font-semibold">Por Hora</span>
+                      </div>
+                      <p className="text-gray-300">1 XP por cada hora trabajada</p>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-green-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="h-4 w-4 text-green-400" />
+                        <span className="text-green-400 font-semibold">Por Tarea</span>
+                      </div>
+                      <p className="text-gray-300">10 XP por cada tarea completada</p>
+                    </div>
+                    <div className="bg-black/40 rounded-lg p-3 border border-purple-500/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-purple-400" />
+                        <span className="text-purple-400 font-semibold">Por Sesión</span>
+                      </div>
+                      <p className="text-gray-300">5 XP por cada registro de trabajo</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <p className="text-xs text-gray-400">
+                      <span className="text-yellow-400 font-semibold">Niveles:</span> Principiante (0-499 XP) • Intermedio (500-1999 XP) • Avanzado (2000-4999 XP) • Épico (5000-9999 XP) • Leyenda (10000+ XP)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
