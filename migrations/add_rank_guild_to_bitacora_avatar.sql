@@ -8,3 +8,5 @@ UPDATE "BitacoraAvatar"
 SET "rank" = 'Novato', "guild" = 'I' 
 WHERE "rank" IS NULL OR "guild" IS NULL;
 
+
+

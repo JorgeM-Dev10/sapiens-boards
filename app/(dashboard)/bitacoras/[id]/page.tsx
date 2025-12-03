@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Plus, Calendar as CalendarIcon, Clock, CheckCircle, FileText, TrendingUp, Award } from "lucide-react"
+import { motion } from "framer-motion"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ interface Bitacora {
     totalSessions: number
     avatarStyle: string
     rank: string
+    avatarImageUrl: string | null
   } | null
   workSessions: WorkSession[]
 }
@@ -209,12 +211,21 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     return sessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
   }
 
-  const getAvatarEmoji = (style: string, level: number) => {
-    if (style === "legend") return "👑"
-    if (style === "master") return "⭐"
-    if (style === "expert") return "🔥"
-    if (style === "advanced") return "💪"
-    if (style === "intermediate") return "🚀"
+  // Función para obtener la URL de la imagen del avatar según el rango
+  const getAvatarImageUrl = (rank: string, avatarImageUrl: string | null): string | null => {
+    // Si hay una URL configurada, usarla
+    if (avatarImageUrl) return avatarImageUrl
+    
+    // Si no hay URL, retornar null para usar emoji como fallback
+    return null
+  }
+
+  // Función para obtener emoji como fallback cuando no hay imagen
+  const getAvatarEmoji = (rank: string) => {
+    if (rank === "Leyenda") return "👑"
+    if (rank === "Épico") return "⭐"
+    if (rank === "Avanzado") return "🔥"
+    if (rank === "Intermedio") return "💪"
     return "🌱"
   }
 
@@ -315,9 +326,59 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           {/* Header con Avatar */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`h-20 w-20 rounded-full border-4 flex items-center justify-center text-4xl ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}>
-                {bitacora.avatar ? getAvatarEmoji(bitacora.avatar.avatarStyle, bitacora.avatar.level) : "🌱"}
-              </div>
+              <motion.div 
+                className={`relative h-24 w-24 rounded-full border-4 flex items-center justify-center overflow-hidden shadow-2xl ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                animate={{ 
+                  boxShadow: [
+                    "0 0 20px rgba(59, 130, 246, 0.5)",
+                    "0 0 30px rgba(59, 130, 246, 0.8)",
+                    "0 0 20px rgba(59, 130, 246, 0.5)"
+                  ]
+                }}
+                transition={{ 
+                  boxShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                  scale: { type: "spring", stiffness: 300 }
+                }}
+              >
+                {bitacora.avatar ? (
+                  (() => {
+                    const imageUrl = getAvatarImageUrl(bitacora.avatar.rank, bitacora.avatar.avatarImageUrl)
+                    return imageUrl ? (
+                      <>
+                        <motion.img 
+                          src={imageUrl} 
+                          alt={bitacora.avatar.rank}
+                          className="w-full h-full object-contain p-1.5"
+                          animate={{ 
+                            scale: [1, 1.03, 1],
+                            opacity: [1, 0.95, 1]
+                          }}
+                          transition={{ 
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                        {/* Efecto de brillo rotativo */}
+                        <motion.div 
+                          className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/30 to-transparent pointer-events-none"
+                          animate={{ rotate: 360 }}
+                          transition={{ 
+                            duration: 8,
+                            repeat: Infinity,
+                            ease: "linear"
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <span className="text-4xl">{getAvatarEmoji(bitacora.avatar.rank)}</span>
+                    )
+                  })()
+                ) : (
+                  <span className="text-4xl">🌱</span>
+                )}
+              </motion.div>
               <div>
                 <h1 className="text-3xl font-bold text-white">{bitacora.title}</h1>
                 {bitacora.description && (

@@ -27,22 +27,28 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     // Niveles: Principiante, Intermedio, Avanzado, Épico, Leyenda
     let rank = "Principiante"
     let avatarStyle = "basic"
+    let avatarImageUrl: string | null = null
     
     if (experience >= 10000) {
       rank = "Leyenda"
       avatarStyle = "legend"
+      avatarImageUrl = "https://i.imgur.com/5WDwPXs.png"
     } else if (experience >= 5000) {
       rank = "Épico"
       avatarStyle = "epic"
+      avatarImageUrl = "https://i.imgur.com/CCuILkk.png"
     } else if (experience >= 2000) {
       rank = "Avanzado"
       avatarStyle = "advanced"
+      avatarImageUrl = "https://i.imgur.com/3oUQA6l.png"
     } else if (experience >= 500) {
       rank = "Intermedio"
       avatarStyle = "intermediate"
+      avatarImageUrl = "https://i.imgur.com/8sfE7ue.png"
     } else {
       rank = "Principiante"
       avatarStyle = "basic"
+      avatarImageUrl = "https://i.imgur.com/ZhsrnvR.png"
     }
 
     if (bitacora.avatar) {
@@ -56,6 +62,7 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalSessions,
           avatarStyle,
           rank,
+          avatarImageUrl,
         },
       })
     } else {
@@ -69,6 +76,7 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalSessions,
           avatarStyle,
           rank,
+          avatarImageUrl,
         },
       })
     }
@@ -154,14 +162,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
-
-    const { id } = await params
+  // Los commits no se pueden editar una vez registrados
+  return NextResponse.json(
+    { error: "Los commits no se pueden editar una vez registrados" },
+    { status: 403 }
+  )
     const body = await request.json()
     const {
       boardId,
@@ -265,44 +270,11 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
-
-    const { id } = await params
-
-    // Verificar que la sesión pertenece al usuario
-    const existingSession = await prisma.workSession.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-    })
-
-    if (!existingSession) {
-      return NextResponse.json(
-        { error: "Sesión de trabajo no encontrada" },
-        { status: 404 }
-      )
-    }
-
-    await prisma.workSession.delete({
-      where: {
-        id,
-      },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Error deleting work session:", error)
-    return NextResponse.json(
-      { error: "Error al eliminar la sesión de trabajo" },
-      { status: 500 }
-    )
-  }
+  // Los commits no se pueden borrar una vez registrados
+  return NextResponse.json(
+    { error: "Los commits no se pueden borrar una vez registrados" },
+    { status: 403 }
+  )
 }
 
 

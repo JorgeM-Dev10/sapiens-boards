@@ -30,22 +30,28 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     // Niveles: Principiante, Intermedio, Avanzado, Épico, Leyenda
     let rank = "Principiante"
     let avatarStyle = "basic"
+    let avatarImageUrl: string | null = null
     
     if (experience >= 10000) {
       rank = "Leyenda"
       avatarStyle = "legend"
+      avatarImageUrl = "https://i.imgur.com/5WDwPXs.png"
     } else if (experience >= 5000) {
       rank = "Épico"
       avatarStyle = "epic"
+      avatarImageUrl = "https://i.imgur.com/CCuILkk.png"
     } else if (experience >= 2000) {
       rank = "Avanzado"
       avatarStyle = "advanced"
+      avatarImageUrl = "https://i.imgur.com/3oUQA6l.png"
     } else if (experience >= 500) {
       rank = "Intermedio"
       avatarStyle = "intermediate"
+      avatarImageUrl = "https://i.imgur.com/8sfE7ue.png"
     } else {
       rank = "Principiante"
       avatarStyle = "basic"
+      avatarImageUrl = "https://i.imgur.com/ZhsrnvR.png"
     }
 
     if (bitacora.avatar) {
@@ -59,6 +65,7 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalSessions,
           avatarStyle,
           rank,
+          avatarImageUrl,
         },
       })
     } else {
@@ -72,6 +79,7 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalSessions,
           avatarStyle,
           rank,
+          avatarImageUrl,
         },
       })
     }

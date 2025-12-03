@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Loader2, Pencil, Trash2, FileText, Clock, CheckCircle } from "lucide-react"
+import { motion } from "framer-motion"
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
@@ -30,6 +31,7 @@ interface Bitacora {
     totalSessions: number
     avatarStyle: string
     rank: string
+    avatarImageUrl: string | null
   } | null
   stats: {
     totalHours: number
@@ -68,6 +70,16 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
     return "text-gray-400"
   }
 
+  // Función para obtener la URL de la imagen del avatar según el rango
+  const getAvatarImageUrl = (rank: string, avatarImageUrl: string | null): string | null => {
+    // Si hay una URL configurada, usarla
+    if (avatarImageUrl) return avatarImageUrl
+    
+    // Si no hay URL, retornar null para usar emoji como fallback
+    return null
+  }
+
+  // Función para obtener emoji como fallback cuando no hay imagen
   const getAvatarEmoji = (rank: string) => {
     if (rank === "Leyenda") return "👑"
     if (rank === "Épico") return "⭐"
@@ -115,7 +127,40 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               <div className="flex-1">
                 <CardTitle className="text-white drop-shadow-lg text-xl font-bold flex items-center gap-2 mb-2">
                   {bitacora.avatar && (
-                    <span className="text-5xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Principiante")}</span>
+                    (() => {
+                      const imageUrl = getAvatarImageUrl(bitacora.avatar.rank || "Principiante", bitacora.avatar.avatarImageUrl)
+                      return imageUrl ? (
+                        <motion.div
+                          className="relative w-12 h-12 rounded-full overflow-hidden"
+                          whileHover={{ scale: 1.15, rotate: 5 }}
+                          animate={{ 
+                            scale: [1, 1.05, 1],
+                          }}
+                          transition={{ 
+                            scale: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                            type: "spring",
+                            stiffness: 300
+                          }}
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt={bitacora.avatar.rank || "Principiante"}
+                            className="w-full h-full object-contain p-0.5"
+                          />
+                          <motion.div 
+                            className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none"
+                            animate={{ rotate: 360 }}
+                            transition={{ 
+                              duration: 6,
+                              repeat: Infinity,
+                              ease: "linear"
+                            }}
+                          />
+                        </motion.div>
+                      ) : (
+                        <span className="text-5xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Principiante")}</span>
+                      )
+                    })()
                   )}
                   <span className="flex-1">{bitacora.title}</span>
                   {bitacora.avatar && bitacora.avatar.rank && (
@@ -155,9 +200,57 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               <div className="mb-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`h-20 w-20 rounded-full border-3 flex items-center justify-center text-4xl shadow-lg ${getRankColorClass(bitacora.avatar.rank || "Principiante")}`}>
-                      {getAvatarEmoji(bitacora.avatar.rank || "Principiante")}
-                    </div>
+                    <motion.div 
+                      className={`h-20 w-20 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg relative ${getRankColorClass(bitacora.avatar.rank || "Principiante")}`}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      animate={{ 
+                        scale: [1, 1.03, 1],
+                        boxShadow: [
+                          "0 4px 15px rgba(0, 0, 0, 0.3)",
+                          "0 6px 20px rgba(59, 130, 246, 0.4)",
+                          "0 4px 15px rgba(0, 0, 0, 0.3)"
+                        ]
+                      }}
+                      transition={{ 
+                        scale: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                        boxShadow: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                        type: "spring",
+                        stiffness: 300
+                      }}
+                    >
+                      {(() => {
+                        const imageUrl = getAvatarImageUrl(bitacora.avatar.rank || "Principiante", bitacora.avatar.avatarImageUrl)
+                        return imageUrl ? (
+                          <>
+                            <motion.img 
+                              src={imageUrl} 
+                              alt={bitacora.avatar.rank || "Principiante"}
+                              className="w-full h-full object-contain p-1"
+                              animate={{ 
+                                scale: [1, 1.02, 1],
+                                opacity: [1, 0.98, 1]
+                              }}
+                              transition={{ 
+                                duration: 3,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            />
+                            <motion.div 
+                              className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/25 to-transparent pointer-events-none"
+                              animate={{ rotate: 360 }}
+                              transition={{ 
+                                duration: 8,
+                                repeat: Infinity,
+                                ease: "linear"
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <span className="text-4xl">{getAvatarEmoji(bitacora.avatar.rank || "Principiante")}</span>
+                        )
+                      })()}
+                    </motion.div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-white font-bold text-lg">{bitacora.avatar.rank || "Principiante"}</span>

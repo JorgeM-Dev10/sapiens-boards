@@ -19,3 +19,5 @@ UPDATE "BitacoraAvatar"
 SET "rank" = 'Principiante' 
 WHERE "rank" IS NULL;
 
+
+

@@ -328,6 +328,7 @@ model BitacoraAvatar {
   totalSessions   Int      @default(0) // Sesiones registradas
   avatarStyle     String   @default("basic") // Estilo del avatar según nivel
   rank            String   @default("Principiante") // Nivel: Principiante, Intermedio, Avanzado, Épico, Leyenda
+  avatarImageUrl String?  // URL de la imagen del emblema del rango
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

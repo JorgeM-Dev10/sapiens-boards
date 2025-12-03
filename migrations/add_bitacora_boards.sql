@@ -59,3 +59,5 @@ COMMENT ON COLUMN "BitacoraAvatar"."level" IS 'Nivel del avatar (1-100+)';
 COMMENT ON COLUMN "BitacoraAvatar"."experience" IS 'Experiencia total acumulada';
 COMMENT ON COLUMN "BitacoraAvatar"."avatarStyle" IS 'Estilo del avatar según nivel: basic, intermediate, advanced, expert, master, legend';
 
+
+

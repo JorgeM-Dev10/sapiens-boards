@@ -38,3 +38,5 @@ COMMENT ON COLUMN "WorkSession"."durationMinutes" IS 'Duraci√≥n calculada autom√
 
 
 
+
+
