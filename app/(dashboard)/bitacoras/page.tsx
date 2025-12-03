@@ -125,49 +125,8 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
           <CardHeader className="flex-1 flex flex-col justify-between p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="text-white drop-shadow-lg text-xl font-bold flex items-center gap-2 mb-2">
-                  {bitacora.avatar && (
-                    (() => {
-                      const imageUrl = getAvatarImageUrl(bitacora.avatar.rank || "Principiante", bitacora.avatar.avatarImageUrl)
-                      return imageUrl ? (
-                        <motion.div
-                          className="relative w-16 h-16 rounded-full overflow-hidden"
-                          whileHover={{ scale: 1.15, rotate: 5 }}
-                          animate={{ 
-                            scale: [1, 1.05, 1],
-                          }}
-                          transition={{ 
-                            scale: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                            type: "spring",
-                            stiffness: 300
-                          }}
-                        >
-                          <img 
-                            src={imageUrl} 
-                            alt={bitacora.avatar.rank || "Principiante"}
-                            className="w-full h-full object-contain p-0.5"
-                          />
-                          <motion.div 
-                            className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none"
-                            animate={{ rotate: 360 }}
-                            transition={{ 
-                              duration: 6,
-                              repeat: Infinity,
-                              ease: "linear"
-                            }}
-                          />
-                        </motion.div>
-                      ) : (
-                        <span className="text-5xl drop-shadow-lg">{getAvatarEmoji(bitacora.avatar.rank || "Principiante")}</span>
-                      )
-                    })()
-                  )}
-                  <span className="flex-1">{bitacora.title}</span>
-                  {bitacora.avatar && bitacora.avatar.rank && (
-                    <span className={`text-sm px-3 py-1.5 rounded-full border font-semibold ${getRankBadgeColor(bitacora.avatar.rank)}`}>
-                      {bitacora.avatar.rank}
-                    </span>
-                  )}
+                <CardTitle className="text-white drop-shadow-lg text-xl font-bold mb-2">
+                  {bitacora.title}
                 </CardTitle>
                 {bitacora.description && (
                   <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2 text-sm">{bitacora.description}</CardDescription>
