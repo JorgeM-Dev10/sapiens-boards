@@ -209,8 +209,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     if (!bitacora) return []
     const dateStr = format(date, 'yyyy-MM-dd')
     return bitacora.workSessions.filter(s => {
-      const sessionDate = format(parseISO(s.date), 'yyyy-MM-dd')
-      return sessionDate === dateStr
+      // Extraer solo la parte de fecha (yyyy-MM-dd) sin parsear a Date para evitar problemas de zona horaria
+      const sessionDateStr = s.date.split('T')[0]
+      return sessionDateStr === dateStr
     })
   }
 
