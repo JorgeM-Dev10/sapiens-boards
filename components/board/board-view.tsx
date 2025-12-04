@@ -7,9 +7,8 @@ import { BoardWithLists } from "@/types"
 import { ListColumn } from "./list-column"
 import { TaskCard } from "./task-card"
 import { Button } from "@/components/ui/button"
-import { Plus, Clock } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { RegisterWorkSessionDialog } from "./register-work-session-dialog"
 
 interface BoardViewProps {
   board: BoardWithLists
@@ -311,7 +310,6 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
                 <p className="text-gray-400 mt-1">{board.description}</p>
               )}
             </div>
-            <RegisterWorkSessionDialog boardId={board.id} boardLists={board.lists} onSuccess={onUpdate} />
           </div>
         </div>
 
