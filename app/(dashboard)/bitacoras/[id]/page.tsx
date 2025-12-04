@@ -287,7 +287,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const allDaysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  
+  // Agregar días vacíos al inicio para alinear el primer día con el día de la semana correcto
+  const firstDayOfWeek = monthStart.getDay() // 0 = Domingo, 1 = Lunes, etc.
+  const emptyDays = Array(firstDayOfWeek).fill(null)
+  const daysInMonth = [...emptyDays, ...allDaysInMonth]
 
   const selectedDateSessions = getSessionsForDate(selectedDate)
   const selectedDateHours = getTotalHoursForDate(selectedDate)
@@ -745,7 +750,17 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                     ))}
                   </div>
                   <div className="grid grid-cols-7 gap-2">
-                    {daysInMonth.map((day) => {
+                    {daysInMonth.map((day, index) => {
+                      // Si es un día vacío (null), mostrar celda vacía
+                      if (day === null) {
+                        return (
+                          <div
+                            key={`empty-${index}`}
+                            className="aspect-square p-2 rounded-lg border-2 border-transparent"
+                          />
+                        )
+                      }
+
                       const hours = getTotalHoursForDate(day)
                       const hasSessions = getSessionsForDate(day).length > 0
                       const isSelected = isSameDay(day, selectedDate)
