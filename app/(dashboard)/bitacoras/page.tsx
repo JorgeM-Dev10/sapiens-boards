@@ -340,6 +340,7 @@ export default function BitacorasPage() {
     title: "",
     description: "",
     image: "",
+    boardId: "",
   })
   const [editBitacora, setEditBitacora] = useState({
     title: "",
@@ -413,12 +414,16 @@ export default function BitacorasPage() {
 
     setIsCreating(true)
     try {
+      const payload = {
+        ...newBitacora,
+        boardId: newBitacora.boardId || null,
+      }
       const response = await fetch("/api/bitacoras", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newBitacora),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
@@ -426,7 +431,7 @@ export default function BitacorasPage() {
           title: "Éxito",
           description: "Bitácora creada correctamente",
         })
-        setNewBitacora({ title: "", description: "", image: "" })
+        setNewBitacora({ title: "", description: "", image: "", boardId: "" })
         setIsCreateDialogOpen(false)
         fetchBitacoras()
       } else {
@@ -451,28 +456,37 @@ export default function BitacorasPage() {
 
   const handleEdit = async (bitacora: Bitacora, e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditingBitacora(bitacora)
-    
-    // Obtener bitácoras para ver qué roadmaps ya están asignados
-    const response = await fetch("/api/bitacoras")
-    const bitacorasData = response.ok ? await response.json() : []
-    const assignedBoardIds = bitacorasData
-      .filter((b: any) => b.id !== bitacora.id && b.boardId)
-      .map((b: any) => b.boardId)
-    
-    // Filtrar roadmaps disponibles (excluir los ya asignados, excepto el de esta bitácora)
-    const available = allBoards.filter(b => 
-      !assignedBoardIds.includes(b.id) || b.id === (bitacora as any).boardId
-    )
-    setAvailableBoards(available)
-    
-    setEditBitacora({
-      title: bitacora.title,
-      description: bitacora.description || "",
-      image: bitacora.image || "",
-      boardId: (bitacora as any).boardId || "",
-    })
-    setIsEditDialogOpen(true)
+    try {
+      setEditingBitacora(bitacora)
+      
+      // Obtener bitácoras para ver qué roadmaps ya están asignados
+      const response = await fetch("/api/bitacoras")
+      const bitacorasData = response.ok ? await response.json() : []
+      const assignedBoardIds = bitacorasData
+        .filter((b: any) => b.id !== bitacora.id && b.boardId)
+        .map((b: any) => b.boardId)
+      
+      // Filtrar roadmaps disponibles (excluir los ya asignados, excepto el de esta bitácora)
+      const available = allBoards.filter(b => 
+        !assignedBoardIds.includes(b.id) || b.id === (bitacora as any).boardId
+      )
+      setAvailableBoards(available)
+      
+      setEditBitacora({
+        title: bitacora.title,
+        description: bitacora.description || "",
+        image: bitacora.image || "",
+        boardId: (bitacora as any).boardId || "",
+      })
+      setIsEditDialogOpen(true)
+    } catch (error) {
+      console.error("Error preparing edit dialog:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al abrir el diálogo de edición",
+      })
+    }
   }
 
   const handleUpdate = async () => {
@@ -487,12 +501,16 @@ export default function BitacorasPage() {
 
     setIsEditing(true)
     try {
+      const payload = {
+        ...editBitacora,
+        boardId: editBitacora.boardId || null,
+      }
       const response = await fetch(`/api/bitacoras/${editingBitacora.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(editBitacora),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
@@ -637,7 +655,20 @@ export default function BitacorasPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Bitácoras</h1>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog 
+              open={isCreateDialogOpen} 
+              onOpenChange={(open) => {
+                setIsCreateDialogOpen(open)
+                if (open) {
+                  // Cuando se abre el diálogo, calcular roadmaps disponibles
+                  const assignedBoardIds = bitacoras
+                    .filter((b: any) => b.boardId)
+                    .map((b: any) => b.boardId)
+                  const available = allBoards.filter(b => !assignedBoardIds.includes(b.id))
+                  setAvailableBoards(available)
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="mr-2 h-4 w-4" />
@@ -688,6 +719,30 @@ export default function BitacorasPage() {
                       className="bg-gray-900 border-gray-700 text-white"
                       placeholder="https://..."
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="boardId">Roadmap a Conectar</Label>
+                    <Select
+                      value={newBitacora.boardId}
+                      onValueChange={(value) =>
+                        setNewBitacora({ ...newBitacora, boardId: value })
+                      }
+                    >
+                      <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectValue placeholder="Selecciona un roadmap (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a1a1a] border-gray-800">
+                        <SelectItem value="">Sin roadmap</SelectItem>
+                        {availableBoards.map((board) => (
+                          <SelectItem key={board.id} value={board.id}>
+                            {board.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Al conectar un roadmap, las tareas completadas se registrarán automáticamente en esta bitácora
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>
