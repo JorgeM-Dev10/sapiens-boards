@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { calculateTaskXP } from "@/lib/utils"
 
 interface ListColumnProps {
   list: ListWithTasks
@@ -45,6 +47,8 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
     image: "",
     startDate: new Date().toISOString().split('T')[0],
     dueDate: "",
+    difficulty: "",
+    hours: "",
   })
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(list.title)
@@ -82,6 +86,8 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
           listId: list.id,
           order: list.tasks.length,
           dueDate: dueDate,
+          difficulty: newTask.difficulty || null,
+          hours: newTask.hours ? parseFloat(newTask.hours) : null,
         }),
       })
 
@@ -92,6 +98,8 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
           image: "",
           startDate: new Date().toISOString().split('T')[0],
           dueDate: "",
+          difficulty: "",
+          hours: "",
         })
         setIsAddingTask(false)
         onUpdate()
@@ -326,6 +334,55 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="task-difficulty">Dificultad</Label>
+                  <Select
+                    value={newTask.difficulty}
+                    onValueChange={(value) =>
+                      setNewTask({ ...newTask, difficulty: value })
+                    }
+                  >
+                    <SelectTrigger className="bg-black border-gray-800 text-white">
+                      <SelectValue placeholder="Selecciona dificultad" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-800">
+                      <SelectItem value="FACIL" className="text-white hover:bg-gray-800">Fácil (5 XP)</SelectItem>
+                      <SelectItem value="MEDIA" className="text-white hover:bg-gray-800">Media (10 XP)</SelectItem>
+                      <SelectItem value="DIFICIL" className="text-white hover:bg-gray-800">Difícil (20 XP)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="task-hours">Horas Trabajadas</Label>
+                  <Input
+                    id="task-hours"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    placeholder="0.0"
+                    value={newTask.hours}
+                    onChange={(e) =>
+                      setNewTask({ ...newTask, hours: e.target.value })
+                    }
+                    className="bg-black border-gray-800 text-white"
+                  />
+                  <p className="text-xs text-gray-500">1 XP por hora</p>
+                </div>
+              </div>
+              {(newTask.difficulty || newTask.hours) && (
+                <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-md">
+                  <p className="text-sm text-blue-300 font-semibold">
+                    XP Calculada: {calculateTaskXP(parseFloat(newTask.hours) || 0, newTask.difficulty || null)} XP
+                  </p>
+                  <p className="text-xs text-blue-400 mt-1">
+                    ({parseFloat(newTask.hours) || 0} horas × 1 XP) + 
+                    ({newTask.difficulty === "FACIL" ? 5 : 
+                      newTask.difficulty === "MEDIA" ? 10 : 
+                      newTask.difficulty === "DIFICIL" ? 20 : 0} XP por dificultad)
+                  </p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -338,6 +395,8 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
                     image: "",
                     startDate: new Date().toISOString().split('T')[0],
                     dueDate: "",
+                    difficulty: "",
+                    hours: "",
                   })
                 }}
                 className="bg-transparent border-gray-800 text-white hover:bg-gray-900"

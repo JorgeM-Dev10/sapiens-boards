@@ -38,6 +38,8 @@ export interface CreateTaskData {
   status?: TaskStatus
   assignedTo?: string
   dueDate?: Date
+  difficulty?: "FACIL" | "MEDIA" | "DIFICIL" | null
+  hours?: number | null
 }
 
 export interface UpdateTaskData {
@@ -48,6 +50,8 @@ export interface UpdateTaskData {
   order?: number
   assignedTo?: string
   dueDate?: Date
+  difficulty?: "FACIL" | "MEDIA" | "DIFICIL" | null
+  hours?: number | null
 }
 
 // Workers types

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, description, image, listId, order, status, assignedTo, dueDate } = body
+    const { title, description, image, listId, order, status, assignedTo, dueDate, difficulty, hours } = body
 
     console.log("Creating task with data:", { title, listId, order })
 
@@ -46,6 +46,8 @@ export async function POST(request: Request) {
         status: status ?? "pending",
         assignedTo: assignedTo || null,
         dueDate: dueDate ? new Date(dueDate) : null,
+        difficulty: difficulty || null,
+        hours: hours ? parseFloat(hours) : null,
       },
       include: {
         assigned: true,

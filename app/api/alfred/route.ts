@@ -174,6 +174,8 @@ async function handleCreate(resource: string, data: any, userId: string) {
           status: data.status || "pending",
           assignedTo: data.assignedTo || null,
           dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          difficulty: data.difficulty || null,
+          hours: data.hours ? parseFloat(data.hours) : null,
         },
         include: {
           assigned: true,

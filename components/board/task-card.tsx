@@ -8,13 +8,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Trash2, X, Check } from "lucide-react"
-import { getInitials, formatDate } from "@/lib/utils"
+import { getInitials, formatDate, calculateTaskXP } from "@/lib/utils"
+import { Award } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface TaskCardProps {
   task: TaskWithRelations
@@ -30,6 +32,8 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
     description: task.description || "",
     image: task.image || "",
     dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "",
+    difficulty: (task as any).difficulty || "",
+    hours: (task as any).hours?.toString() || "",
   })
   const [newTagName, setNewTagName] = useState("")
   const [newTagColor, setNewTagColor] = useState("#3b82f6")
@@ -133,6 +137,8 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
           image: editedTask.image || null,
           dueDate: editedTask.dueDate || null,
           tagIds: selectedTags,
+          difficulty: editedTask.difficulty || null,
+          hours: editedTask.hours ? parseFloat(editedTask.hours) : null,
         }),
       })
 
@@ -358,12 +364,20 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
             )}
 
             <div className="flex items-center justify-between">
-              {task.dueDate && (
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Calendar className="mr-1 h-3 w-3" />
-                  {formatDate(task.dueDate)}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {task.dueDate && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Calendar className="mr-1 h-3 w-3" />
+                    {formatDate(task.dueDate)}
+                  </div>
+                )}
+                {((task as any).difficulty || (task as any).hours) && (
+                  <div className="flex items-center text-xs text-yellow-400 font-semibold">
+                    <Award className="mr-1 h-3 w-3" />
+                    {calculateTaskXP((task as any).hours, (task as any).difficulty)} XP
+                  </div>
+                )}
+              </div>
 
               {task.assigned && (
                 <Avatar className="h-6 w-6">
@@ -449,6 +463,55 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
               className="bg-black border-gray-800 text-white"
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-difficulty">Dificultad</Label>
+              <Select
+                value={editedTask.difficulty}
+                onValueChange={(value) =>
+                  setEditedTask({ ...editedTask, difficulty: value })
+                }
+              >
+                <SelectTrigger className="bg-black border-gray-800 text-white">
+                  <SelectValue placeholder="Selecciona dificultad" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-gray-800">
+                  <SelectItem value="FACIL" className="text-white hover:bg-gray-800">Fácil (5 XP)</SelectItem>
+                  <SelectItem value="MEDIA" className="text-white hover:bg-gray-800">Media (10 XP)</SelectItem>
+                  <SelectItem value="DIFICIL" className="text-white hover:bg-gray-800">Difícil (20 XP)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-hours">Horas Trabajadas</Label>
+              <Input
+                id="edit-hours"
+                type="number"
+                step="0.1"
+                min="0"
+                placeholder="0.0"
+                value={editedTask.hours}
+                onChange={(e) =>
+                  setEditedTask({ ...editedTask, hours: e.target.value })
+                }
+                className="bg-black border-gray-800 text-white"
+              />
+              <p className="text-xs text-gray-500">1 XP por hora</p>
+            </div>
+          </div>
+          {(editedTask.difficulty || editedTask.hours) && (
+            <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-md">
+              <p className="text-sm text-blue-300 font-semibold">
+                XP Calculada: {calculateTaskXP(parseFloat(editedTask.hours) || 0, editedTask.difficulty || null)} XP
+              </p>
+              <p className="text-xs text-blue-400 mt-1">
+                ({parseFloat(editedTask.hours) || 0} horas × 1 XP) + 
+                ({editedTask.difficulty === "FACIL" ? 5 : 
+                  editedTask.difficulty === "MEDIA" ? 10 : 
+                  editedTask.difficulty === "DIFICIL" ? 20 : 0} XP por dificultad)
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Etiquetas</Label>
             <div className="flex flex-wrap gap-2 p-3 bg-black border border-gray-800 rounded-md min-h-[50px]">
