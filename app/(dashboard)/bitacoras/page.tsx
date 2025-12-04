@@ -4,9 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plus, Loader2, Pencil, Trash2, FileText } from "lucide-react"
 import { motion } from "framer-motion"
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
-import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -52,27 +49,14 @@ interface Bitacora {
   }
 }
 
-// Componente para tarjeta sortable
-function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
+// Componente para tarjeta de bitácora
+function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
   bitacora: Bitacora
+  rankPosition: number // 1, 2, 3, etc.
   onEdit: (bitacora: Bitacora, e: React.MouseEvent) => void
   onDelete: (bitacoraId: string, e: React.MouseEvent) => void
   onClick: () => void
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: bitacora.id })
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
   const getLevelColor = (level: number) => {
     if (level >= 50) return "text-purple-400"
@@ -116,12 +100,135 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
     return "bg-gray-500/20 text-gray-300 border-gray-400"
   }
 
+  // Obtener estilos de aura según la posición en el ranking
+  const getRankAura = () => {
+    if (rankPosition === 1) {
+      return {
+        border: "border-4 border-yellow-400",
+        shadow: "shadow-2xl shadow-yellow-500/60",
+        glow: "ring-4 ring-yellow-500/50",
+        intensity: "high"
+      }
+    } else if (rankPosition === 2) {
+      return {
+        border: "border-4 border-gray-300",
+        shadow: "shadow-xl shadow-gray-400/40",
+        glow: "ring-3 ring-gray-400/30",
+        intensity: "medium"
+      }
+    } else if (rankPosition === 3) {
+      return {
+        border: "border-4 border-amber-600",
+        shadow: "shadow-lg shadow-amber-600/30",
+        glow: "ring-2 ring-amber-600/20",
+        intensity: "low"
+      }
+    }
+    return {
+      border: "border-2 border-gray-800",
+      shadow: "",
+      glow: "",
+      intensity: "none"
+    }
+  }
+
+  const aura = getRankAura()
+
   return (
-    <div ref={setNodeRef} style={style} className="relative">
-      <Card
-        className={`cursor-pointer border-2 border-gray-800 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-[28rem] ${
-          isDragging ? 'ring-2 ring-blue-500 scale-105' : ''
-        }`}
+    <div className="relative">
+      <motion.div
+        className="relative"
+        animate={
+          rankPosition <= 3
+            ? {
+                scale: [1, 1.02, 1],
+                boxShadow: [
+                  rankPosition === 1
+                    ? "0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4)"
+                    : rankPosition === 2
+                    ? "0 0 20px rgba(209, 213, 219, 0.4), 0 0 40px rgba(209, 213, 219, 0.2)"
+                    : "0 0 15px rgba(217, 119, 6, 0.3), 0 0 30px rgba(217, 119, 6, 0.15)",
+                  rankPosition === 1
+                    ? "0 0 40px rgba(251, 191, 36, 0.8), 0 0 80px rgba(251, 191, 36, 0.5)"
+                    : rankPosition === 2
+                    ? "0 0 25px rgba(209, 213, 219, 0.5), 0 0 50px rgba(209, 213, 219, 0.3)"
+                    : "0 0 20px rgba(217, 119, 6, 0.4), 0 0 40px rgba(217, 119, 6, 0.2)",
+                  rankPosition === 1
+                    ? "0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4)"
+                    : rankPosition === 2
+                    ? "0 0 20px rgba(209, 213, 219, 0.4), 0 0 40px rgba(209, 213, 219, 0.2)"
+                    : "0 0 15px rgba(217, 119, 6, 0.3), 0 0 30px rgba(217, 119, 6, 0.15)",
+                ],
+              }
+            : {}
+        }
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        {/* Aura de fuego para los primeros 3 lugares */}
+        {rankPosition <= 3 && (
+          <>
+            {/* Partículas de fuego animadas */}
+            {Array.from({ length: rankPosition === 1 ? 8 : rankPosition === 2 ? 6 : 4 }).map((_, i) => (
+              <motion.div
+                key={`particle-${i}`}
+                className={`absolute rounded-full ${
+                  rankPosition === 1
+                    ? "bg-yellow-400"
+                    : rankPosition === 2
+                    ? "bg-gray-300"
+                    : "bg-amber-600"
+                }`}
+                style={{
+                  width: rankPosition === 1 ? "6px" : rankPosition === 2 ? "5px" : "4px",
+                  height: rankPosition === 1 ? "6px" : rankPosition === 2 ? "5px" : "4px",
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+                animate={{
+                  y: [0, -30, -60],
+                  x: [
+                    0,
+                    (Math.random() - 0.5) * 40,
+                    (Math.random() - 0.5) * 80,
+                  ],
+                  opacity: [0.8, 0.5, 0],
+                  scale: [1, 1.5, 0],
+                }}
+                transition={{
+                  duration: 2 + Math.random(),
+                  repeat: Infinity,
+                  delay: Math.random() * 2,
+                  ease: "easeOut",
+                }}
+              />
+            ))}
+            {/* Aura exterior pulsante */}
+            <motion.div
+              className={`absolute -inset-2 rounded-xl ${
+                rankPosition === 1
+                  ? "bg-gradient-to-r from-yellow-500/30 via-orange-500/20 to-yellow-500/30"
+                  : rankPosition === 2
+                  ? "bg-gradient-to-r from-gray-400/20 via-gray-300/15 to-gray-400/20"
+                  : "bg-gradient-to-r from-amber-600/15 via-amber-700/10 to-amber-600/15"
+              } blur-xl`}
+              animate={{
+                opacity: [0.3, 0.6, 0.3],
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </>
+        )}
+        <Card
+          className={`cursor-pointer ${aura.border} ${aura.shadow} ${aura.glow} hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-[28rem]`}
         style={{
           backgroundImage: bitacora.image ? `url(${bitacora.image})` : undefined,
           backgroundSize: 'cover',
@@ -284,20 +391,8 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
             )}
           </CardContent>
         </div>
-        
-        <div
-          {...attributes}
-          {...listeners}
-          className="absolute top-3 right-3 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-2 z-20 bg-black/70 backdrop-blur-md rounded-lg border border-white/20"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="w-6 h-6 flex flex-col gap-1 justify-center">
-            <div className="w-full h-0.5 bg-white rounded"></div>
-            <div className="w-full h-0.5 bg-white rounded"></div>
-            <div className="w-full h-0.5 bg-white rounded"></div>
-          </div>
-        </div>
       </Card>
+      </motion.div>
     </div>
   )
 }
@@ -307,7 +402,6 @@ export default function BitacorasPage() {
   const { toast } = useToast()
   const [bitacoras, setBitacoras] = useState<Bitacora[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -327,14 +421,6 @@ export default function BitacorasPage() {
   })
   const [availableBoards, setAvailableBoards] = useState<Array<{ id: string, title: string }>>([])
   const [allBoards, setAllBoards] = useState<Array<{ id: string, title: string }>>([])
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
 
   useEffect(() => {
     fetchBitacoras()
@@ -359,7 +445,13 @@ export default function BitacorasPage() {
       const response = await fetch("/api/bitacoras")
       if (response.ok) {
         const data = await response.json()
-        setBitacoras(data)
+        // Ordenar por totalHours descendente (ranking)
+        const sorted = data.sort((a: Bitacora, b: Bitacora) => {
+          const hoursA = a.stats?.totalHours || 0
+          const hoursB = b.stats?.totalHours || 0
+          return hoursB - hoursA
+        })
+        setBitacoras(sorted)
       } else {
         toast({
           variant: "destructive",
@@ -554,65 +646,6 @@ export default function BitacorasPage() {
     }
   }
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (!over || active.id === over.id) {
-      setActiveId(null)
-      return
-    }
-
-    const oldIndex = bitacoras.findIndex((b) => b.id === active.id)
-    const newIndex = bitacoras.findIndex((b) => b.id === over.id)
-
-    if (oldIndex === -1 || newIndex === -1) {
-      setActiveId(null)
-      return
-    }
-
-    const newBitacoras = [...bitacoras]
-    const [moved] = newBitacoras.splice(oldIndex, 1)
-    newBitacoras.splice(newIndex, 0, moved)
-
-    // Actualizar orden
-    const updates = newBitacoras.map((bitacora, index) => ({
-      id: bitacora.id,
-      order: index,
-    }))
-
-    try {
-      await Promise.all(
-        updates.map((update) =>
-          fetch(`/api/bitacoras/${update.id}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ order: update.order }),
-          })
-        )
-      )
-      setBitacoras(newBitacoras)
-    } catch (error) {
-      console.error("Error reordering bitacoras:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Error al reordenar las bitácoras",
-      })
-      fetchBitacoras()
-    }
-
-    setActiveId(null)
-  }
-
-  const activeBitacora = activeId
-    ? bitacoras.find((b) => b.id === activeId)
-    : null
 
   if (isLoading) {
     return (
@@ -758,33 +791,18 @@ export default function BitacorasPage() {
               <p className="text-sm">Crea tu primera bitácora para empezar a registrar tu trabajo</p>
             </div>
           ) : (
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-              <SortableContext items={bitacoras.map((b) => b.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {bitacoras.map((bitacora) => (
-                    <SortableBitacoraCard
-                      key={bitacora.id}
-                      bitacora={bitacora}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onClick={() => router.push(`/bitacoras/${bitacora.id}`)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-              <DragOverlay>
-                {activeBitacora ? (
-                  <div className="opacity-50">
-                    <SortableBitacoraCard
-                      bitacora={activeBitacora}
-                      onEdit={() => {}}
-                      onDelete={() => {}}
-                      onClick={() => {}}
-                    />
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bitacoras.map((bitacora, index) => (
+                <BitacoraCard
+                  key={bitacora.id}
+                  bitacora={bitacora}
+                  rankPosition={index + 1}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onClick={() => router.push(`/bitacoras/${bitacora.id}`)}
+                />
+              ))}
+            </div>
           )}
 
           {/* Dialog de edición */}
