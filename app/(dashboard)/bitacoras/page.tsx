@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Loader2, Pencil, Trash2, FileText, Clock, CheckCircle } from "lucide-react"
+import { Plus, Loader2, Pencil, Trash2, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable"
@@ -282,29 +282,6 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-blue-500/50 transition-colors">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="h-4 w-4 text-blue-400" />
-                  <span className="text-xs text-gray-400">Horas</span>
-                </div>
-                <p className="text-white font-bold text-lg">{bitacora.stats.totalHours.toFixed(1)}h</p>
-              </div>
-              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-green-500/50 transition-colors">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-xs text-gray-400">Tareas</span>
-                </div>
-                <p className="text-white font-bold text-lg">{bitacora.stats.totalTasks}</p>
-              </div>
-              <div className="bg-gray-900/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-purple-500/50 transition-colors">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="h-4 w-4 text-purple-400" />
-                  <span className="text-xs text-gray-400">Sesiones</span>
-                </div>
-                <p className="text-white font-bold text-lg">{bitacora.stats.totalSessions}</p>
-              </div>
-            </div>
           </CardContent>
         </div>
         
