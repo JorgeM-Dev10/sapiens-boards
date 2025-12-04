@@ -340,13 +340,13 @@ export default function BitacorasPage() {
     title: "",
     description: "",
     image: "",
-    boardId: "",
+    boardId: undefined as string | undefined,
   })
   const [editBitacora, setEditBitacora] = useState({
     title: "",
     description: "",
     image: "",
-    boardId: "",
+    boardId: undefined as string | undefined,
   })
   const [availableBoards, setAvailableBoards] = useState<Array<{ id: string, title: string }>>([])
   const [allBoards, setAllBoards] = useState<Array<{ id: string, title: string }>>([])
@@ -431,7 +431,7 @@ export default function BitacorasPage() {
           title: "Éxito",
           description: "Bitácora creada correctamente",
         })
-        setNewBitacora({ title: "", description: "", image: "", boardId: "" })
+        setNewBitacora({ title: "", description: "", image: "", boardId: undefined })
         setIsCreateDialogOpen(false)
         fetchBitacoras()
       } else {
@@ -476,7 +476,7 @@ export default function BitacorasPage() {
         title: bitacora.title,
         description: bitacora.description || "",
         image: bitacora.image || "",
-        boardId: (bitacora as any).boardId || "",
+        boardId: (bitacora as any).boardId || undefined,
       })
       setIsEditDialogOpen(true)
     } catch (error) {
@@ -723,21 +723,30 @@ export default function BitacorasPage() {
                   <div>
                     <Label htmlFor="boardId">Roadmap a Conectar</Label>
                     <Select
-                      value={newBitacora.boardId}
-                      onValueChange={(value) =>
-                        setNewBitacora({ ...newBitacora, boardId: value })
-                      }
+                      value={newBitacora.boardId || "none"}
+                      onValueChange={(value) => {
+                        setNewBitacora({ 
+                          ...newBitacora, 
+                          boardId: value === "none" ? undefined : value 
+                        })
+                      }}
                     >
                       <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                         <SelectValue placeholder="Selecciona un roadmap (opcional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                        <SelectItem value="">Sin roadmap</SelectItem>
-                        {availableBoards.map((board) => (
-                          <SelectItem key={board.id} value={board.id}>
-                            {board.title}
+                        <SelectItem value="none">Sin roadmap</SelectItem>
+                        {availableBoards.length > 0 ? (
+                          availableBoards.map((board) => (
+                            <SelectItem key={board.id} value={board.id}>
+                              {board.title}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            No hay roadmaps disponibles
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-gray-400 mt-1">
@@ -848,21 +857,30 @@ export default function BitacorasPage() {
                 <div>
                   <Label htmlFor="edit-boardId">Roadmap a Conectar</Label>
                   <Select
-                    value={editBitacora.boardId}
-                    onValueChange={(value) =>
-                      setEditBitacora({ ...editBitacora, boardId: value })
-                    }
+                    value={editBitacora.boardId || "none"}
+                    onValueChange={(value) => {
+                      setEditBitacora({ 
+                        ...editBitacora, 
+                        boardId: value === "none" ? undefined : value 
+                      })
+                    }}
                   >
                     <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                       <SelectValue placeholder="Selecciona un roadmap (opcional)" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                      <SelectItem value="">Sin roadmap</SelectItem>
-                      {availableBoards.map((board) => (
-                        <SelectItem key={board.id} value={board.id}>
-                          {board.title}
+                      <SelectItem value="none">Sin roadmap</SelectItem>
+                      {availableBoards.length > 0 ? (
+                        availableBoards.map((board) => (
+                          <SelectItem key={board.id} value={board.id}>
+                            {board.title}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          No hay roadmaps disponibles
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-400 mt-1">
