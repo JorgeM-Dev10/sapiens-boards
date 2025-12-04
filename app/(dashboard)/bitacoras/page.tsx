@@ -100,64 +100,168 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
     return "bg-gray-500/20 text-gray-300 border-gray-400"
   }
 
-  // Obtener estilos de aura según la posición en el ranking
-  const getRankAura = () => {
+  // Generar partículas de aura alrededor del perímetro de la card
+  const generateAuraParticles = () => {
+    if (rankPosition > 3) return []
+    
+    const particleCount = rankPosition === 1 ? 20 : rankPosition === 2 ? 15 : 10
+    const particles = []
+    
+    // Partículas alrededor del perímetro (arriba, abajo, izquierda, derecha)
+    for (let i = 0; i < particleCount; i++) {
+      const side = Math.floor(i / (particleCount / 4)) // 0: top, 1: right, 2: bottom, 3: left
+      const position = (i % (particleCount / 4)) / (particleCount / 4) // 0 a 1
+      
+      let x = 0, y = 0
+      if (side === 0) { // Top
+        x = position * 100
+        y = -8
+      } else if (side === 1) { // Right
+        x = 100 + 8
+        y = position * 100
+      } else if (side === 2) { // Bottom
+        x = (1 - position) * 100
+        y = 100 + 8
+      } else { // Left
+        x = -8
+        y = (1 - position) * 100
+      }
+      
+      particles.push({ x, y, side, delay: i * 0.1 })
+    }
+    
+    return particles
+  }
+
+  const auraParticles = generateAuraParticles()
+
+  // Colores de aura según posición
+  const getAuraColor = () => {
     if (rankPosition === 1) {
       return {
-        border: "border-4 border-yellow-400",
-        shadow: "shadow-2xl shadow-yellow-500/60",
-        glow: "ring-4 ring-yellow-500/50",
-        intensity: "high"
+        primary: "rgba(147, 51, 234, 0.8)", // purple
+        secondary: "rgba(192, 132, 252, 0.6)", // purple-300
+        glow: "rgba(168, 85, 247, 0.4)", // purple-400
+        particle: "bg-purple-400"
       }
     } else if (rankPosition === 2) {
       return {
-        border: "border-4 border-gray-300",
-        shadow: "shadow-xl shadow-gray-400/40",
-        glow: "ring-3 ring-gray-400/30",
-        intensity: "medium"
+        primary: "rgba(59, 130, 246, 0.7)", // blue
+        secondary: "rgba(96, 165, 250, 0.5)", // blue-400
+        glow: "rgba(59, 130, 246, 0.3)", // blue-500
+        particle: "bg-blue-400"
       }
     } else if (rankPosition === 3) {
       return {
-        border: "border-4 border-amber-600",
-        shadow: "shadow-lg shadow-amber-600/30",
-        glow: "ring-2 ring-amber-600/20",
-        intensity: "low"
+        primary: "rgba(34, 197, 94, 0.6)", // green
+        secondary: "rgba(74, 222, 128, 0.4)", // green-400
+        glow: "rgba(34, 197, 94, 0.25)", // green-500
+        particle: "bg-green-400"
       }
     }
-    return {
-      border: "border-2 border-gray-800",
-      shadow: "",
-      glow: "",
-      intensity: "none"
-    }
+    return null
   }
 
-  const aura = getRankAura()
+  const auraColors = getAuraColor()
 
   return (
     <div className="relative">
+      {/* Marco de aura alrededor de la card para top 3 */}
+      {rankPosition <= 3 && auraColors && (
+        <>
+          {/* Partículas de aura alrededor del perímetro */}
+          {auraParticles.map((particle, i) => (
+            <motion.div
+              key={`aura-particle-${i}`}
+              className={`absolute ${auraColors.particle} rounded-full blur-sm`}
+              style={{
+                width: rankPosition === 1 ? "8px" : rankPosition === 2 ? "6px" : "5px",
+                height: rankPosition === 1 ? "8px" : rankPosition === 2 ? "6px" : "5px",
+                left: `${particle.x}%`,
+                top: `${particle.y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [0.8, 1.2, 0.8],
+                boxShadow: [
+                  `0 0 ${rankPosition === 1 ? "12px" : rankPosition === 2 ? "8px" : "6px"} ${auraColors.primary}`,
+                  `0 0 ${rankPosition === 1 ? "20px" : rankPosition === 2 ? "14px" : "10px"} ${auraColors.secondary}`,
+                  `0 0 ${rankPosition === 1 ? "12px" : rankPosition === 2 ? "8px" : "6px"} ${auraColors.primary}`,
+                ],
+              }}
+              transition={{
+                duration: 2 + (i % 3) * 0.5,
+                repeat: Infinity,
+                delay: particle.delay,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+          
+          {/* Líneas de aura conectando las partículas (marco) */}
+          <motion.svg
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: "100%", height: "100%" }}
+            animate={{
+              opacity: [0.4, 0.8, 0.4],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <motion.path
+              d={`M 0,0 L 100,0 L 100,100 L 0,100 Z`}
+              fill="none"
+              stroke={auraColors.primary}
+              strokeWidth={rankPosition === 1 ? "3" : rankPosition === 2 ? "2" : "1.5"}
+              strokeDasharray="10 5"
+              strokeLinecap="round"
+              animate={{
+                strokeDashoffset: [0, 15],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                filter: `blur(${rankPosition === 1 ? "2px" : rankPosition === 2 ? "1.5px" : "1px"})`,
+              }}
+            />
+          </motion.svg>
+
+          {/* Aura exterior pulsante (glow alrededor) */}
+          <motion.div
+            className="absolute -inset-3 rounded-xl pointer-events-none"
+            style={{
+              background: `radial-gradient(circle, ${auraColors.glow} 0%, transparent 70%)`,
+              filter: "blur(15px)",
+            }}
+            animate={{
+              opacity: [0.3, 0.7, 0.3],
+              scale: [1, 1.08, 1],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        </>
+      )}
+      
       <motion.div
         className="relative"
         animate={
-          rankPosition <= 3
+          rankPosition <= 3 && auraColors
             ? {
-                scale: [1, 1.02, 1],
                 boxShadow: [
-                  rankPosition === 1
-                    ? "0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4)"
-                    : rankPosition === 2
-                    ? "0 0 20px rgba(209, 213, 219, 0.4), 0 0 40px rgba(209, 213, 219, 0.2)"
-                    : "0 0 15px rgba(217, 119, 6, 0.3), 0 0 30px rgba(217, 119, 6, 0.15)",
-                  rankPosition === 1
-                    ? "0 0 40px rgba(251, 191, 36, 0.8), 0 0 80px rgba(251, 191, 36, 0.5)"
-                    : rankPosition === 2
-                    ? "0 0 25px rgba(209, 213, 219, 0.5), 0 0 50px rgba(209, 213, 219, 0.3)"
-                    : "0 0 20px rgba(217, 119, 6, 0.4), 0 0 40px rgba(217, 119, 6, 0.2)",
-                  rankPosition === 1
-                    ? "0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.4)"
-                    : rankPosition === 2
-                    ? "0 0 20px rgba(209, 213, 219, 0.4), 0 0 40px rgba(209, 213, 219, 0.2)"
-                    : "0 0 15px rgba(217, 119, 6, 0.3), 0 0 30px rgba(217, 119, 6, 0.15)",
+                  `0 0 ${rankPosition === 1 ? "40px" : rankPosition === 2 ? "30px" : "20px"} ${auraColors.primary}, 0 0 ${rankPosition === 1 ? "80px" : rankPosition === 2 ? "60px" : "40px"} ${auraColors.glow}`,
+                  `0 0 ${rankPosition === 1 ? "60px" : rankPosition === 2 ? "45px" : "30px"} ${auraColors.secondary}, 0 0 ${rankPosition === 1 ? "100px" : rankPosition === 2 ? "75px" : "50px"} ${auraColors.glow}`,
+                  `0 0 ${rankPosition === 1 ? "40px" : rankPosition === 2 ? "30px" : "20px"} ${auraColors.primary}, 0 0 ${rankPosition === 1 ? "80px" : rankPosition === 2 ? "60px" : "40px"} ${auraColors.glow}`,
                 ],
               }
             : {}
@@ -168,75 +272,16 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
           ease: "easeInOut",
         }}
       >
-        {/* Aura de fuego para los primeros 3 lugares */}
-        {rankPosition <= 3 && (
-          <>
-            {/* Partículas de fuego animadas */}
-            {Array.from({ length: rankPosition === 1 ? 8 : rankPosition === 2 ? 6 : 4 }).map((_, i) => (
-              <motion.div
-                key={`particle-${i}`}
-                className={`absolute rounded-full ${
-                  rankPosition === 1
-                    ? "bg-yellow-400"
-                    : rankPosition === 2
-                    ? "bg-gray-300"
-                    : "bg-amber-600"
-                }`}
-                style={{
-                  width: rankPosition === 1 ? "6px" : rankPosition === 2 ? "5px" : "4px",
-                  height: rankPosition === 1 ? "6px" : rankPosition === 2 ? "5px" : "4px",
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -30, -60],
-                  x: [
-                    0,
-                    (Math.random() - 0.5) * 40,
-                    (Math.random() - 0.5) * 80,
-                  ],
-                  opacity: [0.8, 0.5, 0],
-                  scale: [1, 1.5, 0],
-                }}
-                transition={{
-                  duration: 2 + Math.random(),
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                  ease: "easeOut",
-                }}
-              />
-            ))}
-            {/* Aura exterior pulsante */}
-            <motion.div
-              className={`absolute -inset-2 rounded-xl ${
-                rankPosition === 1
-                  ? "bg-gradient-to-r from-yellow-500/30 via-orange-500/20 to-yellow-500/30"
-                  : rankPosition === 2
-                  ? "bg-gradient-to-r from-gray-400/20 via-gray-300/15 to-gray-400/20"
-                  : "bg-gradient-to-r from-amber-600/15 via-amber-700/10 to-amber-600/15"
-              } blur-xl`}
-              animate={{
-                opacity: [0.3, 0.6, 0.3],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </>
-        )}
         <Card
-          className={`cursor-pointer ${aura.border} ${aura.shadow} ${aura.glow} hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-hidden relative h-[28rem]`}
-        style={{
-          backgroundImage: bitacora.image ? `url(${bitacora.image})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundColor: bitacora.image ? undefined : '#1a1a1a',
-        }}
-        onClick={onClick}
-      >
+          className={`cursor-pointer border-2 ${rankPosition <= 3 ? "border-transparent" : "border-gray-800"} hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-visible relative h-[28rem]`}
+          style={{
+            backgroundImage: bitacora.image ? `url(${bitacora.image})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundColor: bitacora.image ? undefined : '#1a1a1a',
+          }}
+          onClick={onClick}
+        >
         {/* Overlay con gradiente más sutil para mostrar más la imagen */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/15 to-black/50"></div>
         
