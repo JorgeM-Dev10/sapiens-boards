@@ -101,21 +101,17 @@ export default function EstadisticasPage() {
 
   const maxHours = Math.max(...hoursByDay.map(d => d.hours), 1)
 
-  // Horas por tipo de trabajo
-  const hoursByWorkType = new Map<string, number>()
-  bitacoras.forEach(bitacora => {
-    bitacora.workSessions.forEach(session => {
-      const hours = session.durationMinutes / 60
-      const existing = hoursByWorkType.get(session.workType) || 0
-      hoursByWorkType.set(session.workType, existing + hours)
-    })
+  // Tareas por día (últimos 7 días)
+  const tasksByDay = last7Days.map(date => {
+    const tasks = bitacoras.reduce((sum, bitacora) => {
+      return sum + bitacora.workSessions
+        .filter(s => new Date(s.date).toISOString().split('T')[0] === date)
+        .reduce((s, session) => s + (session.tasksCompleted || 0), 0)
+    }, 0)
+    return { date, tasks }
   })
 
-  const workTypeArray = Array.from(hoursByWorkType.entries())
-    .map(([type, hours]) => ({ type, hours }))
-    .sort((a, b) => b.hours - a.hours)
-
-  const maxWorkTypeHours = Math.max(...workTypeArray.map(w => w.hours), 1)
+  const maxTasks = Math.max(...tasksByDay.map(d => d.tasks), 1)
 
   // Horas por bitácora
   const hoursByBitacora = bitacoras
@@ -261,38 +257,53 @@ export default function EstadisticasPage() {
               </Card>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Horas por tipo de trabajo */}
+                {/* Tareas completadas por día */}
                 <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Horas por Tipo de Trabajo
+                      <CheckCircle className="h-5 w-5" />
+                      Tareas Completadas por Día (Últimos 7 días)
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    {workTypeArray.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                        <Activity className="h-12 w-12 mb-2 opacity-50" />
-                        <p>No hay datos de tipos de trabajo</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {workTypeArray.map((type) => (
-                          <div key={type.type} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-white font-medium capitalize">{type.type}</span>
-                              <span className="text-white font-bold">{type.hours.toFixed(1)}h</span>
+                  <CardContent className="py-6">
+                    <div className="flex items-end justify-between gap-2 h-48">
+                      {tasksByDay.map((day) => {
+                        const barHeight = day.tasks > 0 ? Math.max((day.tasks / maxTasks) * 100, 5) : 2
+                        return (
+                          <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
+                            {/* Valor de tareas arriba */}
+                            <div className={`text-xs font-bold transition-opacity ${day.tasks > 0 ? 'text-green-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
+                              {day.tasks}
                             </div>
-                            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
+                            
+                            {/* Barra */}
+                            <div 
+                              className="w-full rounded-t-lg transition-all duration-300 relative"
+                              style={{ 
+                                height: `${barHeight}%`,
+                                minHeight: day.tasks > 0 ? '20px' : '4px',
+                                maxHeight: '100%'
+                              }}
+                            >
                               <div
-                                className="bg-gradient-to-r from-purple-600 via-purple-500 to-purple-400 h-full rounded-full transition-all shadow-lg shadow-purple-500/30"
-                                style={{ width: `${(type.hours / maxWorkTypeHours) * 100}%` }}
+                                className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
+                                  day.tasks > 0 
+                                    ? 'bg-gradient-to-t from-green-600 via-green-500 to-green-400 hover:from-green-500 hover:via-green-400 hover:to-green-300 shadow-lg shadow-green-500/50 border-t-2 border-green-300/50' 
+                                    : 'bg-gray-700/20 border-t border-gray-600/30'
+                                }`}
                               />
                             </div>
+                            
+                            {/* Día de la semana */}
+                            <div className="text-center pt-1">
+                              <p className="text-xs text-gray-400 font-medium">
+                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
+                              </p>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        )
+                      })}
+                    </div>
                   </CardContent>
                 </Card>
 
