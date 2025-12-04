@@ -30,9 +30,6 @@ export async function GET(request: Request) {
         lists: {
           include: {
             tasks: {
-              where: {
-                assignedTo: session.user.id,
-              },
               include: {
                 tags: {
                   include: {
