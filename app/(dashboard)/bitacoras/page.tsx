@@ -130,8 +130,8 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
         }}
         onClick={onClick}
       >
-        {/* Overlay con gradiente más pronunciado */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/80"></div>
+        {/* Overlay con gradiente más sutil para mostrar más la imagen */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/15 to-black/50"></div>
         
         <div className="relative z-10 h-full flex flex-col">
           <CardHeader className="flex-1 flex flex-col justify-between p-4">
@@ -166,7 +166,7 @@ function SortableBitacoraCard({ bitacora, onEdit, onDelete, onClick }: {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="bg-gradient-to-t from-black/90 via-black/80 to-black/70 backdrop-blur-md rounded-t-2xl mt-auto p-4 border-t border-white/10">
+          <CardContent className="bg-gradient-to-t from-black/70 via-black/60 to-black/40 backdrop-blur-sm rounded-t-2xl mt-auto p-4 border-t border-white/20">
             {bitacora.avatar && (
               <div className="mb-4 space-y-3">
                 <div className="flex items-center justify-between">
