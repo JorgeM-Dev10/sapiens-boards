@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Pencil, Trash2, Bot, Package, GripVertical, X, Check } from "lucide-react"
+import { Plus, Pencil, Trash2, Bot, Package, GripVertical, X, Check, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -60,7 +60,7 @@ const categoryColors = [
 
 function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCategoryColor, getCategoryLabel }: {
   solution: AISolution
-  activeTab: "INDIVIDUAL" | "BUNDLE"
+  activeTab: "INDIVIDUAL" | "BUNDLE" | "WORKERS"
   onEdit: (solution: AISolution) => void
   onDelete: (id: string) => void
   getCategoryColor: (category: string, categoryColor: string | null) => string
@@ -117,8 +117,10 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
                 ) : (
                   activeTab === "INDIVIDUAL" ? (
                     <Bot className="h-32 w-32 text-gray-400" />
-                  ) : (
+                  ) : activeTab === "BUNDLE" ? (
                     <Package className="h-32 w-32 text-gray-400" />
+                  ) : (
+                    <Users className="h-32 w-32 text-gray-400" />
                   )
                 )}
               </div>
@@ -183,24 +185,38 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
             </div>
           )}
           <div className="flex space-x-2 mt-auto pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(solution)}
-              className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(solution.id)}
-              className="flex-1 bg-transparent border-red-800 text-red-400 hover:bg-red-600/10"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </Button>
+            {activeTab === "WORKERS" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = "/workers"}
+                className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Gestionar en Workers
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(solution)}
+                  className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDelete(solution.id)}
+                  className="flex-1 bg-transparent border-red-800 text-red-400 hover:bg-red-600/10"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -210,7 +226,7 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
 
 export default function AISolutionsPage() {
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState<"INDIVIDUAL" | "BUNDLE">("INDIVIDUAL")
+  const [activeTab, setActiveTab] = useState<"INDIVIDUAL" | "BUNDLE" | "WORKERS">("INDIVIDUAL")
   const [solutions, setSolutions] = useState<AISolution[]>([])
   const [allSolutions, setAllSolutions] = useState<AISolution[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -246,10 +262,32 @@ export default function AISolutionsPage() {
 
   const fetchSolutions = async () => {
     try {
-      const response = await fetch(`/api/ai-solutions?type=${activeTab}`)
-      if (response.ok) {
-        const data = await response.json()
-        setSolutions(data)
+      if (activeTab === "WORKERS") {
+        // Para workers, obtener workers de tipo AI
+        const response = await fetch("/api/workers")
+        if (response.ok) {
+          const data = await response.json()
+          const aiWorkers = data.filter((worker: any) => worker.type === "AI")
+          setSolutions(aiWorkers.map((worker: any) => ({
+            id: worker.id,
+            name: worker.name,
+            description: worker.responsibilities,
+            category: worker.status || "AI Worker",
+            categoryColor: "bg-purple-500",
+            type: "WORKERS",
+            price: worker.salary || null,
+            features: null,
+            icon: null,
+            isActive: true,
+            createdAt: worker.createdAt,
+          })))
+        }
+      } else {
+        const response = await fetch(`/api/ai-solutions?type=${activeTab}`)
+        if (response.ok) {
+          const data = await response.json()
+          setSolutions(data)
+        }
       }
     } catch (error) {
       console.error("Error fetching solutions:", error)
@@ -510,13 +548,28 @@ export default function AISolutionsPage() {
     <div className="flex flex-col h-full">
       <Header 
         action={
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-black text-white hover:bg-gray-900 border border-white">
-                <Plus className="mr-2 h-4 w-4" />
-                Nueva Solución
-              </Button>
-            </DialogTrigger>
+          activeTab !== "WORKERS" ? (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-black text-white hover:bg-gray-900 border border-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nueva Solución
+                </Button>
+              </DialogTrigger>
+          ) : (
+            <Button 
+              className="bg-black text-white hover:bg-gray-900 border border-white"
+              onClick={() => window.location.href = "/workers"}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Gestionar Workers
+            </Button>
+          )
+        }
+      />
+      
+      {activeTab !== "WORKERS" && (
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
@@ -713,8 +766,7 @@ export default function AISolutionsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        }
-      />
+      )}
 
       <div className="flex-1 overflow-auto p-6">
         <div className="flex items-center justify-between mb-6">
@@ -751,44 +803,82 @@ export default function AISolutionsPage() {
             <Package className="inline-block mr-2 h-4 w-4" />
             Paquetes
           </button>
+          <button
+            onClick={() => {
+              setActiveTab("WORKERS")
+              setIsLoading(true)
+            }}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "WORKERS"
+                ? "text-blue-500 border-b-2 border-blue-500"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Users className="inline-block mr-2 h-4 w-4" />
+            AI Workers
+          </button>
         </div>
 
         {solutions.length === 0 ? (
           <Card className="border-dashed bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-8 text-center">
               <p className="text-gray-400">
-                No tienes {activeTab === "INDIVIDUAL" ? "soluciones individuales" : "paquetes"} registrados
+                {activeTab === "INDIVIDUAL" 
+                  ? "No tienes soluciones individuales registradas"
+                  : activeTab === "BUNDLE"
+                  ? "No tienes paquetes registrados"
+                  : "No tienes AI Workers registrados"}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Agrega {activeTab === "INDIVIDUAL" ? "tu primera solución" : "tu primer paquete"}
+                {activeTab === "INDIVIDUAL" 
+                  ? "Agrega tu primera solución"
+                  : activeTab === "BUNDLE"
+                  ? "Agrega tu primer paquete"
+                  : "Los AI Workers se gestionan en la sección Workers"}
               </p>
             </CardContent>
           </Card>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={solutions.map((s) => s.id)}
-              strategy={verticalListSortingStrategy}
+          {activeTab === "WORKERS" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {solutions.map((solution) => (
+                <SortableSolutionCard
+                  key={solution.id}
+                  solution={solution}
+                  activeTab={activeTab}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteSolution}
+                  getCategoryColor={getCategoryColor}
+                  getCategoryLabel={getCategoryLabel}
+                />
+              ))}
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {solutions.map((solution) => (
-                  <SortableSolutionCard
-                    key={solution.id}
-                    solution={solution}
-                    activeTab={activeTab}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteSolution}
-                    getCategoryColor={getCategoryColor}
-                    getCategoryLabel={getCategoryLabel}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={solutions.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {solutions.map((solution) => (
+                    <SortableSolutionCard
+                      key={solution.id}
+                      solution={solution}
+                      activeTab={activeTab}
+                      onEdit={handleEditClick}
+                      onDelete={handleDeleteSolution}
+                      getCategoryColor={getCategoryColor}
+                      getCategoryLabel={getCategoryLabel}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
         )}
       </div>
 
@@ -931,8 +1021,7 @@ export default function AISolutionsPage() {
                       <div className="space-y-2">
                         {allSolutions.map((solution) => {
                           const currentIds = (editingSolution as any).solutionIds || []
-                          const bundleItemIds = editingSolution.bundleItems?.map((bi: any) => bi.solution?.id || bi.solutionId) || []
-                          const isSelected = currentIds.includes(solution.id) || bundleItemIds.includes(solution.id)
+                          const isSelected = currentIds.includes(solution.id)
                           
                           return (
                             <div
