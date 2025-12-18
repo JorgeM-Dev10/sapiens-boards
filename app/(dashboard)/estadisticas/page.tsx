@@ -10,10 +10,7 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  Award,
-  TrendingUp,
-  Calendar,
-  Activity
+  Award
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -21,6 +18,7 @@ interface Bitacora {
   id: string
   title: string
   description: string | null
+  image: string | null
   avatar: {
     level: number
     experience: number
@@ -34,15 +32,9 @@ interface Bitacora {
     totalTasks: number
     totalSessions: number
   }
-  workSessions: Array<{
-    date: string
-    durationMinutes: number
-    tasksCompleted: number
-    workType: string
-  }>
 }
 
-export default function EstadisticasPage() {
+export default function KPICenterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [bitacoras, setBitacoras] = useState<Bitacora[]>([])
@@ -72,54 +64,23 @@ export default function EstadisticasPage() {
     }
   }
 
-  // Calcular estadísticas agregadas
-  const totalStats = {
-    totalHours: bitacoras.reduce((sum, b) => sum + b.stats.totalHours, 0),
-    totalTasks: bitacoras.reduce((sum, b) => sum + b.stats.totalTasks, 0),
-    totalSessions: bitacoras.reduce((sum, b) => sum + b.stats.totalSessions, 0),
-    totalExperience: bitacoras.reduce((sum, b) => sum + (b.avatar?.experience || 0), 0),
-    averageLevel: bitacoras.length > 0
-      ? bitacoras.reduce((sum, b) => sum + (b.avatar?.level || 1), 0) / bitacoras.length
-      : 0,
+  const getAvatarEmoji = (style: string) => {
+    if (style === "legend") return "👑"
+    if (style === "master") return "⭐"
+    if (style === "expert") return "🔥"
+    if (style === "advanced") return "💪"
+    if (style === "intermediate") return "🚀"
+    return "🌱"
   }
 
-  // Horas por día (últimos 7 días)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    return date.toISOString().split('T')[0]
-  }).reverse()
-
-  const hoursByDay = last7Days.map(date => {
-    const hours = bitacoras.reduce((sum, bitacora) => {
-      return sum + bitacora.workSessions
-        .filter(s => new Date(s.date).toISOString().split('T')[0] === date)
-        .reduce((s, session) => s + session.durationMinutes / 60, 0)
-    }, 0)
-    return { date, hours }
-  })
-
-  const maxHours = Math.max(...hoursByDay.map(d => d.hours), 1)
-
-  // Tareas por día (últimos 7 días)
-  const tasksByDay = last7Days.map(date => {
-    const tasks = bitacoras.reduce((sum, bitacora) => {
-      return sum + bitacora.workSessions
-        .filter(s => new Date(s.date).toISOString().split('T')[0] === date)
-        .reduce((s, session) => s + (session.tasksCompleted || 0), 0)
-    }, 0)
-    return { date, tasks }
-  })
-
-  const maxTasks = Math.max(...tasksByDay.map(d => d.tasks), 1)
-
-  // Horas por bitácora
-  const hoursByBitacora = bitacoras
-    .map(b => ({ title: b.title, hours: b.stats.totalHours }))
-    .sort((a, b) => b.hours - a.hours)
-    .slice(0, 5)
-
-  const maxBitacoraHours = Math.max(...hoursByBitacora.map(b => b.hours), 1)
+  const getAvatarColor = (style: string) => {
+    if (style === "legend") return "text-purple-400 border-purple-400"
+    if (style === "master") return "text-blue-400 border-blue-400"
+    if (style === "expert") return "text-green-400 border-green-400"
+    if (style === "advanced") return "text-yellow-400 border-yellow-400"
+    if (style === "intermediate") return "text-orange-400 border-orange-400"
+    return "text-gray-400 border-gray-400"
+  }
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
@@ -129,26 +90,26 @@ export default function EstadisticasPage() {
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <BarChart3 className="h-8 w-8" />
-              Estadísticas
+              KPI Center
             </h1>
             <Button
               onClick={() => router.push("/bitacoras")}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <FileText className="mr-2 h-4 w-4" />
-              Ver Bitácoras
+              Ver Todas las Bitácoras
             </Button>
           </div>
 
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-gray-400">Cargando estadísticas...</p>
+              <p className="text-gray-400">Cargando bitácoras...</p>
             </div>
           ) : bitacoras.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <BarChart3 className="h-16 w-16 mb-4 opacity-50" />
-              <p className="text-lg mb-2">No hay bitácoras aún</p>
-              <p className="text-sm mb-4">Crea bitácoras y registra commits para ver estadísticas</p>
+              <FileText className="h-16 w-16 mb-4 opacity-50" />
+              <p className="text-lg mb-2">No tienes bitácoras aún</p>
+              <p className="text-sm mb-4">Crea bitácoras para registrar tu trabajo diario y ver tus estadísticas</p>
               <Button
                 onClick={() => router.push("/bitacoras")}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -157,239 +118,69 @@ export default function EstadisticasPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* KPIs principales */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalHours.toFixed(1)}h</p>
-                      </div>
-                      <Clock className="h-8 w-8 text-blue-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Tareas Completadas</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalTasks}</p>
-                      </div>
-                      <CheckCircle className="h-8 w-8 text-green-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Sesiones Totales</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalSessions}</p>
-                      </div>
-                      <FileText className="h-8 w-8 text-purple-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Experiencia Total</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalExperience} XP</p>
-                      </div>
-                      <Award className="h-8 w-8 text-yellow-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Gráfica de horas por día */}
-              <Card className="bg-[#1a1a1a] border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Horas por Día (Últimos 7 días)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="py-6">
-                  <div className="flex items-end justify-between gap-2 h-48">
-                    {hoursByDay.map((day) => {
-                      const barHeight = day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 5) : 2
-                      return (
-                        <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
-                          {/* Valor de horas arriba */}
-                          <div className={`text-xs font-bold transition-opacity ${day.hours > 0 ? 'text-blue-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
-                            {day.hours.toFixed(1)}h
-                          </div>
-                          
-                          {/* Barra */}
-                          <div 
-                            className="w-full rounded-t-lg transition-all duration-300 relative"
-                            style={{ 
-                              height: `${barHeight}%`,
-                              minHeight: day.hours > 0 ? '20px' : '4px',
-                              maxHeight: '100%'
-                            }}
-                          >
-                            <div
-                              className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
-                                day.hours > 0 
-                                  ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 shadow-lg shadow-blue-500/50 border-t-2 border-blue-300/50' 
-                                  : 'bg-gray-700/20 border-t border-gray-600/30'
-                              }`}
-                            />
-                          </div>
-                          
-                          {/* Día de la semana */}
-                          <div className="text-center pt-1">
-                            <p className="text-xs text-gray-400 font-medium">
-                              {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                            </p>
-                          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bitacoras.map((bitacora) => (
+                <Card
+                  key={bitacora.id}
+                  className="bg-[#1a1a1a] border-gray-800 hover:border-blue-500 transition-all cursor-pointer"
+                  onClick={() => router.push(`/bitacoras/${bitacora.id}`)}
+                >
+                  <CardHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                      {bitacora.avatar && (
+                        <div className={`h-12 w-12 rounded-full border-4 flex items-center justify-center text-2xl ${getAvatarColor(bitacora.avatar.avatarStyle)}`}>
+                          {getAvatarEmoji(bitacora.avatar.avatarStyle)}
                         </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Tareas completadas por día */}
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      Tareas Completadas por Día (Últimos 7 días)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-6">
-                    <div className="flex items-end justify-between gap-2 h-48">
-                      {tasksByDay.map((day) => {
-                        const barHeight = day.tasks > 0 ? Math.max((day.tasks / maxTasks) * 100, 5) : 2
-                        return (
-                          <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
-                            {/* Valor de tareas arriba */}
-                            <div className={`text-xs font-bold transition-opacity ${day.tasks > 0 ? 'text-green-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
-                              {day.tasks}
-                            </div>
-                            
-                            {/* Barra */}
-                            <div 
-                              className="w-full rounded-t-lg transition-all duration-300 relative"
-                              style={{ 
-                                height: `${barHeight}%`,
-                                minHeight: day.tasks > 0 ? '20px' : '4px',
-                                maxHeight: '100%'
-                              }}
-                            >
-                              <div
-                                className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
-                                  day.tasks > 0 
-                                    ? 'bg-gradient-to-t from-green-600 via-green-500 to-green-400 hover:from-green-500 hover:via-green-400 hover:to-green-300 shadow-lg shadow-green-500/50 border-t-2 border-green-300/50' 
-                                    : 'bg-gray-700/20 border-t border-gray-600/30'
-                                }`}
-                              />
-                            </div>
-                            
-                            {/* Día de la semana */}
-                            <div className="text-center pt-1">
-                              <p className="text-xs text-gray-400 font-medium">
-                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                              </p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Top Bitácoras */}
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Top Bitácoras
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {hoursByBitacora.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                        <FileText className="h-12 w-12 mb-2 opacity-50" />
-                        <p>No hay datos de bitácoras</p>
+                      )}
+                      <div className="flex-1">
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          {bitacora.title}
+                        </CardTitle>
+                        {bitacora.description && (
+                          <p className="text-gray-400 text-sm mt-1">{bitacora.description}</p>
+                        )}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {hoursByBitacora.map((bitacora, index) => (
-                          <div key={bitacora.title} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold text-xs shadow-lg">
-                                  {index + 1}
-                                </div>
-                                <span className="text-white font-medium">{bitacora.title}</span>
-                              </div>
-                              <span className="text-white font-bold">{bitacora.hours.toFixed(1)}h</span>
-                            </div>
-                            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
-                              <div
-                                className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 h-full rounded-full transition-all shadow-lg shadow-green-500/30"
-                                style={{ width: `${(bitacora.hours / maxBitacoraHours) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                    </div>
+                    {bitacora.avatar && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white text-sm font-semibold">Nivel {bitacora.avatar.level}</span>
+                          <span className={`text-sm font-bold ${getAvatarColor(bitacora.avatar.avatarStyle).split(' ')[0]}`}>
+                            {bitacora.avatar.avatarStyle.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-800 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min((bitacora.avatar.experience % 1000) / 10, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">{bitacora.avatar.experience} XP</p>
                       </div>
                     )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-3 bg-gray-900 rounded-lg">
+                        <Clock className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400 mb-1">Horas</p>
+                        <p className="text-white font-bold text-lg">{bitacora.stats.totalHours.toFixed(1)}h</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-900 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400 mb-1">Tareas</p>
+                        <p className="text-white font-bold text-lg">{bitacora.stats.totalTasks}</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-900 rounded-lg">
+                        <FileText className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400 mb-1">Sesiones</p>
+                        <p className="text-white font-bold text-lg">{bitacora.stats.totalSessions}</p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </div>
-
-              {/* Lista de bitácoras */}
-              <Card className="bg-[#1a1a1a] border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Todas las Bitácoras</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {bitacoras.map((bitacora) => (
-                      <Card
-                        key={bitacora.id}
-                        className="bg-gray-900 border-gray-800 hover:border-blue-500 transition-all cursor-pointer"
-                        onClick={() => router.push(`/bitacoras/${bitacora.id}`)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-white font-semibold">{bitacora.title}</h3>
-                            {bitacora.avatar && (
-                              <span className="text-xs text-blue-400 font-bold">
-                                Nivel {bitacora.avatar.level}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Horas</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalHours.toFixed(1)}h</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Tareas</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalTasks}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Sesiones</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalSessions}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              ))}
             </div>
           )}
         </div>

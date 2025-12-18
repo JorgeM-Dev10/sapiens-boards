@@ -285,32 +285,28 @@ export function BoardView({ board, onUpdate }: BoardViewProps) {
 
   return (
     <div className="h-screen overflow-hidden bg-[#0a0a0a] relative">
-      {/* Imagen de fondo - sin blur para ver la imagen claramente */}
+      {/* Imagen de fondo difuminada */}
       {board.image && (
         <div className="absolute inset-0 z-0">
           <div 
             className="absolute inset-0 bg-cover bg-center"
             style={{ 
               backgroundImage: `url(${board.image})`,
-              filter: 'blur(0px)',
-              opacity: 0.9,
+              filter: 'blur(8px)',
+              opacity: 0.4,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/10 via-[#0a0a0a]/20 to-[#0a0a0a]/30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/50 via-[#0a0a0a]/80 to-[#0a0a0a]" />
         </div>
       )}
 
       {/* Contenido */}
       <div className="relative z-10 h-full flex flex-col">
         <div className="px-6 py-4 border-b border-gray-800 bg-[#0a0a0a]/30 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white">{board.title}</h1>
-              {board.description && (
-                <p className="text-gray-400 mt-1">{board.description}</p>
-              )}
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold text-white">{board.title}</h1>
+          {board.description && (
+            <p className="text-gray-400 mt-1">{board.description}</p>
+          )}
         </div>
 
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
