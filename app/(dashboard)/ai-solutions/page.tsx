@@ -731,7 +731,6 @@ export default function AISolutionsPage() {
                     <p className="text-xs text-gray-500">
                       Seleccionadas: {newSolution.solutionIds.length} solución(es)
                     </p>
-                  </div>
                   </>
                 )}
               </div>
