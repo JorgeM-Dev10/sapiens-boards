@@ -556,7 +556,7 @@ export default function AISolutionsPage() {
                   Nueva Solución
                 </Button>
               </DialogTrigger>
-            <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {activeTab === "INDIVIDUAL" ? "Nueva Solución Individual" : "Nuevo Paquete de Soluciones"}
@@ -752,16 +752,15 @@ export default function AISolutionsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          ) : (
-            <Button 
-              className="bg-black text-white hover:bg-gray-900 border border-white"
-              onClick={() => window.location.href = "/workers"}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Gestionar Workers
-            </Button>
-          )
-        }
+        ) : (
+          <Button 
+            className="bg-black text-white hover:bg-gray-900 border border-white"
+            onClick={() => window.location.href = "/workers"}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Gestionar Workers
+          </Button>
+        )}
       />
 
       <div className="flex-1 overflow-auto p-6">
