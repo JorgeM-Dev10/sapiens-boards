@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Plus, Loader2, DollarSign, Milestone, FileText } from "lucide-react"
+import { ArrowLeft, Plus, Loader2, DollarSign, Milestone, FileText, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -29,6 +29,9 @@ interface Client {
   phase: string
   totalAmount: number
   paidAmount: number
+  logoUrl?: string | null
+  pendingAmount?: number
+  paymentStatus?: "Pending" | "Paid"
   timelines: Timeline[]
 }
 
@@ -261,11 +264,30 @@ export default function ClientTimelinePage({ params }: { params: { id: string } 
         </Button>
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white">{client.name}</h1>
-          {client.description && (
-            <p className="text-gray-400 mt-2">{client.description}</p>
-          )}
-          
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center">
+              {client.logoUrl ? (
+                <img
+                  src={client.logoUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Building2 className="h-6 w-6 text-gray-500" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">{client.name}</h1>
+              {client.description && (
+                <p className="text-gray-400 mt-2">{client.description}</p>
+              )}
+            </div>
+          </div>
+
+          {(() => {
+            const pendingAmount = client.pendingAmount ?? client.totalAmount - client.paidAmount
+            const paymentStatus = client.paymentStatus ?? (pendingAmount > 0 ? "Pending" : "Paid")
+            return (
           <div className="grid grid-cols-3 gap-4 mt-4">
             <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="p-4">
@@ -281,11 +303,22 @@ export default function ClientTimelinePage({ params }: { params: { id: string } 
             </Card>
             <Card className="bg-[#1a1a1a] border-gray-800">
               <CardContent className="p-4">
-                <p className="text-sm text-gray-400">Pendiente</p>
-                <p className="text-2xl font-bold text-orange-500">${(client.totalAmount - client.paidAmount).toLocaleString()}</p>
+                <p className="text-sm text-gray-400">Pendiente por pagar</p>
+                <p className={`text-2xl font-bold ${paymentStatus === "Paid" ? "text-green-500" : "text-red-400"}`}>
+                  ${pendingAmount.toLocaleString()}
+                </p>
+                <span className={`inline-block mt-2 px-2 py-1 text-xs font-semibold rounded ${
+                  paymentStatus === "Paid"
+                    ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                    : "bg-red-500/20 text-red-400 border border-red-500/40"
+                }`}>
+                  {paymentStatus}
+                </span>
               </CardContent>
             </Card>
           </div>
+            )
+          })()}
         </div>
 
         <h2 className="text-xl font-bold text-white mb-4">Timeline del Proyecto</h2>

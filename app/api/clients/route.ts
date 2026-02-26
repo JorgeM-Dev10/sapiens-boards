@@ -27,7 +27,12 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(clients)
+    const withComputed = clients.map((c) => ({
+      ...c,
+      pendingAmount: c.totalAmount - c.paidAmount,
+      paymentStatus: c.totalAmount - c.paidAmount > 0 ? "Pending" : "Paid",
+    }))
+    return NextResponse.json(withComputed)
   } catch (error) {
     console.error("Error fetching clients:", error)
     return NextResponse.json(
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, description, icon, phase, totalAmount, paidAmount } = body
+    const { name, description, icon, phase, totalAmount, paidAmount, logoUrl } = body
 
     if (!name || totalAmount === undefined) {
       return NextResponse.json(
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
         name,
         description,
         icon,
+        logoUrl: logoUrl || null,
         phase: phase || "PLANIFICACIÓN",
         totalAmount: parseFloat(totalAmount),
         paidAmount: parseFloat(paidAmount) || 0,
@@ -70,7 +76,9 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json(client)
+    const pendingAmount = client.totalAmount - client.paidAmount
+    const paymentStatus = pendingAmount > 0 ? "Pending" : "Paid"
+    return NextResponse.json({ ...client, pendingAmount, paymentStatus })
   } catch (error) {
     console.error("Error creating client:", error)
     return NextResponse.json(

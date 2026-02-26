@@ -18,9 +18,12 @@ interface Client {
   name: string
   description: string | null
   icon: string | null
+  logoUrl?: string | null
   phase: string
   totalAmount: number
   paidAmount: number
+  pendingAmount?: number
+  paymentStatus?: "Pending" | "Paid"
   createdAt: string
   timelines: any[]
 }
@@ -44,6 +47,7 @@ export default function ClientsPage() {
     name: "",
     description: "",
     icon: "",
+    logoUrl: "",
     phase: "PLANIFICACIÓN",
     totalAmount: "0",
     paidAmount: "0",
@@ -107,6 +111,7 @@ export default function ClientsPage() {
           name: "",
           description: "",
           icon: "",
+          logoUrl: "",
           phase: "PLANIFICACIÓN",
           totalAmount: "0",
           paidAmount: "0",
@@ -158,6 +163,7 @@ export default function ClientsPage() {
           phase: editingClient.phase,
           totalAmount: editingClient.totalAmount,
           paidAmount: editingClient.paidAmount,
+          logoUrl: editingClient.logoUrl ?? undefined,
         }),
       })
 
@@ -271,6 +277,19 @@ export default function ClientsPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="logoUrl">Logo (URL de imagen)</Label>
+                  <Input
+                    id="logoUrl"
+                    type="url"
+                    placeholder="https://ejemplo.com/logo.png"
+                    value={newClient.logoUrl}
+                    onChange={(e) =>
+                      setNewClient({ ...newClient, logoUrl: e.target.value })
+                    }
+                    className="bg-black border-gray-800 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="phase">Estado del Proyecto</Label>
                   <Select
                     value={newClient.phase}
@@ -368,6 +387,19 @@ export default function ClientsPage() {
                   value={editingClient.description || ""}
                   onChange={(e) =>
                     setEditingClient({ ...editingClient, description: e.target.value })
+                  }
+                  className="bg-black border-gray-800 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-logoUrl">Logo (URL de imagen)</Label>
+                <Input
+                  id="edit-logoUrl"
+                  type="url"
+                  placeholder="https://ejemplo.com/logo.png"
+                  value={editingClient.logoUrl || ""}
+                  onChange={(e) =>
+                    setEditingClient({ ...editingClient, logoUrl: e.target.value })
                   }
                   className="bg-black border-gray-800 text-white"
                 />
@@ -507,19 +539,39 @@ export default function ClientsPage() {
 
         {/* Clients Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clients.map((client) => (
+          {clients.map((client) => {
+            const pending = client.pendingAmount ?? client.totalAmount - client.paidAmount
+            const status = client.paymentStatus ?? (pending > 0 ? "Pending" : "Paid")
+            return (
             <Card key={client.id} className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gray-800 rounded-lg">
-                      <Building2 className="h-5 w-5 text-gray-400" />
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center">
+                      {client.logoUrl ? (
+                        <img
+                          src={client.logoUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Building2 className="h-5 w-5 text-gray-500" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-white">{client.name}</CardTitle>
-                      <span className={`inline-block mt-1 px-2 py-1 text-xs font-semibold text-white rounded ${getPhaseColor(client.phase)}`}>
-                        {client.phase}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className={`inline-block px-2 py-1 text-xs font-semibold text-white rounded ${getPhaseColor(client.phase)}`}>
+                          {client.phase}
+                        </span>
+                        <span className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
+                          status === "Paid"
+                            ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                            : "bg-red-500/20 text-red-400 border border-red-500/40"
+                        }`}>
+                          {status === "Paid" ? "Paid" : "Pending"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -533,20 +585,26 @@ export default function ClientsPage() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">TOTAL DEL PROYECTO:</span>
+                    <span className="text-gray-400">Total del Proyecto:</span>
                     <span className="text-white font-bold">
                       ${client.totalAmount.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">PAGADO:</span>
+                    <span className="text-gray-400">Pagado:</span>
                     <span className="text-white font-bold">
                       ${client.paidAmount.toLocaleString()}
                     </span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Pendiente por pagar:</span>
+                    <span className="text-white font-bold">
+                      ${pending.toLocaleString()}
+                    </span>
+                  </div>
                   <div className="w-full bg-gray-800 rounded-full h-2">
                     <div
-                      className="bg-green-500 h-2 rounded-full"
+                      className="bg-green-500 h-2 rounded-full transition-all"
                       style={{ width: `${getProgressPercentage(client.paidAmount, client.totalAmount)}%` }}
                     />
                   </div>
@@ -589,7 +647,7 @@ export default function ClientsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )})}
         </div>
       </div>
     </div>

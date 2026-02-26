@@ -38,6 +38,7 @@ model Client {
   name        String
   description String?
   icon        String?
+  logoUrl     String?
   phase       String   @default("PLANIFICACIÓN") // PLANIFICACIÓN, DESARROLLO, PRUEBAS, DESPLIEGUE, COMPLETADO
   totalAmount Float
   paidAmount  Float    @default(0)

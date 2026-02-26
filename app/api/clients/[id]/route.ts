@@ -36,8 +36,9 @@ export async function GET(
         { status: 404 }
       )
     }
-
-    return NextResponse.json(client)
+    const pendingAmount = client.totalAmount - client.paidAmount
+    const paymentStatus = pendingAmount > 0 ? "Pending" : "Paid"
+    return NextResponse.json({ ...client, pendingAmount, paymentStatus })
   } catch (error) {
     console.error("Error fetching client:", error)
     return NextResponse.json(
@@ -60,13 +61,13 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { name, description, icon, phase, totalAmount, paidAmount } = body
+    const { name, description, icon, phase, totalAmount, paidAmount, logoUrl } = body
 
     const updateData: any = {}
-
     if (name !== undefined) updateData.name = name
     if (description !== undefined) updateData.description = description
     if (icon !== undefined) updateData.icon = icon
+    if (logoUrl !== undefined) updateData.logoUrl = logoUrl
     if (phase !== undefined) updateData.phase = phase
     if (totalAmount !== undefined) updateData.totalAmount = parseFloat(totalAmount)
     if (paidAmount !== undefined) updateData.paidAmount = parseFloat(paidAmount)
@@ -86,7 +87,9 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(client)
+    const pendingAmount = client.totalAmount - client.paidAmount
+    const paymentStatus = pendingAmount > 0 ? "Pending" : "Paid"
+    return NextResponse.json({ ...client, pendingAmount, paymentStatus })
   } catch (error) {
     console.error("Error updating client:", error)
     return NextResponse.json(
