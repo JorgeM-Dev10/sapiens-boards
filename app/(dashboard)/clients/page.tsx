@@ -801,11 +801,11 @@ export default function ClientsPage() {
                       backgroundImage: `url(${client.logoUrl})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
-                      opacity: 0.12,
-                      filter: "brightness(0.85) contrast(1.05)",
+                      opacity: 0.24,
+                      filter: "brightness(0.9) contrast(1.05)",
                     }}
                   />
-                  <div className="absolute inset-0 z-[1] bg-black/75" />
+                  <div className="absolute inset-0 z-[1] bg-black/60" />
                 </>
               )}
               <div className={client.logoUrl ? "relative z-10" : ""}>
