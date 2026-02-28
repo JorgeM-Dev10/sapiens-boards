@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Plus, Calendar as CalendarIcon, Clock, CheckCircle, FileText, TrendingUp, Award, Pencil, Trash2 } from "lucide-react"
+import { Loader2, Plus, Calendar as CalendarIcon, Clock, CheckCircle, FileText, TrendingUp, Award, Pencil, Trash2, Sparkles, Target, BarChart3 } from "lucide-react"
 import { motion } from "framer-motion"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -915,7 +915,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Sistema de XP - Documentación (debajo del calendario) */}
+          {/* Sistema de XP - Orientado a impacto (Evaluación IA) */}
           <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50 mt-6">
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
@@ -924,33 +924,35 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-bold text-lg mb-2">Sistema de Experiencia (XP)</h3>
+                  <p className="text-gray-300 text-sm mb-3">El XP se gana por <strong className="text-white">impacto</strong>, no por horas. Al completar una tarea en Roadmap, la IA evalúa el impacto y asigna XP automáticamente.</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                     <div className="bg-black/40 rounded-lg p-3 border border-blue-500/30">
                       <div className="flex items-center gap-2 mb-1">
-                        <Clock className="h-4 w-4 text-blue-400" />
-                        <span className="text-blue-400 font-semibold">Por Hora</span>
+                        <Sparkles className="h-4 w-4 text-blue-400" />
+                        <span className="text-blue-400 font-semibold">Evaluación IA</span>
                       </div>
-                      <p className="text-gray-300">1 XP por cada hora trabajada</p>
+                      <p className="text-gray-300">La IA valora impacto estratégico, económico y criticidad de cada tarea completada.</p>
                     </div>
                     <div className="bg-black/40 rounded-lg p-3 border border-green-500/30">
                       <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                        <span className="text-green-400 font-semibold">Por Tarea</span>
+                        <BarChart3 className="h-4 w-4 text-green-400" />
+                        <span className="text-green-400 font-semibold">Impacto económico</span>
                       </div>
-                      <p className="text-gray-300">10 XP por cada tarea completada</p>
+                      <p className="text-gray-300">Tareas con valor económico o resultado tangible suman más XP.</p>
                     </div>
                     <div className="bg-black/40 rounded-lg p-3 border border-purple-500/30">
                       <div className="flex items-center gap-2 mb-1">
-                        <FileText className="h-4 w-4 text-purple-400" />
-                        <span className="text-purple-400 font-semibold">Por Sesión</span>
+                        <Target className="h-4 w-4 text-purple-400" />
+                        <span className="text-purple-400 font-semibold">Dificultad y resultado</span>
                       </div>
-                      <p className="text-gray-300">5 XP por cada registro de trabajo</p>
+                      <p className="text-gray-300">Complejidad real y resultado logrado influyen en el XP asignado.</p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-700">
+                  <div className="mt-3 pt-3 border-t border-gray-700 flex flex-wrap gap-x-3 gap-y-1">
                     <p className="text-xs text-gray-400">
                       <span className="text-yellow-400 font-semibold">Niveles:</span> Principiante (0-499 XP) • Intermedio (500-1999 XP) • Avanzado (2000-4999 XP) • Épico (5000-9999 XP) • Leyenda (10000+ XP)
                     </p>
+                    <p className="text-xs text-gray-500">Horas y sesiones se muestran como métrica secundaria.</p>
                   </div>
                 </div>
               </div>

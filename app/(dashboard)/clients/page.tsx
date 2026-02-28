@@ -634,8 +634,8 @@ export default function ClientsPage() {
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-3xl font-bold text-white mb-6">Gestión de Clientes</h1>
 
-        {/* Stats Cards - Orden: 1 a 10 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+        {/* Stats Cards - 4 arriba, 4 abajo */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -690,6 +690,9 @@ export default function ClientsPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -703,9 +706,6 @@ export default function ClientsPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 gap-4 mb-6">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">

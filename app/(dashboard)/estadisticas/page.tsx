@@ -113,13 +113,17 @@ export default function EstadisticasPage() {
 
   const maxTasks = Math.max(...tasksByDay.map(d => d.tasks), 1)
 
-  // Horas por bitácora
-  const hoursByBitacora = bitacoras
-    .map(b => ({ title: b.title, hours: b.stats.totalHours }))
-    .sort((a, b) => b.hours - a.hours)
+  // Top por XP (impacto)
+  const topByXP = bitacoras
+    .map(b => ({
+      title: b.title,
+      experience: b.avatar?.experience ?? 0,
+      hours: b.stats.totalHours,
+    }))
+    .sort((a, b) => b.experience - a.experience)
     .slice(0, 5)
 
-  const maxBitacoraHours = Math.max(...hoursByBitacora.map(b => b.hours), 1)
+  const maxXP = Math.max(...topByXP.map(b => b.experience), 1)
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
@@ -158,16 +162,17 @@ export default function EstadisticasPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* KPIs principales */}
+              {/* KPIs principales: 4 arriba, 4 abajo */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalHours.toFixed(1)}h</p>
+                        <p className="text-xs text-gray-400 mb-1">XP por Impacto</p>
+                        <p className="text-2xl font-bold text-white">{totalStats.totalExperience} XP</p>
+                        <p className="text-xs text-blue-400/80 mt-0.5">Evaluación IA</p>
                       </div>
-                      <Clock className="h-8 w-8 text-blue-400 opacity-50" />
+                      <Award className="h-8 w-8 text-yellow-400 opacity-50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -197,10 +202,63 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Experiencia Total</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.totalExperience} XP</p>
+                        <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
+                        <p className="text-2xl font-bold text-white">{totalStats.totalHours.toFixed(1)}h</p>
+                        <p className="text-xs text-gray-500 mt-0.5">métrica secundaria</p>
                       </div>
-                      <Award className="h-8 w-8 text-yellow-400 opacity-50" />
+                      <Clock className="h-8 w-8 text-blue-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Segunda fila: misma métrica en otro orden para 4+4 visual (o futuras métricas) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Nivel promedio</p>
+                        <p className="text-2xl font-bold text-white">{totalStats.averageLevel.toFixed(1)}</p>
+                      </div>
+                      <Activity className="h-8 w-8 text-cyan-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Bitácoras activas</p>
+                        <p className="text-2xl font-bold text-white">{bitacoras.length}</p>
+                      </div>
+                      <BarChart3 className="h-8 w-8 text-indigo-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Tareas / sesión</p>
+                        <p className="text-2xl font-bold text-white">
+                          {totalStats.totalSessions > 0 ? (totalStats.totalTasks / totalStats.totalSessions).toFixed(1) : "0"}
+                        </p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-amber-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Horas / sesión</p>
+                        <p className="text-2xl font-bold text-white">
+                          {totalStats.totalSessions > 0 ? (totalStats.totalHours / totalStats.totalSessions).toFixed(1) : "0"}h
+                        </p>
+                      </div>
+                      <Calendar className="h-8 w-8 text-emerald-400 opacity-50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -307,39 +365,40 @@ export default function EstadisticasPage() {
                   </CardContent>
                 </Card>
 
-                {/* Top Bitácoras */}
+                {/* Top Bitácoras por XP (impacto) */}
                 <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <TrendingUp className="h-5 w-5" />
-                      Top Bitácoras
+                      Top Bitácoras (por XP impacto)
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {hoursByBitacora.length === 0 ? (
+                    {topByXP.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8 text-gray-400">
                         <FileText className="h-12 w-12 mb-2 opacity-50" />
                         <p>No hay datos de bitácoras</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {hoursByBitacora.map((bitacora, index) => (
+                        {topByXP.map((bitacora, index) => (
                           <div key={bitacora.title} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/50 flex items-center justify-center text-blue-300 font-bold text-xs shadow-lg">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-500/30 to-amber-600/20 border border-yellow-400/50 flex items-center justify-center text-yellow-300 font-bold text-xs shadow-lg">
                                   {index + 1}
                                 </div>
                                 <span className="text-white font-medium">{bitacora.title}</span>
                               </div>
-                              <span className="text-white font-bold">{bitacora.hours.toFixed(1)}h</span>
+                              <span className="text-white font-bold">{bitacora.experience} XP</span>
                             </div>
                             <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
                               <div
-                                className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 h-full rounded-full transition-all shadow-lg shadow-green-500/30"
-                                style={{ width: `${(bitacora.hours / maxBitacoraHours) * 100}%` }}
+                                className="bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-400 h-full rounded-full transition-all shadow-lg shadow-yellow-500/30"
+                                style={{ width: `${(bitacora.experience / maxXP) * 100}%` }}
                               />
                             </div>
+                            <p className="text-xs text-gray-500">{bitacora.hours.toFixed(1)}h (secundario)</p>
                           </div>
                         ))}
                       </div>
