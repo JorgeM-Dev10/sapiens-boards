@@ -82,6 +82,9 @@ export default function ClientsPage() {
     category: "",
     description: "",
   })
+  const [editingExpense, setEditingExpense] = useState<CompanyExpense | null>(null)
+  const [isEditExpenseDialogOpen, setIsEditExpenseDialogOpen] = useState(false)
+  const [isExpenseUpdating, setIsExpenseUpdating] = useState(false)
 
   useEffect(() => {
     fetchClients()
@@ -156,6 +159,72 @@ export default function ClientsPage() {
       })
     } finally {
       setIsExpenseSubmitting(false)
+    }
+  }
+
+  const handleEditExpenseClick = (exp: CompanyExpense) => {
+    setEditingExpense(exp)
+    setIsEditExpenseDialogOpen(true)
+  }
+
+  const handleUpdateExpense = async () => {
+    if (!editingExpense) return
+    if (editingExpense.amount === undefined || editingExpense.amount === null || !editingExpense.category?.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Monto y categoría son requeridos",
+      })
+      return
+    }
+    setIsExpenseUpdating(true)
+    try {
+      const response = await fetch(`/api/company-expenses/${editingExpense.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: editingExpense.amount,
+          category: editingExpense.category,
+          description: editingExpense.description ?? undefined,
+        }),
+      })
+      if (response.ok) {
+        toast({ title: "Gasto actualizado", description: "El gasto se ha actualizado correctamente" })
+        setIsEditExpenseDialogOpen(false)
+        setEditingExpense(null)
+        fetchExpenses()
+      } else {
+        const err = await response.json()
+        throw new Error(err.error || "Error al actualizar")
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo actualizar el gasto",
+      })
+    } finally {
+      setIsExpenseUpdating(false)
+    }
+  }
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm("¿Eliminar este gasto?")) return
+    try {
+      const response = await fetch(`/api/company-expenses/${id}`, { method: "DELETE" })
+      if (response.ok) {
+        toast({ title: "Gasto eliminado", description: "El gasto se ha eliminado" })
+        fetchExpenses()
+      } else {
+        const err = await response.json()
+        throw new Error(err.error || "Error al eliminar")
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo eliminar el gasto",
+      })
     }
   }
 
@@ -571,17 +640,17 @@ export default function ClientsPage() {
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-3xl font-bold text-white mb-6">Gestión de Clientes</h1>
 
-        {/* Stats Cards - Fila 1 */}
+        {/* Stats Cards - Orden: 1 a 10 */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Building2 className="h-5 w-5 text-blue-500" />
+                <div className="p-2 bg-cyan-500/20 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-cyan-500" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{stats.totalClients}</p>
-                  <p className="text-xs text-gray-400">TOTAL CLIENTES</p>
+                  <p className="text-xl font-bold text-white">${stats.valorTotalPortafolio.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">VALOR PORTAFOLIO</p>
                 </div>
               </div>
             </CardContent>
@@ -599,6 +668,50 @@ export default function ClientsPage() {
               </div>
             </CardContent>
           </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <Wallet className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">${stats.ingresoRestanteTotal.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">INGRESO RESTANTE</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${stats.revenueNeto >= 0 ? "bg-green-500/20" : "bg-red-500/20"}`}>
+                  <BarChart3 className={`h-5 w-5 ${stats.revenueNeto >= 0 ? "text-green-500" : "text-red-500"}`} />
+                </div>
+                <div>
+                  <p className={`text-xl font-bold ${stats.revenueNeto >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    ${stats.revenueNeto.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">REVENUE NETO</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Building2 className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{stats.totalClients}</p>
+                  <p className="text-xs text-gray-400">TOTAL CLIENTES</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -628,57 +741,12 @@ export default function ClientsPage() {
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <Wallet className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">${stats.ingresoRestanteTotal.toLocaleString()}</p>
-                  <p className="text-xs text-gray-400">INGRESO RESTANTE</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Stats Cards - Fila 2 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-cyan-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">${stats.valorTotalPortafolio.toLocaleString()}</p>
-                  <p className="text-xs text-gray-400">VALOR PORTAFOLIO</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
                 <div className="p-2 bg-red-500/20 rounded-lg">
                   <Receipt className="h-5 w-5 text-red-500" />
                 </div>
                 <div>
                   <p className="text-xl font-bold text-white">${stats.gastosTotales.toLocaleString()}</p>
                   <p className="text-xs text-gray-400">GASTOS TOTALES</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${stats.revenueNeto >= 0 ? "bg-green-500/20" : "bg-red-500/20"}`}>
-                  <BarChart3 className={`h-5 w-5 ${stats.revenueNeto >= 0 ? "text-green-500" : "text-red-500"}`} />
-                </div>
-                <div>
-                  <p className={`text-xl font-bold ${stats.revenueNeto >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    ${stats.revenueNeto.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">REVENUE NETO</p>
                 </div>
               </div>
             </CardContent>
@@ -703,9 +771,11 @@ export default function ClientsPage() {
                   <Award className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{stats.clienteMasRentable?.name ?? "—"}</p>
-                  <p className="text-xs text-gray-400">
-                    {stats.clienteMasRentable ? `$${stats.clienteMasRentable.totalAmount.toLocaleString()}` : "CLIENTE MÁS RENTABLE"}
+                  <p className="text-xs text-gray-400">CLIENTE MÁS RENTABLE</p>
+                  <p className="text-sm font-bold text-white truncate">
+                    {stats.clienteMasRentable
+                      ? `${stats.clienteMasRentable.name} — $${stats.clienteMasRentable.totalAmount.toLocaleString()}`
+                      : "—"}
                   </p>
                 </div>
               </div>
@@ -719,21 +789,34 @@ export default function ClientsPage() {
             const pending = client.pendingAmount ?? client.totalAmount - client.paidAmount
             const status = client.paymentStatus ?? (pending > 0 ? "Pending" : "Paid")
             return (
-            <Card key={client.id} className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors">
+            <Card
+              key={client.id}
+              className={`border-gray-800 hover:border-gray-700 transition-colors overflow-hidden relative ${client.logoUrl ? "" : "bg-[#1a1a1a]"}`}
+            >
+              {client.logoUrl && (
+                <>
+                  <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                      backgroundImage: `url(${client.logoUrl})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      opacity: 0.12,
+                      filter: "brightness(0.85) contrast(1.05)",
+                    }}
+                  />
+                  <div className="absolute inset-0 z-[1] bg-black/75" />
+                </>
+              )}
+              <div className={client.logoUrl ? "relative z-10" : ""}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gray-800 border border-gray-700 shadow-md flex items-center justify-center">
-                      {client.logoUrl ? (
-                        <img
-                          src={client.logoUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
+                    {!client.logoUrl && (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center">
                         <Building2 className="h-5 w-5 text-gray-500" />
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <div>
                       <CardTitle className="text-white">{client.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -822,6 +905,7 @@ export default function ClientsPage() {
                   </div>
                 </div>
               </CardContent>
+              </div>
             </Card>
           )})}
         </div>
@@ -899,6 +983,67 @@ export default function ClientsPage() {
               </DialogContent>
             </Dialog>
           </div>
+          {/* Edit Expense Dialog */}
+          <Dialog open={isEditExpenseDialogOpen} onOpenChange={setIsEditExpenseDialogOpen}>
+            <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white">
+              <DialogHeader>
+                <DialogTitle>Editar Gasto</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Modifica el gasto registrado
+                </DialogDescription>
+              </DialogHeader>
+              {editingExpense && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Monto</Label>
+                    <Input
+                      type="number"
+                      value={editingExpense.amount}
+                      onChange={(e) => setEditingExpense({ ...editingExpense, amount: parseFloat(e.target.value) || 0 })}
+                      className="bg-black border-gray-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Categoría</Label>
+                    <Select
+                      value={editingExpense.category}
+                      onValueChange={(v) => setEditingExpense({ ...editingExpense, category: v })}
+                    >
+                      <SelectTrigger className="bg-black border-gray-800 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a1a1a] border-gray-800 text-white">
+                        {expenseCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descripción (opcional)</Label>
+                    <Textarea
+                      value={editingExpense.description || ""}
+                      onChange={(e) => setEditingExpense({ ...editingExpense, description: e.target.value })}
+                      className="bg-black border-gray-800 text-white"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => { setIsEditExpenseDialogOpen(false); setEditingExpense(null) }}
+                  className="bg-transparent border-gray-800 text-white hover:bg-gray-900"
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleUpdateExpense} disabled={isExpenseUpdating}>
+                  {isExpenseUpdating ? "Guardando..." : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardHeader>
               <CardTitle className="text-white text-base">Gastos recientes</CardTitle>
@@ -920,11 +1065,27 @@ export default function ClientsPage() {
                         <p className="text-white font-medium">${exp.amount.toLocaleString()}</p>
                         <p className="text-gray-400 text-sm truncate">{exp.description || exp.category}</p>
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">{exp.category}</span>
                         <span className="text-xs text-gray-500">
                           {new Date(exp.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
                         </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-blue-400"
+                          onClick={() => handleEditExpenseClick(exp)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-400"
+                          onClick={() => handleDeleteExpense(exp.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
