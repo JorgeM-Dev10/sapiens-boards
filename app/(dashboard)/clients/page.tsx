@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Building2, DollarSign, Clock, CheckCircle, Pencil, Trash2, Eye, Receipt, TrendingUp, Wallet, BarChart3, Award } from "lucide-react"
+import { Plus, Building2, DollarSign, CheckCircle, Pencil, Trash2, Eye, Receipt, TrendingUp, Wallet, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Header } from "@/components/layout/header"
@@ -380,21 +380,15 @@ export default function ClientsPage() {
   const gastosTotales = expenses.reduce((sum, e) => sum + e.amount, 0)
   const revenueNeto = totalIngresado - gastosTotales
   const margenNetoPct = totalIngresado > 0 ? (revenueNeto / totalIngresado) * 100 : 0
-  const clienteMasRentable = clients.length > 0
-    ? clients.reduce((best, c) => (c.totalAmount > (best?.totalAmount ?? 0) ? c : best), clients[0])
-    : null
-
   const stats = {
     totalClients: clients.length,
     totalRevenue: totalIngresado,
-    activeProjects: clients.filter(c => c.phase !== "COMPLETADO").length,
     completed: clients.filter(c => c.phase === "COMPLETADO").length,
     ingresoRestanteTotal,
     valorTotalPortafolio,
     gastosTotales,
     revenueNeto,
     margenNetoPct,
-    clienteMasRentable,
   }
 
   return (
@@ -711,20 +705,7 @@ export default function ClientsPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
-          <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <Clock className="h-5 w-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">{stats.activeProjects}</p>
-                  <p className="text-xs text-gray-400">PROYECTOS ACTIVOS</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 gap-4 mb-6">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -760,23 +741,6 @@ export default function ClientsPage() {
                 <div>
                   <p className="text-xl font-bold text-white">{stats.margenNetoPct.toFixed(1)}%</p>
                   <p className="text-xs text-gray-400">MARGEN NETO</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-yellow-500/20 rounded-lg">
-                  <Award className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-400">CLIENTE MÁS RENTABLE</p>
-                  <p className="text-sm font-bold text-white truncate">
-                    {stats.clienteMasRentable
-                      ? `${stats.clienteMasRentable.name} — $${stats.clienteMasRentable.totalAmount.toLocaleString()}`
-                      : "—"}
-                  </p>
                 </div>
               </div>
             </CardContent>

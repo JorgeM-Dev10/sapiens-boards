@@ -127,21 +127,29 @@ model List {
 }
 
 model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  dueDate     DateTime?
-  image       String?
-  status      String    @default("pending")
-  order       Int
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  listId      String
-  assignedTo  String?
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  dueDate       DateTime?
+  image         String?
+  status        String    @default("pending")
+  order         Int
+  difficulty    Int?      // 1-5
+  category      String?
+  economicValue Float?
+  impactLevel   String?   // LOW | MEDIUM | HIGH | CRITICAL
+  impactScore   Int?      // 0-100
+  xpValue       Int?      // XP asignado por IA o override
+  evaluatedByAI Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  listId        String
+  assignedTo    String?
 
-  list     List      @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assigned User?     @relation("AssignedTasks", fields: [assignedTo], references: [id])
-  tags     TaskTag[]
+  list           List            @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assigned       User?           @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  tags           TaskTag[]
+  bitacoraEntries BitacoraEntry[]
 
   @@map("Task")
 }
@@ -328,10 +336,11 @@ model BitacoraBoard {
   updatedAt   DateTime @updatedAt
   userId      String   // El dueño de la bitácora
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  board        Board?        @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board        Board?         @relation(fields: [boardId], references: [id], onDelete: SetNull)
   workSessions WorkSession[]
   avatar       BitacoraAvatar?
+  entries      BitacoraEntry[]
 
   @@map("BitacoraBoard")
 }
@@ -340,19 +349,35 @@ model BitacoraAvatar {
   id              String   @id @default(cuid())
   bitacoraBoardId String   @unique
   level           Int      @default(1)
-  experience      Int      @default(0) // XP total acumulado
-  totalHours      Float    @default(0) // Horas totales trabajadas
+  experience      Int      @default(0) // XP total acumulado (por impacto)
+  totalHours      Float    @default(0) // Horas totales (métrica secundaria)
   totalTasks      Int      @default(0) // Tareas completadas
   totalSessions   Int      @default(0) // Sesiones registradas
-  avatarStyle     String   @default("basic") // Estilo del avatar según nivel
-  rank            String   @default("Principiante") // Nivel: Principiante, Intermedio, Avanzado, Épico, Leyenda
-  avatarImageUrl String?  // URL de la imagen del emblema del rango
+  avatarStyle     String   @default("basic")
+  rank            String   @default("Principiante")
+  avatarImageUrl String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   bitacoraBoard BitacoraBoard @relation(fields: [bitacoraBoardId], references: [id], onDelete: Cascade)
 
   @@map("BitacoraAvatar")
+}
+
+model BitacoraEntry {
+  id               String   @id @default(cuid())
+  taskId           String?  // Tarea de Roadmap que generó esta entrada
+  bitacoraBoardId  String
+  xpGanado         Int      @default(0)
+  impactScore      Int?     // 0-100
+  economicImpact   Float?
+  aiReasoning      String?
+  createdAt        DateTime @default(now())
+
+  task          Task?          @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  bitacoraBoard BitacoraBoard  @relation(fields: [bitacoraBoardId], references: [id], onDelete: Cascade)
+
+  @@map("BitacoraEntry")
 }
 
 

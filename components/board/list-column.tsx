@@ -10,7 +10,7 @@ import { TaskCard } from "./task-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Plus, MoreVertical, Trash2 } from "lucide-react"
+import { Plus, MoreVertical, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   DropdownMenu,
@@ -48,6 +48,10 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
   })
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(list.title)
+  const [completedSectionOpen, setCompletedSectionOpen] = useState(false)
+
+  const pendingTasks = list.tasks.filter((t) => t.status !== "completed")
+  const completedTasks = list.tasks.filter((t) => t.status === "completed")
 
   const { setNodeRef: setDroppableRef } = useDroppable({
     id: list.id,
@@ -231,13 +235,40 @@ export function ListColumn({ list, onUpdate, boardImage }: ListColumnProps) {
 
           <div className="flex-1 overflow-y-auto space-y-2 mb-3">
             <SortableContext
-              items={list.tasks.map((task) => task.id)}
+              items={pendingTasks.map((task) => task.id)}
               strategy={verticalListSortingStrategy}
             >
-              {list.tasks.map((task) => (
+              {pendingTasks.map((task) => (
                 <TaskCard key={task.id} task={task} onUpdate={onUpdate} />
               ))}
             </SortableContext>
+
+            {completedTasks.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-700/50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between text-gray-400 hover:text-white hover:bg-white/10"
+                  onClick={() => setCompletedSectionOpen(!completedSectionOpen)}
+                >
+                  <span className="flex items-center gap-1">
+                    {completedSectionOpen ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    Tareas Completadas ({completedTasks.length})
+                  </span>
+                </Button>
+                {completedSectionOpen && (
+                  <div className="space-y-2 mt-2">
+                    {completedTasks.map((task) => (
+                      <TaskCard key={task.id} task={task} onUpdate={onUpdate} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <Button
