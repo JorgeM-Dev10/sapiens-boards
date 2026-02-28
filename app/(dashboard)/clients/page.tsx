@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Building2, DollarSign, Clock, CheckCircle, Pencil, Trash2, Eye } from "lucide-react"
+import { Plus, Building2, DollarSign, Clock, CheckCircle, Pencil, Trash2, Eye, Receipt, TrendingUp, Wallet, BarChart3, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Header } from "@/components/layout/header"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+
+interface CompanyExpense {
+  id: string
+  amount: number
+  category: string
+  description: string | null
+  createdAt: string
+}
 
 interface Client {
   id: string
@@ -36,6 +44,15 @@ const phases = [
   { value: "COMPLETADO", label: "COMPLETADO", color: "bg-green-500" },
 ]
 
+const expenseCategories = [
+  "Software",
+  "Infraestructura",
+  "Marketing",
+  "Nómina",
+  "Servicios",
+  "Otros",
+]
+
 export default function ClientsPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -57,8 +74,18 @@ export default function ClientsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
+  const [expenses, setExpenses] = useState<CompanyExpense[]>([])
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false)
+  const [isExpenseSubmitting, setIsExpenseSubmitting] = useState(false)
+  const [newExpense, setNewExpense] = useState({
+    amount: "",
+    category: "",
+    description: "",
+  })
+
   useEffect(() => {
     fetchClients()
+    fetchExpenses()
   }, [])
 
   const fetchClients = async () => {
@@ -77,6 +104,58 @@ export default function ClientsPage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchExpenses = async () => {
+    try {
+      const response = await fetch("/api/company-expenses")
+      if (response.ok) {
+        const data = await response.json()
+        setExpenses(data)
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error)
+    }
+  }
+
+  const handleRegisterExpense = async () => {
+    if (!newExpense.amount || !newExpense.category.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Monto y categoría son requeridos",
+      })
+      return
+    }
+    setIsExpenseSubmitting(true)
+    try {
+      const response = await fetch("/api/company-expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: parseFloat(newExpense.amount),
+          category: newExpense.category,
+          description: newExpense.description || undefined,
+        }),
+      })
+      if (response.ok) {
+        toast({ title: "Gasto registrado", description: "El gasto se ha guardado correctamente" })
+        setIsExpenseDialogOpen(false)
+        setNewExpense({ amount: "", category: "", description: "" })
+        fetchExpenses()
+      } else {
+        const err = await response.json()
+        throw new Error(err.error || "Error al registrar")
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo registrar el gasto",
+      })
+    } finally {
+      setIsExpenseSubmitting(false)
     }
   }
 
@@ -225,12 +304,28 @@ export default function ClientsPage() {
     return total > 0 ? (paid / total) * 100 : 0
   }
 
-  // Estadísticas
+  // Métricas desde BD (nada hardcodeado)
+  const totalIngresado = clients.reduce((sum, c) => sum + c.paidAmount, 0)
+  const ingresoRestanteTotal = clients.reduce((sum, c) => sum + (c.pendingAmount ?? c.totalAmount - c.paidAmount), 0)
+  const valorTotalPortafolio = clients.reduce((sum, c) => sum + c.totalAmount, 0)
+  const gastosTotales = expenses.reduce((sum, e) => sum + e.amount, 0)
+  const revenueNeto = totalIngresado - gastosTotales
+  const margenNetoPct = totalIngresado > 0 ? (revenueNeto / totalIngresado) * 100 : 0
+  const clienteMasRentable = clients.length > 0
+    ? clients.reduce((best, c) => (c.totalAmount > (best?.totalAmount ?? 0) ? c : best), clients[0])
+    : null
+
   const stats = {
     totalClients: clients.length,
-    totalRevenue: clients.reduce((sum, c) => sum + c.paidAmount, 0),
+    totalRevenue: totalIngresado,
     activeProjects: clients.filter(c => c.phase !== "COMPLETADO").length,
     completed: clients.filter(c => c.phase === "COMPLETADO").length,
+    ingresoRestanteTotal,
+    valorTotalPortafolio,
+    gastosTotales,
+    revenueNeto,
+    margenNetoPct,
+    clienteMasRentable,
   }
 
   return (
@@ -476,61 +571,142 @@ export default function ClientsPage() {
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-3xl font-bold text-white mb-6">Gestión de Clientes</h1>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {/* Stats Cards - Fila 1 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
           <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-blue-500/20 rounded-lg">
-                  <Building2 className="h-6 w-6 text-blue-500" />
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <Building2 className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.totalClients}</p>
-                  <p className="text-sm text-gray-400">TOTAL CLIENTES</p>
+                  <p className="text-xl font-bold text-white">{stats.totalClients}</p>
+                  <p className="text-xs text-gray-400">TOTAL CLIENTES</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-green-500/20 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-500" />
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-500/20 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">
-                    ${stats.totalRevenue.toLocaleString()}
+                  <p className="text-xl font-bold text-white">${stats.totalRevenue.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">INGRESOS TOTALES</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-orange-500/20 rounded-lg">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{stats.activeProjects}</p>
+                  <p className="text-xs text-gray-400">PROYECTOS ACTIVOS</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{stats.completed}</p>
+                  <p className="text-xs text-gray-400">COMPLETADOS</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <Wallet className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">${stats.ingresoRestanteTotal.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">INGRESO RESTANTE</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Cards - Fila 2 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-cyan-500/20 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-cyan-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">${stats.valorTotalPortafolio.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">VALOR PORTAFOLIO</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-500/20 rounded-lg">
+                  <Receipt className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">${stats.gastosTotales.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400">GASTOS TOTALES</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${stats.revenueNeto >= 0 ? "bg-green-500/20" : "bg-red-500/20"}`}>
+                  <BarChart3 className={`h-5 w-5 ${stats.revenueNeto >= 0 ? "text-green-500" : "text-red-500"}`} />
+                </div>
+                <div>
+                  <p className={`text-xl font-bold ${stats.revenueNeto >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    ${stats.revenueNeto.toLocaleString()}
                   </p>
-                  <p className="text-sm text-gray-400">INGRESOS TOTALES</p>
+                  <p className="text-xs text-gray-400">REVENUE NETO</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-orange-500/20 rounded-lg">
-                  <Clock className="h-6 w-6 text-orange-500" />
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-indigo-500/20 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-indigo-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.activeProjects}</p>
-                  <p className="text-sm text-gray-400">PROYECTOS ACTIVOS</p>
+                  <p className="text-xl font-bold text-white">{stats.margenNetoPct.toFixed(1)}%</p>
+                  <p className="text-xs text-gray-400">MARGEN NETO</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-purple-500/20 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-purple-500" />
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-500/20 rounded-lg">
+                  <Award className="h-5 w-5 text-yellow-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{stats.completed}</p>
-                  <p className="text-sm text-gray-400">COMPLETADOS</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{stats.clienteMasRentable?.name ?? "—"}</p>
+                  <p className="text-xs text-gray-400">
+                    {stats.clienteMasRentable ? `$${stats.clienteMasRentable.totalAmount.toLocaleString()}` : "CLIENTE MÁS RENTABLE"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -648,6 +824,114 @@ export default function ClientsPage() {
               </CardContent>
             </Card>
           )})}
+        </div>
+
+        {/* Sección financiera: Gastos */}
+        <div className="mt-8 pt-6 border-t border-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">Gastos de la empresa</h2>
+            <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-black text-white hover:bg-gray-900 border border-white">
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Registrar Gasto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Registrar Gasto</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Gasto operativo de la empresa (Software, Infraestructura, etc.)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="exp-amount">Monto</Label>
+                    <Input
+                      id="exp-amount"
+                      type="number"
+                      placeholder="0"
+                      value={newExpense.amount}
+                      onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                      className="bg-black border-gray-800 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exp-category">Categoría</Label>
+                    <Select
+                      value={newExpense.category}
+                      onValueChange={(v) => setNewExpense({ ...newExpense, category: v })}
+                    >
+                      <SelectTrigger className="bg-black border-gray-800 text-white">
+                        <SelectValue placeholder="Selecciona categoría" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a1a1a] border-gray-800 text-white">
+                        {expenseCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exp-desc">Descripción (opcional)</Label>
+                    <Textarea
+                      id="exp-desc"
+                      placeholder="Ej: Cursor Pro, Railway..."
+                      value={newExpense.description}
+                      onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                      className="bg-black border-gray-800 text-white"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsExpenseDialogOpen(false)}
+                    className="bg-transparent border-gray-800 text-white hover:bg-gray-900"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleRegisterExpense} disabled={isExpenseSubmitting}>
+                    {isExpenseSubmitting ? "Guardando..." : "Registrar"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white text-base">Gastos recientes</CardTitle>
+              <CardDescription className="text-gray-400 text-sm">
+                Ordenados por fecha (más reciente primero)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {expenses.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">No hay gastos registrados. Usa &quot;Registrar Gasto&quot; para agregar uno.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {expenses.map((exp) => (
+                    <div
+                      key={exp.id}
+                      className="flex items-center justify-between py-2 px-3 rounded-lg bg-black/50 border border-gray-800"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium">${exp.amount.toLocaleString()}</p>
+                        <p className="text-gray-400 text-sm truncate">{exp.description || exp.category}</p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300">{exp.category}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(exp.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

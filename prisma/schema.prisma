@@ -29,6 +29,7 @@ model User {
   libraryItems  Library[]
   workSessions  WorkSession[]
   bitacoraBoards BitacoraBoard[]
+  companyExpenses CompanyExpense[]
 
   @@map("User")
 }
@@ -64,6 +65,19 @@ model ClientTimeline {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("ClientTimeline")
+}
+
+model CompanyExpense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String   // Software, Infraestructura, Marketing, Nómina, etc.
+  description String?
+  createdAt   DateTime @default(now())
+  createdById String
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("CompanyExpense")
 }
 
 model Board {
