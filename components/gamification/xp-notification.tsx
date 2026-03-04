@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Award, Sparkles, TrendingUp } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { getRankById } from "@/lib/sapiens-ranks"
 
 interface XPNotificationProps {
   xpGained: number
@@ -150,8 +151,8 @@ export function XPNotification({ xpGained, totalXP, levelUp, rankUp, onClose }: 
                   >
                     <p className="text-purple-300 font-bold text-2xl mb-2 animate-pulse">¡FELICITACIONES! 🎉</p>
                     <p className="text-white text-base font-semibold mb-1">Has alcanzado el rango:</p>
-                    <p className="text-purple-400 text-xl font-bold mb-2">{rankUp}</p>
-                    <p className="text-gray-300 text-xs">¡Sigue así para alcanzar el siguiente nivel!</p>
+                    <p className="text-purple-400 text-xl font-bold mb-2">{getRankById(rankUp).label}</p>
+                    <p className="text-gray-300 text-xs">¡Sigue así para alcanzar el siguiente rango!</p>
                   </motion.div>
                 ) : (
                   <div>

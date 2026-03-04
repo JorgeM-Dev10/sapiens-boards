@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { evaluateTaskImpact } from "@/lib/openrouter"
+import { getRankByExperience } from "@/lib/sapiens-ranks"
 
 export async function PATCH(
   request: Request,
@@ -140,29 +141,7 @@ export async function PATCH(
           const totalSessions = workSessions.length
 
           const level = Math.floor(experience / 100) + 1
-          let rank = "Principiante"
-          let avatarStyle = "basic"
-          let avatarImageUrl: string | null = null
-          if (experience >= 10000) {
-            rank = "Leyenda"
-            avatarStyle = "legend"
-            avatarImageUrl = "https://i.imgur.com/5WDwPXs.png"
-          } else if (experience >= 5000) {
-            rank = "Épico"
-            avatarStyle = "epic"
-            avatarImageUrl = "https://i.imgur.com/CCuILkk.png"
-          } else if (experience >= 2000) {
-            rank = "Avanzado"
-            avatarStyle = "advanced"
-            avatarImageUrl = "https://i.imgur.com/3oUQA6l.png"
-          } else if (experience >= 500) {
-            rank = "Intermedio"
-            avatarStyle = "intermediate"
-            avatarImageUrl = "https://i.imgur.com/8sfE7ue.png"
-          } else {
-            avatarStyle = "basic"
-            avatarImageUrl = "https://i.imgur.com/ZhsrnvR.png"
-          }
+          const sapiensRank = getRankByExperience(experience)
 
           const avatarData = {
             level,
@@ -170,9 +149,9 @@ export async function PATCH(
             totalTasks,
             totalHours,
             totalSessions,
-            avatarStyle,
-            rank,
-            avatarImageUrl,
+            avatarStyle: sapiensRank.avatarStyle,
+            rank: sapiensRank.id,
+            avatarImageUrl: sapiensRank.avatarImageUrl,
           }
 
           const existingAvatar = await prisma.bitacoraAvatar.findUnique({

@@ -23,6 +23,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseIS
 import { es } from "date-fns/locale"
 import { XPNotification } from "@/components/gamification/xp-notification"
 import { BitacoraAnimatedBackground } from "@/components/bitacoras/bitacora-animated-background"
+import { getRankByExperience, getProgressToNextRank } from "@/lib/sapiens-ranks"
 
 interface WorkSession {
   id: string
@@ -239,32 +240,21 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     return sessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
   }
 
-  // Función para obtener la URL de la imagen del avatar según el rango
-  const getAvatarImageUrl = (rank: string, avatarImageUrl: string | null): string | null => {
-    // Si hay una URL configurada, usarla
+  const getAvatarImageUrl = (avatarImageUrl: string | null, xp: number): string | null => {
     if (avatarImageUrl) return avatarImageUrl
-    
-    // Si no hay URL, retornar null para usar emoji como fallback
-    return null
+    const url = getRankByExperience(xp).avatarImageUrl
+    return url || null
   }
 
-  // Función para obtener emoji como fallback cuando no hay imagen
-  const getAvatarEmoji = (rank: string) => {
-    if (rank === "Leyenda") return "👑"
-    if (rank === "Épico") return "⭐"
-    if (rank === "Avanzado") return "🔥"
-    if (rank === "Intermedio") return "💪"
-    return "🌱"
+  const getAvatarEmoji = (xp: number) => getRankByExperience(xp).emoji
+
+  const getAvatarColor = (_style: string, xp: number) => {
+    const rank = getRankByExperience(xp)
+    return `${rank.color} ${rank.borderColor}`
   }
 
-  const getAvatarColor = (style: string) => {
-    if (style === "legend") return "text-purple-400 border-purple-400"
-    if (style === "master") return "text-blue-400 border-blue-400"
-    if (style === "expert") return "text-green-400 border-green-400"
-    if (style === "advanced") return "text-yellow-400 border-yellow-400"
-    if (style === "intermediate") return "text-orange-400 border-orange-400"
-    return "text-gray-400 border-gray-400"
-  }
+  const sapiensRank = bitacora?.avatar ? getRankByExperience(bitacora.avatar.experience) : null
+  const progressData = bitacora?.avatar ? getProgressToNextRank(bitacora.avatar.experience) : null
 
   if (isLoading) {
     return (
@@ -313,17 +303,21 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         />
       )}
       <div className="flex-1 overflow-y-auto p-6 relative">
-        <BitacoraAnimatedBackground
-          themeColor={bitacora.themeColor}
-          rank={bitacora.avatar?.rank}
+        <div
           className="absolute inset-0 pointer-events-none -z-10"
-        />
+          aria-hidden
+        >
+          <BitacoraAnimatedBackground
+            themeColor={bitacora.themeColor}
+            rank={sapiensRank?.id ?? bitacora.avatar?.rank}
+          />
+        </div>
         <div className="relative z-10 mx-auto max-w-7xl">
           {/* Header con Avatar */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <motion.div 
-                className={`relative h-24 w-24 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg bg-gradient-to-br from-gray-900 to-black ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle) : 'text-gray-400 border-gray-400'}`}
+                className={`relative h-24 w-24 rounded-full border-3 flex items-center justify-center overflow-hidden shadow-lg bg-gradient-to-br from-gray-900 to-black ${bitacora.avatar ? getAvatarColor(bitacora.avatar.avatarStyle, bitacora.avatar.experience) : "text-gray-400 border-gray-400"}`}
                 whileHover={{ scale: 1.05 }}
                 animate={{ 
                   boxShadow: [
@@ -339,12 +333,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               >
                 {bitacora.avatar ? (
                   (() => {
-                    const imageUrl = getAvatarImageUrl(bitacora.avatar.rank, bitacora.avatar.avatarImageUrl)
+                    const imageUrl = getAvatarImageUrl(bitacora.avatar.avatarImageUrl, bitacora.avatar.experience)
                     return imageUrl ? (
                       <>
                         <motion.img 
                           src={imageUrl} 
-                          alt={bitacora.avatar.rank}
+                          alt={sapiensRank?.label ?? "Initium"}
                           className="w-full h-full object-contain p-1"
                           animate={{ 
                             scale: [1, 1.02, 1],
@@ -367,7 +361,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         />
                       </>
                     ) : (
-                      <span className="text-5xl">{getAvatarEmoji(bitacora.avatar.rank)}</span>
+                      <span className="text-5xl">{getAvatarEmoji(bitacora.avatar.experience)}</span>
                     )
                   })()
                 ) : (
@@ -381,9 +375,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 )}
                 {bitacora.avatar && (
                   <div className="flex items-center gap-4 mt-2 text-sm">
-                    <span className="text-gray-400">Nivel {bitacora.avatar.level}</span>
-                    <span className={`font-bold ${getAvatarColor(bitacora.avatar.avatarStyle).split(' ')[0]}`}>
-                      {bitacora.avatar.avatarStyle.toUpperCase()}
+                    <span className={`font-bold ${sapiensRank?.color ?? "text-gray-400"}`}>
+                      {sapiensRank?.label ?? "Initium"}
                     </span>
                     <span className="text-gray-400">{bitacora.avatar.experience} XP</span>
                   </div>

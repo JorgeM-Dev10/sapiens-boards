@@ -2,8 +2,9 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getRankByExperience } from "@/lib/sapiens-ranks"
 
-// Función para actualizar el avatar de la bitácora
+// Función para actualizar el avatar de la bitácora (Sistema de Rangos Sapiens)
 async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: number, tasksCompleted: number) {
   try {
     const bitacora = await prisma.bitacoraBoard.findUnique({
@@ -17,42 +18,12 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
     const totalSessions = bitacora.workSessions.length
 
-    // Sistema de Experiencia (XP):
-    // - 1 XP por cada hora trabajada (redondeado hacia abajo)
-    // - 10 XP por cada tarea completada
-    // - 5 XP por cada sesión/commit registrado
+    // XP: 1 por hora, 10 por tarea, 5 por sesión
     const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
-    
-    // Calcular nivel: cada 100 XP = 1 nivel
-    const level = Math.floor(experience / 100) + 1
+    const sapiensRank = getRankByExperience(experience)
 
-    // Determinar nivel según XP TOTAL
-    // Niveles: Principiante, Intermedio, Avanzado, Épico, Leyenda
-    let rank = "Principiante"
-    let avatarStyle = "basic"
-    let avatarImageUrl: string | null = null
-    
-    if (experience >= 10000) {
-      rank = "Leyenda"
-      avatarStyle = "legend"
-      avatarImageUrl = "https://i.imgur.com/5WDwPXs.png"
-    } else if (experience >= 5000) {
-      rank = "Épico"
-      avatarStyle = "epic"
-      avatarImageUrl = "https://i.imgur.com/CCuILkk.png"
-    } else if (experience >= 2000) {
-      rank = "Avanzado"
-      avatarStyle = "advanced"
-      avatarImageUrl = "https://i.imgur.com/3oUQA6l.png"
-    } else if (experience >= 500) {
-      rank = "Intermedio"
-      avatarStyle = "intermediate"
-      avatarImageUrl = "https://i.imgur.com/8sfE7ue.png"
-    } else {
-      rank = "Principiante"
-      avatarStyle = "basic"
-      avatarImageUrl = "https://i.imgur.com/ZhsrnvR.png"
-    }
+    // Mantener level para compatibilidad (cada 100 XP = 1 nivel)
+    const level = Math.floor(experience / 100) + 1
 
     if (bitacora.avatar) {
       await prisma.bitacoraAvatar.update({
@@ -63,9 +34,9 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalHours,
           totalTasks,
           totalSessions,
-          avatarStyle,
-          rank,
-          avatarImageUrl,
+          avatarStyle: sapiensRank.avatarStyle,
+          rank: sapiensRank.id,
+          avatarImageUrl: sapiensRank.avatarImageUrl,
         },
       })
     } else {
@@ -77,9 +48,9 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalHours,
           totalTasks,
           totalSessions,
-          avatarStyle,
-          rank,
-          avatarImageUrl,
+          avatarStyle: sapiensRank.avatarStyle,
+          rank: sapiensRank.id,
+          avatarImageUrl: sapiensRank.avatarImageUrl,
         },
       })
     }
@@ -273,9 +244,9 @@ export async function POST(request: Request) {
     let xpGained = 0
     let previousXP = 0
     let previousLevel = 1
-    let previousRank = "Principiante"
+    let previousRank = "INITIUM"
     let newLevel = 1
-    let newRank = "Principiante"
+    let newRank = "INITIUM"
     
     if (bitacoraBoardId) {
       // Obtener estado anterior
@@ -287,7 +258,7 @@ export async function POST(request: Request) {
       if (bitacoraBefore?.avatar) {
         previousXP = bitacoraBefore.avatar.experience
         previousLevel = bitacoraBefore.avatar.level
-        previousRank = bitacoraBefore.avatar.rank || "Principiante"
+        previousRank = bitacoraBefore.avatar.rank || "INITIUM"
       }
       
       // Calcular XP ganada en este commit
@@ -306,7 +277,7 @@ export async function POST(request: Request) {
       
       if (bitacoraAfter?.avatar) {
         newLevel = bitacoraAfter.avatar.level
-        newRank = bitacoraAfter.avatar.rank || "Principiante"
+        newRank = bitacoraAfter.avatar.rank || "INITIUM"
       }
     }
 

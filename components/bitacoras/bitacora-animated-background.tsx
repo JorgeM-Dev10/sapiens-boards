@@ -15,10 +15,10 @@ const LEVEL_OPACITY: Record<LevelIntensity, number> = {
 function getLevelFromRank(rank: string | null | undefined): LevelIntensity {
   if (!rank) return "principiante"
   const r = rank.toLowerCase()
-  if (r.includes("leyenda")) return "leyenda"
-  if (r.includes("épico") || r.includes("epico")) return "epico"
-  if (r.includes("avanzado")) return "avanzado"
-  if (r.includes("intermedio")) return "intermedio"
+  if (r.includes("primus") || r.includes("leyenda")) return "leyenda"
+  if (r.includes("architectus") || r.includes("épico") || r.includes("epico")) return "epico"
+  if (r.includes("strategos") || r.includes("avanzado")) return "avanzado"
+  if (r.includes("executor") || r.includes("intermedio")) return "intermedio"
   return "principiante"
 }
 

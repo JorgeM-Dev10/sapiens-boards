@@ -2,8 +2,9 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getRankByExperience } from "@/lib/sapiens-ranks"
 
-// Función para actualizar el avatar de la bitácora
+// Función para actualizar el avatar de la bitácora (Sistema de Rangos Sapiens)
 async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: number, tasksCompleted: number) {
   try {
     const bitacora = await prisma.bitacoraBoard.findUnique({
@@ -17,39 +18,9 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
     const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
     const totalSessions = bitacora.workSessions.length
 
-    // Calcular experiencia: 1 XP por hora, 10 XP por tarea, 5 XP por sesión
     const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
-    
-    // Calcular nivel: cada 100 XP = 1 nivel
+    const sapiensRank = getRankByExperience(experience)
     const level = Math.floor(experience / 100) + 1
-
-    // Determinar nivel según XP TOTAL
-    // Niveles: Principiante, Intermedio, Avanzado, Épico, Leyenda
-    let rank = "Principiante"
-    let avatarStyle = "basic"
-    let avatarImageUrl: string | null = null
-    
-    if (experience >= 10000) {
-      rank = "Leyenda"
-      avatarStyle = "legend"
-      avatarImageUrl = "https://i.imgur.com/5WDwPXs.png"
-    } else if (experience >= 5000) {
-      rank = "Épico"
-      avatarStyle = "epic"
-      avatarImageUrl = "https://i.imgur.com/CCuILkk.png"
-    } else if (experience >= 2000) {
-      rank = "Avanzado"
-      avatarStyle = "advanced"
-      avatarImageUrl = "https://i.imgur.com/3oUQA6l.png"
-    } else if (experience >= 500) {
-      rank = "Intermedio"
-      avatarStyle = "intermediate"
-      avatarImageUrl = "https://i.imgur.com/8sfE7ue.png"
-    } else {
-      rank = "Principiante"
-      avatarStyle = "basic"
-      avatarImageUrl = "https://i.imgur.com/ZhsrnvR.png"
-    }
 
     if (bitacora.avatar) {
       await prisma.bitacoraAvatar.update({
@@ -60,9 +31,9 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalHours,
           totalTasks,
           totalSessions,
-          avatarStyle,
-          rank,
-          avatarImageUrl,
+          avatarStyle: sapiensRank.avatarStyle,
+          rank: sapiensRank.id,
+          avatarImageUrl: sapiensRank.avatarImageUrl,
         },
       })
     } else {
@@ -74,9 +45,9 @@ async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: nu
           totalHours,
           totalTasks,
           totalSessions,
-          avatarStyle,
-          rank,
-          avatarImageUrl,
+          avatarStyle: sapiensRank.avatarStyle,
+          rank: sapiensRank.id,
+          avatarImageUrl: sapiensRank.avatarImageUrl,
         },
       })
     }
