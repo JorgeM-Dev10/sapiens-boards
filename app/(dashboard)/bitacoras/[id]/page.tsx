@@ -368,19 +368,43 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   Registrar Impacto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
+              <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-5xl">
                 <DialogHeader>
                   <DialogTitle>Registrar Impacto</DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Escribe qué hiciste. La IA evaluará el impacto real y asignará XP.
+                    Escribe qué hiciste. La IA evaluará el impacto real en múltiples dimensiones y asignará XP.
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitRegistro}>
                   <div className="space-y-4">
                     <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-3 text-sm text-gray-300">
-                      <p className="font-medium text-blue-300 mb-1">¿Qué incluir en tu mensaje?</p>
-                      <p className="mb-2">Describe el resultado logrado, impacto económico o estratégico, y el tipo de trabajo. Más contexto = mejor evaluación.</p>
-                      <p className="text-xs text-gray-500 italic">Ejemplo: &quot;Implementé el módulo de pagos en Stripe para el cliente X. Reduje el tiempo de onboarding de 2 días a 2 horas. Valor estimado: $15,000 MXN en ahorro operativo.&quot;</p>
+                      <p className="font-medium text-blue-300 mb-2">¿QUÉ DEBES INCLUIR?</p>
+                      <p className="mb-2">Describe:</p>
+                      <ul className="list-disc list-inside space-y-1 mb-2 text-gray-300">
+                        <li>Qué hiciste exactamente.</li>
+                        <li>Qué cambió antes vs después.</li>
+                        <li>Qué problema resolviste.</li>
+                        <li>A quién impacta (cliente, equipo, sistema).</li>
+                        <li>Si genera ingreso, ahorro, reducción de riesgo o habilita crecimiento futuro.</li>
+                      </ul>
+                      <p className="text-gray-400">No todas las tareas generan dinero directo. También se evalúa impacto estratégico, operativo y sistémico. Más contexto = evaluación más precisa.</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-300 mb-2 block">Ejemplos de mensajes</Label>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="rounded-lg bg-gray-900/80 border border-emerald-500/30 p-3 text-xs text-gray-300">
+                          <p className="font-semibold text-emerald-400 mb-2">Operativo</p>
+                          <p>Implementé notificaciones automáticas al cerrar ventas. Antes el seguimiento era manual (20 min/cliente). Ahora es automático. Impacto operativo: eficiencia del equipo comercial. Impacto estratégico: base para escalar ventas.</p>
+                        </div>
+                        <div className="rounded-lg bg-gray-900/80 border border-amber-500/30 p-3 text-xs text-gray-300">
+                          <p className="font-semibold text-amber-400 mb-2">Sistémico</p>
+                          <p>Refactoricé el módulo de autenticación. Antes: errores intermitentes y riesgo de seguridad. Ahora: estable, escalable y seguro. Impacto sistémico: reduce riesgo técnico. Impacto estratégico: prepara para enterprise.</p>
+                        </div>
+                        <div className="rounded-lg bg-gray-900/80 border border-green-500/30 p-3 text-xs text-gray-300">
+                          <p className="font-semibold text-green-400 mb-2">Económico</p>
+                          <p>Cerré venta de implementación SaaS por $480,000 MXN. Impacto económico directo. Impacto estratégico: apertura de mercado industrial.</p>
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="registro-message">¿Qué lograste? *</Label>
@@ -389,7 +413,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         value={registroMessage}
                         onChange={(e) => setRegistroMessage(e.target.value)}
                         className="bg-gray-900 border-gray-700 text-white min-h-[120px]"
-                        placeholder="Ej: Completé la integración de la API de notificaciones. Permite enviar emails automáticos a clientes al cerrar ventas. Impacto: reducción del tiempo de seguimiento manual."
+                        placeholder="Describe tu trabajo incluyendo qué cambió, a quién impacta y qué tipo de impacto tiene..."
                         rows={5}
                         required
                       />

@@ -8,6 +8,13 @@ import { GAMIFICATION_CONFIG } from "./gamification-config"
 
 export type ImpactLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
 
+export interface ImpactBreakdown {
+  economic: number
+  strategic: number
+  operational: number
+  systemic: number
+}
+
 export interface ImpactEvaluation {
   impactLevel: ImpactLevel
   recommendedXP: number
@@ -15,6 +22,9 @@ export interface ImpactEvaluation {
   shortReasoning: string
   economicWeight?: number
   strategicWeight?: number
+  operationalWeight?: number
+  systemicWeight?: number
+  breakdown?: ImpactBreakdown
 }
 
 export interface RecentImpact {
@@ -88,18 +98,31 @@ export async function evaluateTaskImpact(context: TaskContext): Promise<ImpactEv
           .join("\n")}`
       : ""
 
-  const prompt = `Eres un evaluador de impacto para Sapiens (empresa tecnológica enfocada en impacto y revenue). 
-Premiamos impacto real: económico, estratégico, operativo, sistémico, innovación, optimización.
-NO premiamos horas ni volumen. No sobrevalores tareas repetitivas. Penaliza tareas triviales infladas.
+  const prompt = `Eres un evaluador de impacto para Sapiens (empresa tecnológica). 
+IMPORTANTE: Una tarea puede NO generar dinero directo, pero aún así tener ALTO impacto estratégico, operativo o sistémico. Evalúa en MÚLTIPLES dimensiones.
+
+Dimensiones a considerar:
+1. Impacto Económico: ingreso, ahorro, valor monetario directo
+2. Impacto Estratégico: habilitación futura, apertura de mercado, base estructural
+3. Impacto Operativo: eficiencia, reducción de fricción, automatización
+4. Impacto Sistémico: reducción de riesgo, arquitectura, escalabilidad, estabilidad
+
+Si no hay valor económico declarado: NO penalices. Analiza: reducción de fricción, reducción de riesgo, mejora de eficiencia, alcance del cambio, a cuántas personas afecta.
+
+NO premiamos horas ni volumen. Penaliza tareas triviales infladas.
 
 Responde ÚNICAMENTE con un JSON válido, sin markdown ni texto extra:
 {
   "impactLevel": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  "recommendedXP": número 5-500 (proporcional al impacto real),
-  "impactScore": número 0-100,
+  "recommendedXP": número 5-500 (proporcional al impacto real en TODAS las dimensiones),
+  "impactScore": número 0-100 (ponderado por las 4 dimensiones),
   "shortReasoning": "explicación breve en español",
-  "economicWeight": número 0-100 (peso del impacto económico),
-  "strategicWeight": número 0-100 (peso del impacto estratégico)
+  "breakdown": {
+    "economic": número 0-100,
+    "strategic": número 0-100,
+    "operational": número 0-100,
+    "systemic": número 0-100
+  }
 }
 
 Tarea: ${context.title}
@@ -125,7 +148,7 @@ ${context.currentRank ? `Usuario actual: rango ${context.currentRank}, ${context
             content: prompt,
           },
         ],
-        max_tokens: 300,
+        max_tokens: 400,
         temperature: 0.3,
       }),
     })
@@ -153,16 +176,29 @@ ${context.currentRank ? `Usuario actual: rango ${context.currentRank}, ${context
     }
 
     const raw = JSON.parse(content.replace(/^```json\s*|\s*```$/g, "").trim())
+    const clamp = (n: number) => (typeof n === "number" && !isNaN(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0)
+    const breakdown = raw.breakdown && typeof raw.breakdown === "object"
+      ? {
+          economic: clamp(raw.breakdown.economic ?? raw.economicWeight),
+          strategic: clamp(raw.breakdown.strategic ?? raw.strategicWeight),
+          operational: clamp(raw.breakdown.operational ?? 0),
+          systemic: clamp(raw.breakdown.systemic ?? 0),
+        }
+      : undefined
+
     return {
       impactLevel: clampImpactLevel(raw.impactLevel),
-      recommendedXP: clampXP(Number(raw.recommendedXP)),
+      recommendedXP: clampXP(Number(raw.recommendedXP ?? raw.xpAssigned)),
       impactScore: clampScore(Number(raw.impactScore)),
       shortReasoning:
         typeof raw.shortReasoning === "string"
           ? raw.shortReasoning.slice(0, 500)
-          : "Sin razonamiento.",
-      economicWeight: typeof raw.economicWeight === "number" ? Math.max(0, Math.min(100, raw.economicWeight)) : undefined,
-      strategicWeight: typeof raw.strategicWeight === "number" ? Math.max(0, Math.min(100, raw.strategicWeight)) : undefined,
+          : (typeof raw.reasoning === "string" ? raw.reasoning.slice(0, 500) : "Sin razonamiento."),
+      economicWeight: breakdown?.economic ?? (typeof raw.economicWeight === "number" ? clamp(raw.economicWeight) : undefined),
+      strategicWeight: breakdown?.strategic ?? (typeof raw.strategicWeight === "number" ? clamp(raw.strategicWeight) : undefined),
+      operationalWeight: breakdown?.operational,
+      systemicWeight: breakdown?.systemic,
+      breakdown,
     }
   } catch (e) {
     console.error("[openrouter] evaluateTaskImpact error:", e)
