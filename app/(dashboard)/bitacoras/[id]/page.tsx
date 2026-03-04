@@ -84,9 +84,11 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     totalXP: number
     levelUp: boolean
     rankUp: string | null
+    impactLevel?: string
   } | null>(null)
-  const [registroForm, setRegistroForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+  const [registroMessage, setRegistroMessage] = useState("")
+  const [editingForm, setEditingForm] = useState({
+    date: "",
     startTime: "09:00",
     endTime: "17:00",
     tasksCompleted: 0,
@@ -128,72 +130,47 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
 
   const handleSubmitRegistro = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!registroForm.startTime || !registroForm.endTime) {
+    if (!registroMessage.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Las horas de inicio y fin son requeridas",
+        description: "Escribe qué hiciste para que la IA evalúe el impacto",
       })
       return
     }
 
     setIsSubmitting(true)
-
     try {
-      const response = await fetch("/api/work-sessions", {
+      const response = await fetch(`/api/bitacoras/${params.id}/log-impact`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bitacoraBoardId: params.id,
-          date: registroForm.date,
-          startTime: registroForm.startTime,
-          endTime: registroForm.endTime,
-          tasksCompleted: registroForm.tasksCompleted || 0,
-          description: registroForm.description || null,
-          workType: registroForm.workType,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: registroMessage.trim() }),
       })
 
       if (response.ok) {
         const data = await response.json()
-        
-        // Calcular si hubo subida de nivel o rango
-        const levelUp = data.newLevel > data.previousLevel
-        const rankUp = data.newRank !== data.previousRank ? data.newRank : null
-        
-        // Mostrar notificación de XP
         if (data.xpGained > 0) {
           setXpNotification({
             xpGained: data.xpGained,
-            totalXP: data.previousXP + data.xpGained,
-            levelUp,
-            rankUp,
+            totalXP: data.totalXP,
+            levelUp: data.levelUp,
+            rankUp: data.rankUp,
+            impactLevel: data.impactLevel,
           })
         }
-        
         toast({
-          title: "Éxito",
-          description: `Registro guardado! +${data.xpGained || 0} XP ganados`,
+          title: "Impacto registrado",
+          description: `La IA evaluó tu trabajo. +${data.xpGained || 0} XP`,
         })
         setIsRegistroDialogOpen(false)
-        setRegistroForm({
-          date: new Date().toISOString().split('T')[0],
-          startTime: "09:00",
-          endTime: "17:00",
-          tasksCompleted: 0,
-          description: "",
-          workType: "dev",
-        })
+        setRegistroMessage("")
         fetchBitacora()
       } else {
-        const error = await response.json()
+        const err = await response.json()
         toast({
           variant: "destructive",
           title: "Error",
-          description: error.error || "Error al registrar el trabajo",
+          description: err.error || "Error al registrar",
         })
       }
     } catch (error) {
@@ -201,7 +178,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al registrar el trabajo",
+        description: "Error al registrar el impacto",
       })
     } finally {
       setIsSubmitting(false)
@@ -299,6 +276,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           totalXP={xpNotification.totalXP}
           levelUp={xpNotification.levelUp}
           rankUp={xpNotification.rankUp || undefined}
+          impactLevel={xpNotification.impactLevel}
           onClose={() => setXpNotification(null)}
         />
       )}
@@ -387,92 +365,32 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="mr-2 h-4 w-4" />
-                  Registrar Trabajo
+                  Registrar Impacto
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Registrar Trabajo Diario</DialogTitle>
+                  <DialogTitle>Registrar Impacto</DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Registra tu trabajo del día
+                    Escribe qué hiciste. La IA evaluará el impacto real y asignará XP.
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmitRegistro}>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="date">Fecha *</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={registroForm.date}
-                        onChange={(e) => setRegistroForm({ ...registroForm, date: e.target.value })}
-                        className="bg-gray-900 border-gray-700 text-white"
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="startTime">Hora Inicio *</Label>
-                        <Input
-                          id="startTime"
-                          type="time"
-                          value={registroForm.startTime}
-                          onChange={(e) => setRegistroForm({ ...registroForm, startTime: e.target.value })}
-                          className="bg-gray-900 border-gray-700 text-white"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="endTime">Hora Fin *</Label>
-                        <Input
-                          id="endTime"
-                          type="time"
-                          value={registroForm.endTime}
-                          onChange={(e) => setRegistroForm({ ...registroForm, endTime: e.target.value })}
-                          className="bg-gray-900 border-gray-700 text-white"
-                          required
-                        />
-                      </div>
+                    <div className="rounded-lg bg-blue-500/10 border border-blue-500/30 p-3 text-sm text-gray-300">
+                      <p className="font-medium text-blue-300 mb-1">¿Qué incluir en tu mensaje?</p>
+                      <p className="mb-2">Describe el resultado logrado, impacto económico o estratégico, y el tipo de trabajo. Más contexto = mejor evaluación.</p>
+                      <p className="text-xs text-gray-500 italic">Ejemplo: &quot;Implementé el módulo de pagos en Stripe para el cliente X. Reduje el tiempo de onboarding de 2 días a 2 horas. Valor estimado: $15,000 MXN en ahorro operativo.&quot;</p>
                     </div>
                     <div>
-                      <Label htmlFor="tasksCompleted">Tareas Completadas</Label>
-                      <Input
-                        id="tasksCompleted"
-                        type="number"
-                        min="0"
-                        value={registroForm.tasksCompleted}
-                        onChange={(e) => setRegistroForm({ ...registroForm, tasksCompleted: parseInt(e.target.value) || 0 })}
-                        className="bg-gray-900 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="workType">Tipo de Trabajo</Label>
-                      <Select
-                        value={registroForm.workType}
-                        onValueChange={(value) => setRegistroForm({ ...registroForm, workType: value })}
-                      >
-                        <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-800">
-                          <SelectItem value="dev">Desarrollo</SelectItem>
-                          <SelectItem value="diseño">Diseño</SelectItem>
-                          <SelectItem value="ops">Operaciones</SelectItem>
-                          <SelectItem value="calls">Llamadas/Reuniones</SelectItem>
-                          <SelectItem value="testing">Testing</SelectItem>
-                          <SelectItem value="documentation">Documentación</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="description">¿Qué trabajaste hoy? *</Label>
+                      <Label htmlFor="registro-message">¿Qué lograste? *</Label>
                       <Textarea
-                        id="description"
-                        value={registroForm.description}
-                        onChange={(e) => setRegistroForm({ ...registroForm, description: e.target.value })}
-                        className="bg-gray-900 border-gray-700 text-white"
-                        placeholder="Describe qué trabajaste durante esta sesión..."
-                        rows={4}
+                        id="registro-message"
+                        value={registroMessage}
+                        onChange={(e) => setRegistroMessage(e.target.value)}
+                        className="bg-gray-900 border-gray-700 text-white min-h-[120px]"
+                        placeholder="Ej: Completé la integración de la API de notificaciones. Permite enviar emails automáticos a clientes al cerrar ventas. Impacto: reducción del tiempo de seguimiento manual."
+                        rows={5}
                         required
                       />
                     </div>
@@ -491,7 +409,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       disabled={isSubmitting}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      {isSubmitting ? "Guardando..." : "Guardar Registro"}
+                      {isSubmitting ? "Evaluando impacto..." : "Enviar a evaluación IA"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -519,12 +437,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         "Content-Type": "application/json",
                       },
                       body: JSON.stringify({
-                        date: registroForm.date,
-                        startTime: registroForm.startTime,
-                        endTime: registroForm.endTime,
-                        tasksCompleted: registroForm.tasksCompleted || 0,
-                        description: registroForm.description || null,
-                        workType: registroForm.workType,
+                        date: editingForm.date,
+                        startTime: editingForm.startTime,
+                        endTime: editingForm.endTime,
+                        tasksCompleted: editingForm.tasksCompleted || 0,
+                        description: editingForm.description || null,
+                        workType: editingForm.workType,
                       }),
                     })
 
@@ -561,8 +479,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       <Input
                         id="edit-date"
                         type="date"
-                        value={registroForm.date}
-                        onChange={(e) => setRegistroForm({ ...registroForm, date: e.target.value })}
+                        value={editingForm.date}
+                        onChange={(e) => setEditingForm({ ...editingForm, date: e.target.value })}
                         className="bg-gray-900 border-gray-700 text-white"
                         required
                       />
@@ -573,8 +491,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <Input
                           id="edit-startTime"
                           type="time"
-                          value={registroForm.startTime}
-                          onChange={(e) => setRegistroForm({ ...registroForm, startTime: e.target.value })}
+                          value={editingForm.startTime}
+                          onChange={(e) => setEditingForm({ ...editingForm, startTime: e.target.value })}
                           className="bg-gray-900 border-gray-700 text-white"
                           required
                         />
@@ -584,8 +502,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         <Input
                           id="edit-endTime"
                           type="time"
-                          value={registroForm.endTime}
-                          onChange={(e) => setRegistroForm({ ...registroForm, endTime: e.target.value })}
+                          value={editingForm.endTime}
+                          onChange={(e) => setEditingForm({ ...editingForm, endTime: e.target.value })}
                           className="bg-gray-900 border-gray-700 text-white"
                           required
                         />
@@ -597,16 +515,16 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         id="edit-tasksCompleted"
                         type="number"
                         min="0"
-                        value={registroForm.tasksCompleted}
-                        onChange={(e) => setRegistroForm({ ...registroForm, tasksCompleted: parseInt(e.target.value) || 0 })}
+                        value={editingForm.tasksCompleted}
+                        onChange={(e) => setEditingForm({ ...editingForm, tasksCompleted: parseInt(e.target.value) || 0 })}
                         className="bg-gray-900 border-gray-700 text-white"
                       />
                     </div>
                     <div>
                       <Label htmlFor="edit-workType">Tipo de Trabajo</Label>
                       <Select
-                        value={registroForm.workType}
-                        onValueChange={(value) => setRegistroForm({ ...registroForm, workType: value })}
+                        value={editingForm.workType}
+                        onValueChange={(value) => setEditingForm({ ...editingForm, workType: value })}
                       >
                         <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                           <SelectValue />
@@ -622,13 +540,13 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="edit-description">¿Qué trabajaste hoy? *</Label>
+                      <Label htmlFor="edit-description">Descripción *</Label>
                       <Textarea
                         id="edit-description"
-                        value={registroForm.description}
-                        onChange={(e) => setRegistroForm({ ...registroForm, description: e.target.value })}
+                        value={editingForm.description}
+                        onChange={(e) => setEditingForm({ ...editingForm, description: e.target.value })}
                         className="bg-gray-900 border-gray-700 text-white"
-                        placeholder="Describe qué trabajaste durante esta sesión..."
+                        placeholder="Descripción del registro..."
                         rows={4}
                         required
                       />
@@ -830,7 +748,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                                 className="h-7 w-7 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
                                 onClick={() => {
                                   setEditingSession(session)
-                                  setRegistroForm({
+                                  setEditingForm({
                                     date: session.date.split('T')[0],
                                     startTime: session.startTime,
                                     endTime: session.endTime,
@@ -897,13 +815,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                       <p>No hay registros para este día</p>
                       <Button
                         className="mt-4 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => {
-                          setRegistroForm({
-                            ...registroForm,
-                            date: format(selectedDate, 'yyyy-MM-dd'),
-                          })
-                          setIsRegistroDialogOpen(true)
-                        }}
+                        onClick={() => setIsRegistroDialogOpen(true)}
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Registrar Trabajo
@@ -924,7 +836,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-bold text-lg mb-2">Sistema de Experiencia (XP)</h3>
-                  <p className="text-gray-300 text-sm mb-3">El XP se gana por <strong className="text-white">impacto</strong>, no por horas. Al completar una tarea en Roadmap, la IA evalúa el impacto y asigna XP automáticamente.</p>
+                  <p className="text-gray-300 text-sm mb-3">El XP se gana por <strong className="text-white">impacto</strong>, no por horas. Completa tareas en Roadmap o usa &quot;Registrar Impacto&quot; para describir tu trabajo y que la IA lo evalúe.</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                     <div className="bg-black/40 rounded-lg p-3 border border-blue-500/30">
                       <div className="flex items-center gap-2 mb-1">
