@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Loader2, Pencil, Trash2, FileText } from "lucide-react"
+import { Plus, Loader2, Pencil, Trash2, FileText, Info } from "lucide-react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Header } from "@/components/layout/header"
 import { BitacoraAnimatedBackground } from "@/components/bitacoras/bitacora-animated-background"
 import { BITACORA_THEMES, getThemeColors } from "@/lib/bitacora-themes"
-import { getRankByExperience, getProgressToNextRank } from "@/lib/sapiens-ranks"
+import { getRankByExperience, getProgressToNextRank, SAPIENS_RANKS } from "@/lib/sapiens-ranks"
 
 interface Bitacora {
   id: string
@@ -707,7 +707,48 @@ export default function BitacorasPage() {
         </div>
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-white">Bitácoras</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-white">Bitácoras</h1>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border border-gray-600 hover:border-blue-500 hover:bg-blue-500/10 text-gray-400 hover:text-blue-400"
+                    title="Ver narrativa de rangos"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-lg max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl">Sistema de Rangos Sapiens</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Premiamos impacto real. El XP se gana completando tareas evaluadas por IA.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-2">
+                    {SAPIENS_RANKS.map((rank) => (
+                      <div
+                        key={rank.id}
+                        className={`p-4 rounded-lg border ${rank.borderColor} bg-gradient-to-br ${rank.bgColor} border-opacity-60`}
+                      >
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-2xl">{rank.emoji}</span>
+                          <div>
+                            <p className={`font-bold tracking-wider ${rank.color}`}>{rank.id}</p>
+                            <p className="text-xs text-gray-500">
+                              {rank.minXP.toLocaleString()} – {rank.maxXP === Infinity ? "∞" : rank.maxXP.toLocaleString()} XP
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-300 italic">&ldquo;{rank.subtitle}&rdquo;</p>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Dialog 
               open={isCreateDialogOpen} 
               onOpenChange={(open) => {

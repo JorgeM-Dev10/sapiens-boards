@@ -950,7 +950,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-700 flex flex-wrap gap-x-3 gap-y-1">
                     <p className="text-xs text-gray-400">
-                      <span className="text-yellow-400 font-semibold">Niveles:</span> Principiante (0-499 XP) • Intermedio (500-1999 XP) • Avanzado (2000-4999 XP) • Épico (5000-9999 XP) • Leyenda (10000+ XP)
+                      <span className="text-yellow-400 font-semibold">Rangos Sapiens:</span> INITIUM (0-999 XP) • EXECUTOR (1K-2.9K) • STRATEGOS (3K-6.9K) • ARCHITECTUS (7K-14.9K) • PRIMUS (15K+ XP)
                     </p>
                     <p className="text-xs text-gray-500">Horas y sesiones se muestran como métrica secundaria.</p>
                   </div>

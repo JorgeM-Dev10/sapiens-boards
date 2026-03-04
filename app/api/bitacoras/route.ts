@@ -31,13 +31,21 @@ export async function GET() {
             tasksCompleted: true,
           },
         },
+        entries: {
+          include: {
+            task: {
+              select: {
+                impactLevel: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         order: "asc",
       },
     })
 
-    // Calcular estadísticas rápidas
     const bitacorasWithStats = bitacoras.map((bitacora) => {
       const totalHours = bitacora.workSessions.reduce(
         (sum, session) => sum + session.durationMinutes / 60,
@@ -49,12 +57,36 @@ export async function GET() {
       )
       const totalSessions = bitacora.workSessions.length
 
+      const entries = bitacora.entries as Array<{
+        impactScore: number | null
+        economicImpact: number | null
+        task: { impactLevel: string | null } | null
+      }>
+      const impactScores = entries.filter((e) => e.impactScore != null).map((e) => e.impactScore!)
+      const impactScorePromedio =
+        impactScores.length > 0
+          ? impactScores.reduce((a, b) => a + b, 0) / impactScores.length
+          : 0
+      const criticalCount = entries.filter(
+        (e) => e.task?.impactLevel === "CRITICAL"
+      ).length
+      const economicValue = entries.reduce(
+        (sum, e) => sum + (e.economicImpact ?? 0),
+        0
+      )
+
+      const { entries: _entries, ...rest } = bitacora
       return {
-        ...bitacora,
+        ...rest,
         stats: {
           totalHours,
           totalTasks,
           totalSessions,
+        },
+        impactStats: {
+          impactScorePromedio: Math.round(impactScorePromedio),
+          criticalCount,
+          economicValue,
         },
       }
     })
@@ -127,7 +159,7 @@ export async function POST(request: Request) {
         totalTasks: 0,
         totalSessions: 0,
         avatarStyle: "basic",
-        rank: "Principiante",
+        rank: "INITIUM",
       },
     })
 

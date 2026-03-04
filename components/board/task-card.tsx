@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Trash2, X, Check } from "lucide-react"
 import { getInitials, formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useGamification } from "@/contexts/gamification-context"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onUpdate }: TaskCardProps) {
   const { toast } = useToast()
+  const gamification = useGamification()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedTask, setEditedTask] = useState({
@@ -202,27 +204,35 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
 
   const handleToggleComplete = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    
-    const newStatus = task.status === 'completed' ? 'pending' : 'completed'
-    
+
+    const newStatus = task.status === "completed" ? "pending" : "completed"
+
     try {
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
       })
 
       if (response.ok) {
+        const data = await response.json()
+        const taskData = data.task ?? data
         if (onUpdate) onUpdate()
+
+        if (newStatus === "completed" && data.gamification && gamification) {
+          gamification.showXPNotification({
+            xpGained: data.gamification.xpGained,
+            totalXP: data.gamification.totalXP,
+            previousXP: data.gamification.previousXP,
+            levelUp: data.gamification.levelUp,
+            rankUp: data.gamification.rankUp,
+            impactLevel: data.gamification.impactLevel,
+          })
+        }
+
         toast({
-          title: newStatus === 'completed' ? "Tarea completada" : "Tarea pendiente",
-          description: newStatus === 'completed' 
-            ? "¡Excelente trabajo! 🎉" 
-            : "La tarea está pendiente nuevamente",
+          title: newStatus === "completed" ? "Tarea completada" : "Tarea pendiente",
+          description: newStatus === "completed" ? "¡Impacto evaluado por IA! 🎉" : "La tarea está pendiente",
         })
       } else {
         throw new Error("Error al actualizar la tarea")

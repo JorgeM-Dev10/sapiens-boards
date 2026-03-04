@@ -2,59 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getRankByExperience } from "@/lib/sapiens-ranks"
-
-// Función para actualizar el avatar de la bitácora (Sistema de Rangos Sapiens)
-async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: number, tasksCompleted: number) {
-  try {
-    const bitacora = await prisma.bitacoraBoard.findUnique({
-      where: { id: bitacoraBoardId },
-      include: { avatar: true, workSessions: true },
-    })
-
-    if (!bitacora) return
-
-    const totalHours = bitacora.workSessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
-    const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
-    const totalSessions = bitacora.workSessions.length
-
-    const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
-    const sapiensRank = getRankByExperience(experience)
-    const level = Math.floor(experience / 100) + 1
-
-    if (bitacora.avatar) {
-      await prisma.bitacoraAvatar.update({
-        where: { id: bitacora.avatar.id },
-        data: {
-          level,
-          experience,
-          totalHours,
-          totalTasks,
-          totalSessions,
-          avatarStyle: sapiensRank.avatarStyle,
-          rank: sapiensRank.id,
-          avatarImageUrl: sapiensRank.avatarImageUrl,
-        },
-      })
-    } else {
-      await prisma.bitacoraAvatar.create({
-        data: {
-          bitacoraBoardId,
-          level,
-          experience,
-          totalHours,
-          totalTasks,
-          totalSessions,
-          avatarStyle: sapiensRank.avatarStyle,
-          rank: sapiensRank.id,
-          avatarImageUrl: sapiensRank.avatarImageUrl,
-        },
-      })
-    }
-  } catch (error) {
-    console.error("Error updating bitacora avatar:", error)
-  }
-}
+import { recomputeBitacoraAvatar } from "@/lib/gamification"
 
 // Función auxiliar para calcular minutos entre dos horas
 function calculateMinutes(startTime: string, endTime: string): number {
@@ -227,9 +175,8 @@ export async function PATCH(
       },
     })
 
-    // Actualizar avatar si es una sesión de bitácora
     if (updatedSession.bitacoraBoardId) {
-      await updateBitacoraAvatar(updatedSession.bitacoraBoardId, updatedSession.durationMinutes, updatedSession.tasksCompleted || 0)
+      await recomputeBitacoraAvatar(updatedSession.bitacoraBoardId)
     }
 
     return NextResponse.json(updatedSession)
@@ -278,9 +225,8 @@ export async function DELETE(
       },
     })
 
-    // Actualizar avatar después de borrar
     if (bitacoraBoardId) {
-      await updateBitacoraAvatar(bitacoraBoardId, 0, 0)
+      await recomputeBitacoraAvatar(bitacoraBoardId)
     }
 
     return NextResponse.json({ success: true })

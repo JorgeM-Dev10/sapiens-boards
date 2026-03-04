@@ -34,6 +34,11 @@ interface Bitacora {
     totalTasks: number
     totalSessions: number
   }
+  impactStats?: {
+    impactScorePromedio: number
+    criticalCount: number
+    economicValue: number
+  }
   workSessions: Array<{
     date: string
     durationMinutes: number
@@ -72,7 +77,6 @@ export default function EstadisticasPage() {
     }
   }
 
-  // Calcular estadísticas agregadas
   const totalStats = {
     totalHours: bitacoras.reduce((sum, b) => sum + b.stats.totalHours, 0),
     totalTasks: bitacoras.reduce((sum, b) => sum + b.stats.totalTasks, 0),
@@ -81,6 +85,21 @@ export default function EstadisticasPage() {
     averageLevel: bitacoras.length > 0
       ? bitacoras.reduce((sum, b) => sum + (b.avatar?.level || 1), 0) / bitacoras.length
       : 0,
+    impactScorePromedio:
+      bitacoras.length > 0
+        ? bitacoras.reduce(
+            (sum, b) => sum + (b.impactStats?.impactScorePromedio ?? 0),
+            0
+          ) / bitacoras.length
+        : 0,
+    criticalCount: bitacoras.reduce(
+      (sum, b) => sum + (b.impactStats?.criticalCount ?? 0),
+      0
+    ),
+    economicValue: bitacoras.reduce(
+      (sum, b) => sum + (b.impactStats?.economicValue ?? 0),
+      0
+    ),
   }
 
   // Horas por día (últimos 7 días)
@@ -218,10 +237,36 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Nivel promedio</p>
-                        <p className="text-2xl font-bold text-white">{totalStats.averageLevel.toFixed(1)}</p>
+                        <p className="text-xs text-gray-400 mb-1">Impact Score promedio</p>
+                        <p className="text-2xl font-bold text-white">{Math.round(totalStats.impactScorePromedio)}</p>
+                        <p className="text-xs text-emerald-400/80 mt-0.5">0-100</p>
                       </div>
                       <Activity className="h-8 w-8 text-cyan-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Tareas CRITICAL</p>
+                        <p className="text-2xl font-bold text-amber-400">{totalStats.criticalCount}</p>
+                      </div>
+                      <Award className="h-8 w-8 text-amber-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a]/80 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Valor económico</p>
+                        <p className="text-2xl font-bold text-green-400">
+                          ${totalStats.economicValue.toLocaleString("es-MX")}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">MXN</p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-emerald-400 opacity-50" />
                     </div>
                   </CardContent>
                 </Card>

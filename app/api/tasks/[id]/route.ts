@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { evaluateTaskImpact } from "@/lib/openrouter"
-import { getRankByExperience } from "@/lib/sapiens-ranks"
+import { recomputeBitacoraAvatar } from "@/lib/gamification"
 
 export async function PATCH(
   request: Request,
@@ -87,9 +87,41 @@ export async function PATCH(
       },
     })
 
-    // Completada: evaluación IA, guardar impacto, crear BitacoraEntry y actualizar avatar por XP de impacto
-    if (status === 'completed' && oldTask?.status !== 'completed' && task.list?.board) {
+    let gamificationPayload: {
+      xpGained: number
+      totalXP: number
+      previousXP: number
+      levelUp: boolean
+      rankUp: string | null
+      impactLevel: string
+    } | null = null
+
+    // Completada: evaluación IA, guardar impacto, crear BitacoraEntry y actualizar avatar
+    if (status === "completed" && oldTask?.status !== "completed" && task.list?.board) {
       try {
+        const bitacora = await prisma.bitacoraBoard.findFirst({
+          where: {
+            boardId: task.list.board.id,
+            userId: session.user.id,
+          },
+          include: {
+            avatar: true,
+            entries: {
+              include: { task: { select: { title: true, impactLevel: true } } },
+              orderBy: { createdAt: "desc" },
+              take: 5,
+            },
+          },
+        })
+
+        const recentImpactHistory =
+          bitacora?.entries.map((e) => ({
+            title: e.task?.title ?? "Tarea",
+            impactLevel: e.task?.impactLevel ?? "MEDIUM",
+            impactScore: e.impactScore ?? 50,
+            xpGanado: e.xpGanado,
+          })) ?? []
+
         const evaluation = await evaluateTaskImpact({
           title: task.title,
           description: task.description,
@@ -97,6 +129,9 @@ export async function PATCH(
           difficulty: task.difficulty,
           economicValue: task.economicValue,
           resultAchieved: "Completada",
+          currentRank: bitacora?.avatar?.rank ?? undefined,
+          currentXP: bitacora?.avatar?.experience ?? undefined,
+          recentImpactHistory: recentImpactHistory.length ? recentImpactHistory : undefined,
         })
 
         await prisma.task.update({
@@ -109,14 +144,10 @@ export async function PATCH(
           },
         })
 
-        const bitacora = await prisma.bitacoraBoard.findFirst({
-          where: {
-            boardId: task.list.board.id,
-            userId: session.user.id,
-          },
-        })
-
         if (bitacora) {
+          const previousXP = bitacora.avatar?.experience ?? 0
+          const previousRank = bitacora.avatar?.rank ?? "INITIUM"
+
           await prisma.bitacoraEntry.create({
             data: {
               taskId: task.id,
@@ -128,44 +159,22 @@ export async function PATCH(
             },
           })
 
-          const entries = await prisma.bitacoraEntry.findMany({
-            where: { bitacoraBoardId: bitacora.id },
+          await recomputeBitacoraAvatar(bitacora.id)
+
+          const bitacoraAfter = await prisma.bitacoraBoard.findUnique({
+            where: { id: bitacora.id },
+            include: { avatar: true },
           })
-          const experience = entries.reduce((sum, e) => sum + e.xpGanado, 0)
-          const totalTasks = entries.length
+          const totalXP = bitacoraAfter?.avatar?.experience ?? previousXP + evaluation.recommendedXP
+          const newRank = bitacoraAfter?.avatar?.rank ?? previousRank
 
-          const workSessions = await prisma.workSession.findMany({
-            where: { bitacoraBoardId: bitacora.id },
-          })
-          const totalHours = workSessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
-          const totalSessions = workSessions.length
-
-          const level = Math.floor(experience / 100) + 1
-          const sapiensRank = getRankByExperience(experience)
-
-          const avatarData = {
-            level,
-            experience,
-            totalTasks,
-            totalHours,
-            totalSessions,
-            avatarStyle: sapiensRank.avatarStyle,
-            rank: sapiensRank.id,
-            avatarImageUrl: sapiensRank.avatarImageUrl,
-          }
-
-          const existingAvatar = await prisma.bitacoraAvatar.findUnique({
-            where: { bitacoraBoardId: bitacora.id },
-          })
-          if (existingAvatar) {
-            await prisma.bitacoraAvatar.update({
-              where: { id: existingAvatar.id },
-              data: avatarData,
-            })
-          } else {
-            await prisma.bitacoraAvatar.create({
-              data: { bitacoraBoardId: bitacora.id, ...avatarData },
-            })
+          gamificationPayload = {
+            xpGained: evaluation.recommendedXP,
+            totalXP,
+            previousXP,
+            levelUp: Math.floor(totalXP / 100) > Math.floor(previousXP / 100),
+            rankUp: newRank !== previousRank ? newRank : null,
+            impactLevel: evaluation.impactLevel,
           }
 
           const now = new Date()
@@ -200,7 +209,11 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(taskWithImpact ?? task)
+    const payload: Record<string, unknown> = { task: taskWithImpact ?? task }
+    if (gamificationPayload) {
+      payload.gamification = gamificationPayload
+    }
+    return NextResponse.json(payload)
   } catch (error) {
     console.error("Error updating task:", error)
     return NextResponse.json(

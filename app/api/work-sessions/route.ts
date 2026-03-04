@@ -2,62 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getRankByExperience } from "@/lib/sapiens-ranks"
-
-// Función para actualizar el avatar de la bitácora (Sistema de Rangos Sapiens)
-async function updateBitacoraAvatar(bitacoraBoardId: string, durationMinutes: number, tasksCompleted: number) {
-  try {
-    const bitacora = await prisma.bitacoraBoard.findUnique({
-      where: { id: bitacoraBoardId },
-      include: { avatar: true, workSessions: true },
-    })
-
-    if (!bitacora) return
-
-    const totalHours = bitacora.workSessions.reduce((sum, s) => sum + s.durationMinutes / 60, 0)
-    const totalTasks = bitacora.workSessions.reduce((sum, s) => sum + s.tasksCompleted, 0)
-    const totalSessions = bitacora.workSessions.length
-
-    // XP: 1 por hora, 10 por tarea, 5 por sesión
-    const experience = Math.floor(totalHours) + (totalTasks * 10) + (totalSessions * 5)
-    const sapiensRank = getRankByExperience(experience)
-
-    // Mantener level para compatibilidad (cada 100 XP = 1 nivel)
-    const level = Math.floor(experience / 100) + 1
-
-    if (bitacora.avatar) {
-      await prisma.bitacoraAvatar.update({
-        where: { id: bitacora.avatar.id },
-        data: {
-          level,
-          experience,
-          totalHours,
-          totalTasks,
-          totalSessions,
-          avatarStyle: sapiensRank.avatarStyle,
-          rank: sapiensRank.id,
-          avatarImageUrl: sapiensRank.avatarImageUrl,
-        },
-      })
-    } else {
-      await prisma.bitacoraAvatar.create({
-        data: {
-          bitacoraBoardId,
-          level,
-          experience,
-          totalHours,
-          totalTasks,
-          totalSessions,
-          avatarStyle: sapiensRank.avatarStyle,
-          rank: sapiensRank.id,
-          avatarImageUrl: sapiensRank.avatarImageUrl,
-        },
-      })
-    }
-  } catch (error) {
-    console.error("Error updating bitacora avatar:", error)
-  }
-}
+import { recomputeBitacoraAvatar } from "@/lib/gamification"
 
 // Función auxiliar para calcular minutos entre dos horas
 function calculateMinutes(startTime: string, endTime: string): number {
@@ -240,46 +185,38 @@ export async function POST(request: Request) {
       },
     })
 
-    // Actualizar avatar si es una sesión de bitácora
-    let xpGained = 0
+    // Actualizar métricas (horas, sesiones) - NO genera XP. XP solo por impacto (BitacoraEntry).
     let previousXP = 0
     let previousLevel = 1
     let previousRank = "INITIUM"
     let newLevel = 1
     let newRank = "INITIUM"
-    
+
     if (bitacoraBoardId) {
-      // Obtener estado anterior
       const bitacoraBefore = await prisma.bitacoraBoard.findUnique({
         where: { id: bitacoraBoardId },
-        include: { avatar: true, workSessions: true },
+        include: { avatar: true },
       })
-      
       if (bitacoraBefore?.avatar) {
         previousXP = bitacoraBefore.avatar.experience
         previousLevel = bitacoraBefore.avatar.level
         previousRank = bitacoraBefore.avatar.rank || "INITIUM"
       }
-      
-      // Calcular XP ganada en este commit
-      // Sistema de XP: 1 XP por hora, 10 XP por tarea, 5 XP por sesión
-      const hoursGained = durationMinutes / 60
-      const tasksGained = tasksCompleted || 0
-      xpGained = Math.floor(hoursGained) + (tasksGained * 10) + 5
-      
-      await updateBitacoraAvatar(bitacoraBoardId, durationMinutes, tasksCompleted || 0)
-      
-      // Obtener estado nuevo
+
+      await recomputeBitacoraAvatar(bitacoraBoardId)
+
       const bitacoraAfter = await prisma.bitacoraBoard.findUnique({
         where: { id: bitacoraBoardId },
         include: { avatar: true },
       })
-      
       if (bitacoraAfter?.avatar) {
         newLevel = bitacoraAfter.avatar.level
         newRank = bitacoraAfter.avatar.rank || "INITIUM"
       }
     }
+
+    // XP ganado = 0 (sesiones manuales no dan XP; XP viene de tareas completadas con evaluación IA)
+    const xpGained = 0
 
     return NextResponse.json({
       ...sessionData,

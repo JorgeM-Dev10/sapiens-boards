@@ -10,10 +10,11 @@ interface XPNotificationProps {
   totalXP: number
   levelUp?: boolean
   rankUp?: string
+  impactLevel?: string
   onClose: () => void
 }
 
-export function XPNotification({ xpGained, totalXP, levelUp, rankUp, onClose }: XPNotificationProps) {
+export function XPNotification({ xpGained, totalXP, levelUp, rankUp, impactLevel, onClose }: XPNotificationProps) {
   const [show, setShow] = useState(true)
   const [soundPlayed, setSoundPlayed] = useState(false)
 
@@ -37,7 +38,8 @@ export function XPNotification({ xpGained, totalXP, levelUp, rankUp, onClose }: 
   const playXPSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      
+      const isHighImpact = impactLevel === "HIGH" || impactLevel === "CRITICAL"
+
       if (rankUp) {
         // Sonido especial para cambio de rango - fanfarria épica
         const notes = [523.25, 659.25, 783.99, 1046.50] // Do, Mi, Sol, Do (arpegio mayor)
@@ -55,18 +57,19 @@ export function XPNotification({ xpGained, totalXP, levelUp, rankUp, onClose }: 
             oscillator.stop(audioContext.currentTime + 0.4)
           }, index * 100)
         })
-      } else if (levelUp) {
-        // Sonido para subida de nivel - dos tonos ascendentes más largos
+      } else if (levelUp || isHighImpact) {
+        // Sonido para subida de nivel o impacto HIGH/CRITICAL - más marcado
+        const baseFreq = isHighImpact ? 554.37 : 440 // Do#5 para HIGH/CRITICAL
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
         oscillator.connect(gainNode)
         gainNode.connect(audioContext.destination)
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime)
-        oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.2)
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+        oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime)
+        oscillator.frequency.exponentialRampToValueAtTime(baseFreq * 2, audioContext.currentTime + 0.25)
+        gainNode.gain.setValueAtTime(0.35, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6)
         oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + 0.5)
+        oscillator.stop(audioContext.currentTime + 0.6)
       } else {
         // Sonido normal de XP
         const oscillator = audioContext.createOscillator()
@@ -151,7 +154,7 @@ export function XPNotification({ xpGained, totalXP, levelUp, rankUp, onClose }: 
                   >
                     <p className="text-purple-300 font-bold text-2xl mb-2 animate-pulse">¡FELICITACIONES! 🎉</p>
                     <p className="text-white text-base font-semibold mb-1">Has alcanzado el rango:</p>
-                    <p className="text-purple-400 text-xl font-bold mb-2">{getRankById(rankUp).label}</p>
+                    <p className="text-purple-400 text-xl font-bold mb-2 tracking-wider">{getRankById(rankUp).id}</p>
                     <p className="text-gray-300 text-xs">¡Sigue así para alcanzar el siguiente rango!</p>
                   </motion.div>
                 ) : (
