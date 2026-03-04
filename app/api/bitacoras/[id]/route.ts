@@ -74,7 +74,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, image, order, boardId } = body
+    const { title, description, image, order, boardId, themeColor, themeVariant } = body
 
     // Verificar que la bitácora pertenece al usuario
     const existing = await prisma.bitacoraBoard.findFirst({
@@ -133,6 +133,8 @@ export async function PATCH(
         ...(image !== undefined && { image }),
         ...(order !== undefined && { order }),
         ...(boardId !== undefined && { boardId: boardId || null }),
+        ...(themeColor !== undefined && { themeColor: themeColor || null }),
+        ...(themeVariant !== undefined && { themeVariant: themeVariant || null }),
         updatedAt: new Date(),
       },
       include: {

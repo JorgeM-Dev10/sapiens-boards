@@ -22,6 +22,7 @@ import {
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { XPNotification } from "@/components/gamification/xp-notification"
+import { BitacoraAnimatedBackground } from "@/components/bitacoras/bitacora-animated-background"
 
 interface WorkSession {
   id: string
@@ -41,6 +42,7 @@ interface Bitacora {
   description: string | null
   image: string | null
   boardId: string | null
+  themeColor?: string | null
   user: {
     id: string
     name: string
@@ -310,8 +312,13 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           onClose={() => setXpNotification(null)}
         />
       )}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-7xl">
+      <div className="flex-1 overflow-y-auto p-6 relative">
+        <BitacoraAnimatedBackground
+          themeColor={bitacora.themeColor}
+          rank={bitacora.avatar?.rank}
+          className="absolute inset-0 pointer-events-none -z-10"
+        />
+        <div className="relative z-10 mx-auto max-w-7xl">
           {/* Header con Avatar */}
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-4">

@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Header } from "@/components/layout/header"
+import { BitacoraAnimatedBackground } from "@/components/bitacoras/bitacora-animated-background"
+import { BITACORA_THEMES, getThemeColors } from "@/lib/bitacora-themes"
 
 interface Bitacora {
   id: string
@@ -27,6 +29,8 @@ interface Bitacora {
   image: string | null
   order: number
   boardId: string | null
+  themeColor?: string | null
+  themeVariant?: string | null
   createdAt: string
   avatar: {
     level: number
@@ -100,63 +104,71 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
     return "bg-gray-500/20 text-gray-300 border-gray-400"
   }
 
-  // Generar partículas de aura alrededor del perímetro de la card
+  // Generar partículas: top 3 o cards con theme
   const generateAuraParticles = () => {
-    if (rankPosition > 3) return []
-    
-    const particleCount = rankPosition === 1 ? 20 : rankPosition === 2 ? 15 : 10
-    const particles = []
-    
-    // Partículas alrededor del perímetro (arriba, abajo, izquierda, derecha)
-    for (let i = 0; i < particleCount; i++) {
-      const side = Math.floor(i / (particleCount / 4)) // 0: top, 1: right, 2: bottom, 3: left
-      const position = (i % (particleCount / 4)) / (particleCount / 4) // 0 a 1
-      
-      let x = 0, y = 0
-      if (side === 0) { // Top
-        x = position * 100
-        y = -8
-      } else if (side === 1) { // Right
-        x = 100 + 8
-        y = position * 100
-      } else if (side === 2) { // Bottom
-        x = (1 - position) * 100
-        y = 100 + 8
-      } else { // Left
-        x = -8
-        y = (1 - position) * 100
+    if (rankPosition <= 3) {
+      const particleCount = rankPosition === 1 ? 20 : rankPosition === 2 ? 15 : 10
+      const particles = []
+      for (let i = 0; i < particleCount; i++) {
+        const side = Math.floor(i / (particleCount / 4))
+        const position = (i % (particleCount / 4)) / (particleCount / 4)
+        let x = 0, y = 0
+        if (side === 0) { x = position * 100; y = -8 }
+        else if (side === 1) { x = 100 + 8; y = position * 100 }
+        else if (side === 2) { x = (1 - position) * 100; y = 100 + 8 }
+        else { x = -8; y = (1 - position) * 100 }
+        particles.push({ x, y, side, delay: i * 0.1 })
       }
-      
-      particles.push({ x, y, side, delay: i * 0.1 })
+      return particles
     }
-    
-    return particles
+    if (bitacora.themeColor) {
+      return Array.from({ length: 8 }, (_, i) => ({
+        x: (i * 12) % 100,
+        y: i < 4 ? -8 : 100 + 8,
+        side: 0,
+        delay: i * 0.15,
+      }))
+    }
+    return []
   }
 
   const auraParticles = generateAuraParticles()
 
-  // Colores de aura según posición
+  // Colores de aura: usar theme de bitácora si existe, si no según posición en ranking
   const getAuraColor = () => {
+    if (bitacora.themeColor) {
+      const c = getThemeColors(bitacora.themeColor)
+      return {
+        primary: c.primary,
+        secondary: c.secondary,
+        glow: c.glow,
+        particle: "",
+        particleStyle: { backgroundColor: c.primary },
+      }
+    }
     if (rankPosition === 1) {
       return {
-        primary: "rgba(147, 51, 234, 0.8)", // purple
-        secondary: "rgba(192, 132, 252, 0.6)", // purple-300
-        glow: "rgba(168, 85, 247, 0.4)", // purple-400
-        particle: "bg-purple-400"
+        primary: "rgba(147, 51, 234, 0.8)",
+        secondary: "rgba(192, 132, 252, 0.6)",
+        glow: "rgba(168, 85, 247, 0.4)",
+        particle: "bg-purple-400",
+        particleStyle: {} as React.CSSProperties,
       }
     } else if (rankPosition === 2) {
       return {
-        primary: "rgba(59, 130, 246, 0.7)", // blue
-        secondary: "rgba(96, 165, 250, 0.5)", // blue-400
-        glow: "rgba(59, 130, 246, 0.3)", // blue-500
-        particle: "bg-blue-400"
+        primary: "rgba(59, 130, 246, 0.7)",
+        secondary: "rgba(96, 165, 250, 0.5)",
+        glow: "rgba(59, 130, 246, 0.3)",
+        particle: "bg-blue-400",
+        particleStyle: {} as React.CSSProperties,
       }
     } else if (rankPosition === 3) {
       return {
-        primary: "rgba(34, 197, 94, 0.6)", // green
-        secondary: "rgba(74, 222, 128, 0.4)", // green-400
-        glow: "rgba(34, 197, 94, 0.25)", // green-500
-        particle: "bg-green-400"
+        primary: "rgba(34, 197, 94, 0.6)",
+        secondary: "rgba(74, 222, 128, 0.4)",
+        glow: "rgba(34, 197, 94, 0.25)",
+        particle: "bg-green-400",
+        particleStyle: {} as React.CSSProperties,
       }
     }
     return null
@@ -166,20 +178,21 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
 
   return (
     <div className="relative">
-      {/* Marco de aura alrededor de la card para top 3 */}
-      {rankPosition <= 3 && auraColors && (
+      {/* Marco de aura / glow: top 3 por ranking, o cualquier card con themeColor */}
+      {(rankPosition <= 3 || bitacora.themeColor) && auraColors && (
         <>
           {/* Partículas de aura alrededor del perímetro */}
           {auraParticles.map((particle, i) => (
             <motion.div
               key={`aura-particle-${i}`}
-              className={`absolute ${auraColors.particle} rounded-full blur-sm`}
+              className={`absolute rounded-full blur-sm ${auraColors.particle}`}
               style={{
                 width: rankPosition === 1 ? "8px" : rankPosition === 2 ? "6px" : "5px",
                 height: rankPosition === 1 ? "8px" : rankPosition === 2 ? "6px" : "5px",
                 left: `${particle.x}%`,
                 top: `${particle.y}%`,
                 transform: "translate(-50%, -50%)",
+                ...auraColors.particleStyle,
               }}
               animate={{
                 opacity: [0.3, 1, 0.3],
@@ -256,7 +269,7 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
       <motion.div
         className="relative"
         animate={
-          rankPosition <= 3 && auraColors
+          (rankPosition <= 3 || bitacora.themeColor) && auraColors
             ? {
                 boxShadow: [
                   `0 0 ${rankPosition === 1 ? "40px" : rankPosition === 2 ? "30px" : "20px"} ${auraColors.primary}, 0 0 ${rankPosition === 1 ? "80px" : rankPosition === 2 ? "60px" : "40px"} ${auraColors.glow}`,
@@ -273,12 +286,18 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
         }}
       >
         <Card
-          className={`cursor-pointer border-2 ${rankPosition <= 3 ? "border-transparent" : "border-gray-800"} hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 transition-all group overflow-visible relative h-[28rem]`}
+          className={`cursor-pointer border-2 transition-all duration-300 group overflow-visible relative h-[28rem] backdrop-blur-md
+            ${(rankPosition <= 3 || bitacora.themeColor) && auraColors ? "border-transparent" : "border-gray-800/50"}
+            hover:scale-[1.02] hover:shadow-2xl
+          `}
           style={{
             backgroundImage: bitacora.image ? `url(${bitacora.image})` : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundColor: bitacora.image ? undefined : '#1a1a1a',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundColor: bitacora.image ? undefined : "rgba(26, 26, 26, 0.6)",
+            boxShadow: (rankPosition <= 3 || bitacora.themeColor) && auraColors
+              ? `0 4px 24px rgba(0,0,0,0.4), 0 0 40px ${auraColors.glow}`
+              : "0 4px 24px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.05)",
           }}
           onClick={onClick}
         >
@@ -414,9 +433,24 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
                     </span>
                   </div>
                   <div className="w-full bg-gray-800/70 rounded-full h-3 overflow-hidden border border-gray-700/50 shadow-inner">
-                    <div
-                      className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 h-full rounded-full transition-all duration-500 shadow-lg shadow-yellow-500/50"
-                      style={{ 
+                    <motion.div
+                      className="h-full rounded-full relative overflow-hidden"
+                      initial={false}
+                      animate={{
+                        background: bitacora.themeColor
+                          ? [
+                              `linear-gradient(90deg, ${getThemeColors(bitacora.themeColor).primary} 0%, ${getThemeColors(bitacora.themeColor).secondary} 50%, ${getThemeColors(bitacora.themeColor).primary} 100%)`,
+                              `linear-gradient(90deg, ${getThemeColors(bitacora.themeColor).secondary} 0%, ${getThemeColors(bitacora.themeColor).primary} 50%, ${getThemeColors(bitacora.themeColor).secondary} 100%)`,
+                              `linear-gradient(90deg, ${getThemeColors(bitacora.themeColor).primary} 0%, ${getThemeColors(bitacora.themeColor).secondary} 50%, ${getThemeColors(bitacora.themeColor).primary} 100%)`,
+                            ]
+                          : [
+                              "linear-gradient(90deg, #eab308 0%, #facc15 50%, #eab308 100%)",
+                              "linear-gradient(90deg, #facc15 0%, #eab308 50%, #facc15 100%)",
+                              "linear-gradient(90deg, #eab308 0%, #facc15 50%, #eab308 100%)",
+                            ],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                      style={{
                         width: `${(() => {
                           const xp = bitacora.avatar.experience
                           let nextThreshold = 500
@@ -427,7 +461,7 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
                           else return 100
                           const currentLevelStart = xp < 500 ? 0 : xp < 2000 ? 500 : xp < 5000 ? 2000 : xp < 10000 ? 5000 : 10000
                           return Math.min(100, ((xp - currentLevelStart) / (nextThreshold - currentLevelStart)) * 100)
-                        })()}%` 
+                        })()}%`,
                       }}
                     />
                   </div>
@@ -457,12 +491,14 @@ export default function BitacorasPage() {
     description: "",
     image: "",
     boardId: undefined as string | undefined,
+    themeColor: "neon-purple" as string,
   })
   const [editBitacora, setEditBitacora] = useState({
     title: "",
     description: "",
     image: "",
     boardId: undefined as string | undefined,
+    themeColor: "neon-purple" as string,
   })
   const [availableBoards, setAvailableBoards] = useState<Array<{ id: string, title: string }>>([])
   const [allBoards, setAllBoards] = useState<Array<{ id: string, title: string }>>([])
@@ -545,7 +581,7 @@ export default function BitacorasPage() {
           title: "Éxito",
           description: "Bitácora creada correctamente",
         })
-        setNewBitacora({ title: "", description: "", image: "", boardId: undefined })
+        setNewBitacora({ title: "", description: "", image: "", boardId: undefined, themeColor: "neon-purple" })
         setIsCreateDialogOpen(false)
         fetchBitacoras()
       } else {
@@ -591,6 +627,7 @@ export default function BitacorasPage() {
         description: bitacora.description || "",
         image: bitacora.image || "",
         boardId: (bitacora as any).boardId || undefined,
+        themeColor: (bitacora as any).themeColor || "neon-purple",
       })
       setIsEditDialogOpen(true)
     } catch (error) {
@@ -706,8 +743,11 @@ export default function BitacorasPage() {
   return (
     <div className="flex h-screen flex-col bg-black text-white">
       <Header />
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-7xl">
+      <div className="flex-1 overflow-y-auto p-6 relative">
+        <BitacoraAnimatedBackground
+          className="absolute inset-0 pointer-events-none -z-10"
+        />
+        <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Bitácoras</h1>
             <Dialog 
@@ -774,6 +814,29 @@ export default function BitacorasPage() {
                       className="bg-gray-900 border-gray-700 text-white"
                       placeholder="https://..."
                     />
+                  </div>
+                  <div>
+                    <Label>Tema de color</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {BITACORA_THEMES.filter(t => t.id !== "custom").map((theme) => (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          onClick={() => setNewBitacora({ ...newBitacora, themeColor: theme.id })}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                            newBitacora.themeColor === theme.id
+                              ? "border-white bg-white/10"
+                              : "border-gray-700 hover:border-gray-600"
+                          }`}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full shrink-0"
+                            style={{ backgroundColor: theme.primary }}
+                          />
+                          <span>{theme.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="boardId">Roadmap a Conectar</Label>
@@ -893,6 +956,29 @@ export default function BitacorasPage() {
                     }
                     className="bg-gray-900 border-gray-700 text-white"
                   />
+                </div>
+                <div>
+                  <Label>Tema de color</Label>
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    {BITACORA_THEMES.filter(t => t.id !== "custom").map((theme) => (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => setEditBitacora({ ...editBitacora, themeColor: theme.id })}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                          editBitacora.themeColor === theme.id
+                            ? "border-white bg-white/10"
+                            : "border-gray-700 hover:border-gray-600"
+                        }`}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0"
+                          style={{ backgroundColor: theme.primary }}
+                        />
+                        <span>{theme.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="edit-boardId">Roadmap a Conectar</Label>

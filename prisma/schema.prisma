@@ -326,15 +326,17 @@ model WorkSession {
 }
 
 model BitacoraBoard {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  image       String?
-  order       Int      @default(0)
-  boardId     String?  // Roadmap asociado (opcional)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  userId      String   // El dueño de la bitácora
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  image        String?
+  order        Int      @default(0)
+  boardId      String?  // Roadmap asociado (opcional)
+  themeColor   String?
+  themeVariant String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String   // El dueño de la bitácora
 
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   board        Board?         @relation(fields: [boardId], references: [id], onDelete: SetNull)

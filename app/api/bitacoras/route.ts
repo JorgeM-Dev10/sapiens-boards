@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { title, description, image } = body
+    const { title, description, image, themeColor, themeVariant } = body
 
     if (!title) {
       return NextResponse.json(
@@ -107,6 +107,8 @@ export async function POST(request: Request) {
         title,
         description: description || null,
         image: image || null,
+        themeColor: themeColor || null,
+        themeVariant: themeVariant || null,
         order: newOrder,
         userId: session.user.id,
       },
