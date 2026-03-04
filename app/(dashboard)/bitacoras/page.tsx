@@ -744,9 +744,12 @@ export default function BitacorasPage() {
     <div className="flex h-screen flex-col bg-black text-white">
       <Header />
       <div className="flex-1 overflow-y-auto p-6 relative">
-        <BitacoraAnimatedBackground
+        <div
           className="absolute inset-0 pointer-events-none -z-10"
-        />
+          aria-hidden
+        >
+          <BitacoraAnimatedBackground />
+        </div>
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">Bitácoras</h1>

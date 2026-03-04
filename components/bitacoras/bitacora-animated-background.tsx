@@ -52,15 +52,14 @@ export function BitacoraAnimatedBackground({
 
   return (
     <div className={`relative min-h-full overflow-hidden ${className}`}>
-      {/* Gradiente dinámico animado */}
+      {/* Gradiente dinámico animado - sutil, sin bloquear contenido */}
       <motion.div
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 80% 50% at 20% 20%, rgba(${rgb}, ${0.15 * intensity}) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 80% at 80% 80%, rgba(${rgb}, ${0.1 * intensity}) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 50% at 50% 50%, rgba(${rgb}, ${0.05 * intensity}) 0%, transparent 70%),
-            linear-gradient(180deg, #0a0a0a 0%, #111 50%, #0a0a0a 100%)
+            radial-gradient(ellipse 80% 50% at 20% 20%, rgba(${rgb}, ${0.12 * intensity}) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 80% at 80% 80%, rgba(${rgb}, ${0.08 * intensity}) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 50% at 50% 50%, rgba(${rgb}, ${0.04 * intensity}) 0%, transparent 70%)
           `,
         }}
         animate={{
