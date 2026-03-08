@@ -98,17 +98,8 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
   return (
     <div ref={setNodeRef} style={style} className={isDragging ? "z-50" : ""}>
       <Card className="group bg-[#1a1a1a] border-gray-800 hover:border-gray-600 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 flex flex-col h-full overflow-hidden">
-        <div className="flex items-start justify-between p-2 pb-0">
-          <span className="sr-only">Reordenar</span>
-          <button
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-colors"
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="relative w-full h-[180px] overflow-hidden rounded-t-lg flex-shrink-0 bg-gray-900">
+        {/* Imagen cover (estilo Roadmaps) */}
+        <div className="relative w-full h-[180px] overflow-hidden flex-shrink-0 bg-gray-900">
           {solution.icon ? (
             <img
               src={solution.icon}
@@ -134,7 +125,15 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
               )}
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/50 pointer-events-none rounded-t-lg" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/30 to-black/60 pointer-events-none" />
+          <button
+            {...attributes}
+            {...listeners}
+            className="absolute top-2 left-2 z-10 cursor-grab active:cursor-grabbing p-1.5 rounded text-white/80 hover:text-white bg-black/40 hover:bg-black/60 backdrop-blur-sm transition-colors"
+          >
+            <span className="sr-only">Reordenar</span>
+            <GripVertical className="h-4 w-4" />
+          </button>
         </div>
         <CardHeader className="p-4 pt-3 pb-1">
           <CardTitle className="text-white text-lg font-semibold leading-tight line-clamp-2">
