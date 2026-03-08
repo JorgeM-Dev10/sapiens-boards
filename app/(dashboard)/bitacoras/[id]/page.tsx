@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Clock,
   Filter,
+  Info,
   Loader2,
   Pencil,
   Plus,
@@ -231,7 +232,17 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     goals: "",
     coverImage: "",
     themeColor: "neon-purple",
+    avatarImageUrl: "",
+    customHexColor: "#a855f7",
   })
+  const [roadmapTasks, setRoadmapTasks] = useState<{
+    id: string
+    title: string
+    status: string
+    impactLevel: string | null
+    dueDate: string | null
+    listTitle: string
+  }[]>([])
   const [xpNotification, setXpNotification] = useState<{
     xpGained: number
     totalXP: number
@@ -244,6 +255,27 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     fetchBitacora()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
+
+  // Cargar tareas del roadmap conectado para metas inteligentes
+  useEffect(() => {
+    if (!bitacora?.boardId) {
+      setRoadmapTasks([])
+      return
+    }
+    fetch(`/api/boards/${bitacora.boardId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((board: { lists?: { title: string; tasks: { id: string; title: string; status: string; impactLevel: string | null; dueDate: string | null }[] }[] }) => {
+        if (!board?.lists) return
+        const all: { id: string; title: string; status: string; impactLevel: string | null; dueDate: string | null; listTitle: string }[] = []
+        board.lists.forEach((list: { title: string; tasks: { id: string; title: string; status: string; impactLevel: string | null; dueDate: string | null }[] }) => {
+          (list.tasks || []).forEach((t: { id: string; title: string; status: string; impactLevel: string | null; dueDate: string | null }) => {
+            all.push({ ...t, listTitle: list.title })
+          })
+        })
+        setRoadmapTasks(all)
+      })
+      .catch(() => setRoadmapTasks([]))
+  }, [bitacora?.boardId])
 
   const fetchBitacora = async () => {
     try {
@@ -261,6 +293,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       const data = (await response.json()) as Bitacora
       setBitacora(data)
       const parsed = decodeProfileDescription(data.description)
+      const tc = data.themeColor || "neon-purple"
+      const isHex = tc.startsWith("#")
       setProfileForm({
         title: data.title,
         role: parsed.role.toUpperCase(),
@@ -268,7 +302,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         skills: parseSkillsList(parsed.skills),
         goals: parsed.goals,
         coverImage: data.image || "",
-        themeColor: data.themeColor || "neon-purple",
+        themeColor: isHex ? "custom" : tc,
+        avatarImageUrl: data.avatar?.avatarImageUrl || "",
+        customHexColor: isHex ? tc : "#a855f7",
       })
     } catch (error) {
       console.error("Error fetching bitacora:", error)
@@ -344,6 +380,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     e.preventDefault()
     if (!bitacora) return
 
+    const themeColorValue = profileForm.themeColor === "custom" ? profileForm.customHexColor : profileForm.themeColor
+
     setIsSubmitting(true)
     try {
       const response = await fetch(`/api/bitacoras/${bitacora.id}`, {
@@ -358,7 +396,8 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
             profileForm.goals
           ),
           image: profileForm.coverImage.trim() || null,
-          themeColor: profileForm.themeColor,
+          themeColor: themeColorValue,
+          avatarImageUrl: profileForm.avatarImageUrl.trim() || null,
         }),
       })
 
@@ -398,7 +437,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
 
   const avatarImage = useMemo(() => {
     if (!bitacora?.avatar) return null
-    return getRankByExperience(bitacora.avatar.experience).avatarImageUrl || null
+    return bitacora.avatar.avatarImageUrl || getRankByExperience(bitacora.avatar.experience).avatarImageUrl || null
   }, [bitacora])
 
   const commitRecords = useMemo(() => {
@@ -567,25 +606,24 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     }
   }, [commitRecords])
 
-  const skillProgress = useMemo(() => {
-    if (!profileSkills.length) return []
-    const maxXp = Math.max(
-      ...profileSkills.map((skill) => {
-        return commitRecords
-          .filter((record) => record.associatedSkill === skill)
-          .reduce((acc, record) => acc + Math.max(record.xp, 1), 0)
-      }),
-      1
-    )
+  const completedTaskIds = useMemo(() => {
+    return new Set((bitacora?.entries || []).map((e) => e.taskId).filter(Boolean) as string[])
+  }, [bitacora])
 
-    return profileSkills.map((skill) => {
-      const xp = commitRecords
-        .filter((record) => record.associatedSkill === skill)
-        .reduce((acc, record) => acc + Math.max(record.xp, 1), 0)
-      const percentage = Math.min(100, Math.round((xp / maxXp) * 100))
-      return { skill, percentage, xp }
-    })
-  }, [profileSkills, commitRecords])
+  const smartGoals = useMemo(() => {
+    const impactOrder = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, NONE: 0 } as const
+    const now = new Date()
+    return roadmapTasks
+      .map((t) => ({
+        ...t,
+        completed: completedTaskIds.has(t.id),
+        priority: (impactOrder[t.impactLevel as keyof typeof impactOrder] ?? 0) * 10
+          + (t.status === "in_progress" ? 5 : t.status === "done" ? -10 : 0)
+          + (t.dueDate ? Math.max(0, 10 - Math.floor((new Date(t.dueDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))) : 0),
+      }))
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 12)
+  }, [roadmapTasks, completedTaskIds])
 
   const evolution = useMemo(() => {
     const buckets = Array.from({ length: 8 }, (_, index) => {
@@ -869,15 +907,15 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                             </div>
                           </div>
                           <div className="md:col-span-2">
-                            <Label htmlFor="profile-goals">Metas del mes</Label>
-                            <Textarea
-                              id="profile-goals"
-                              value={profileForm.goals}
-                              onChange={(e) => setProfileForm((prev) => ({ ...prev, goals: e.target.value }))}
+                            <Label htmlFor="profile-avatar">URL de foto de perfil</Label>
+                            <Input
+                              id="profile-avatar"
+                              value={profileForm.avatarImageUrl}
+                              onChange={(e) => setProfileForm((prev) => ({ ...prev, avatarImageUrl: e.target.value }))}
                               className="border-gray-700 bg-gray-900 text-white"
-                              rows={2}
-                              placeholder="Subir a STRATEGOS, aumentar impacto promedio, completar 20 commits..."
+                              placeholder="https://..."
                             />
+                            <p className="mt-1 text-xs text-gray-500">La foto es tu identidad visual; puedes cambiarla cuando quieras.</p>
                           </div>
                           <div className="md:col-span-2">
                             <Label htmlFor="profile-cover">URL fondo completo del perfil</Label>
@@ -908,9 +946,40 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                                 </button>
                               ))}
                             </div>
-                          </div>
-                          <div className="md:col-span-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-                            La foto de perfil se asigna automáticamente por rango para mantener la lógica de progresión.
+                            <div className="mt-2 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setProfileForm((prev) => ({ ...prev, themeColor: "custom" }))}
+                                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                                  profileForm.themeColor === "custom" ? "border-white bg-white/10" : "border-gray-700 hover:border-gray-500"
+                                }`}
+                              >
+                                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: profileForm.customHexColor }} />
+                                Personalizado
+                              </button>
+                              {profileForm.themeColor === "custom" && (
+                                <Input
+                                  type="color"
+                                  value={profileForm.customHexColor}
+                                  onChange={(e) => setProfileForm((prev) => ({ ...prev, customHexColor: e.target.value }))}
+                                  className="h-9 w-14 cursor-pointer border-0 bg-transparent p-1"
+                                />
+                              )}
+                              {profileForm.themeColor === "custom" && (
+                                <Input
+                                  type="text"
+                                  value={profileForm.customHexColor}
+                                  onChange={(e) => {
+                                    const v = e.target.value
+                                    if (/^#[0-9A-Fa-f]{0,6}$/.test(v) || v === "") {
+                                      setProfileForm((prev) => ({ ...prev, customHexColor: v || "#6366f1" }))
+                                    }
+                                  }}
+                                  className="w-24 border-gray-700 bg-gray-900 text-white"
+                                  placeholder="#6366f1"
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
                         <DialogFooter className="mt-6">
@@ -954,37 +1023,55 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">XP total</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  XP total
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Total de experiencia acumulada por contribuciones registradas (commits, tareas completadas desde roadmap)." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.experience || 0}</p>
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">Registros</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  Registros
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Número total de commits o entradas registradas en la bitácora." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{personalStats.registros}</p>
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">Tareas completadas</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  Tareas completadas
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Número de tareas completadas desde los Roadmaps conectados." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.totalTasks || 0}</p>
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">Sesiones</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  Sesiones
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Cantidad de sesiones de trabajo registradas en la bitácora." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.totalSessions || 0}</p>
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">Horas registradas</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  Horas registradas
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Total de horas registradas en sesiones o commits." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{(bitacora.avatar?.totalHours || 0).toFixed(1)}h</p>
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#1a1a1a]">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">Impact score promedio</p>
+                <p className="flex items-center gap-1 text-xs text-gray-400">
+                  Impact score promedio
+                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Promedio de impacto calculado por el sistema basado en el valor de cada contribución." />
+                </p>
                 <p className="mt-1 text-xl font-bold text-white">{personalStats.impactAvg}</p>
               </CardContent>
             </Card>
@@ -1007,56 +1094,68 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent>
                 {profileSkills.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      {profileSkills.map((skill) => (
-                        <Badge
-                          key={skill}
-                          className="border"
-                          style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
-                        >
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="space-y-2">
-                      {skillProgress.map((item) => (
-                        <div key={item.skill}>
-                          <div className="mb-1 flex justify-between text-xs text-gray-300">
-                            <span>{item.skill}</span>
-                            <span>{item.percentage}%</span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-gray-800">
-                            <div
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${item.percentage}%`,
-                                background: `linear-gradient(to right, ${themeColors.primary}, ${themeColors.secondary})`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {profileSkills.map((skill) => (
+                      <Badge
+                        key={skill}
+                        className="border"
+                        style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">Aún no hay habilidades registradas.</p>
+                  <p className="text-sm text-gray-400">Aún no hay habilidades registradas. Edita el perfil para agregar áreas de conocimiento.</p>
                 )}
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
               <CardHeader>
-                <CardTitle className="text-white">Metas y mejora mensual</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Target className="h-5 w-5" style={{ color: themeColors.secondary }} />
+                  Metas actuales del mes
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-gray-300">
-                  {parsedProfile.goals || "Define metas mensuales para medir tu crecimiento y evolución en impacto."}
-                </p>
-                <div className="rounded-md border border-gray-700 bg-black/30 p-3 text-xs text-gray-300">
-                  <p>Mes actual: {monthlyStats.commits} commits</p>
-                  <p>XP del mes: {monthlyStats.xp}</p>
-                  <p>Registros HIGH/CRITICAL: {monthlyStats.highImpact}</p>
-                </div>
+              <CardContent className="space-y-4">
+                {smartGoals.length > 0 ? (
+                  <>
+                    <ul className="space-y-2">
+                      {smartGoals.map((g) => (
+                        <li key={g.id} className="flex items-center gap-2 text-sm">
+                          {g.completed ? (
+                            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />
+                          ) : (
+                            <span className="h-5 w-5 shrink-0 rounded border border-gray-600" />
+                          )}
+                          <span className={g.completed ? "text-gray-400 line-through" : "text-gray-200"}>{g.title}</span>
+                          {g.impactLevel && (
+                            <Badge variant="outline" className="ml-auto shrink-0 border-gray-600 text-[10px] text-gray-400">
+                              {g.impactLevel}
+                            </Badge>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="rounded-md border border-gray-700 bg-black/30 p-3 text-xs text-gray-300">
+                      <p className="font-medium text-gray-200">Resumen del mes</p>
+                      <p>Tareas activas: {smartGoals.filter((g) => !g.completed).length}</p>
+                      <p>Tareas completadas: {smartGoals.filter((g) => g.completed).length}</p>
+                      <p>XP generado este mes: {monthlyStats.xp}</p>
+                    </div>
+                  </>
+                ) : bitacora?.boardId ? (
+                  <p className="text-sm text-gray-400">No hay tareas pendientes en el roadmap conectado. ¡Completa las tareas desde tu roadmap para verlas aquí!</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-400">Conecta un roadmap a esta bitácora para ver metas automáticas basadas en tus tareas.</p>
+                    <p className="text-xs text-gray-500">{parsedProfile.goals || ""}</p>
+                    <div className="rounded-md border border-gray-700 bg-black/30 p-3 text-xs text-gray-300">
+                      <p>Registros del mes: {monthlyStats.commits}</p>
+                      <p>XP del mes: {monthlyStats.xp}</p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

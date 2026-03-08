@@ -25,6 +25,9 @@ export async function recomputeBitacoraAvatar(bitacoraBoardId: string) {
   const sapiensRank = getRankByExperience(experience)
   const level = Math.floor(experience / 100) + 1
 
+  // Preservar avatarImageUrl si el usuario lo personalizó (no depender del rango)
+  const avatarImageUrl = bitacora.avatar?.avatarImageUrl ?? sapiensRank.avatarImageUrl
+
   const avatarData = {
     level,
     experience,
@@ -33,7 +36,7 @@ export async function recomputeBitacoraAvatar(bitacoraBoardId: string) {
     totalSessions,
     avatarStyle: sapiensRank.avatarStyle,
     rank: sapiensRank.id,
-    avatarImageUrl: sapiensRank.avatarImageUrl,
+    avatarImageUrl,
   }
 
   if (bitacora.avatar) {

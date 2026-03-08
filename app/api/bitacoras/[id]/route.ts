@@ -108,6 +108,7 @@ export async function PATCH(
       boardId,
       themeColor,
       themeVariant,
+      avatarImageUrl,
     } = body
 
     // Verificar que la bitácora pertenece al usuario
@@ -182,7 +183,24 @@ export async function PATCH(
       },
     })
 
-    return NextResponse.json(updated)
+    if (avatarImageUrl !== undefined && updated.avatar) {
+      await prisma.bitacoraAvatar.update({
+        where: { id: updated.avatar.id },
+        data: { avatarImageUrl: avatarImageUrl || null },
+      })
+    }
+
+    const result = avatarImageUrl !== undefined && updated.avatar
+      ? await prisma.bitacoraBoard.findUnique({
+          where: { id },
+          include: {
+            avatar: true,
+            board: { select: { id: true, title: true } },
+          },
+        })
+      : updated
+
+    return NextResponse.json(result ?? updated)
   } catch (error) {
     console.error("Error updating bitacora:", error)
     return NextResponse.json(
