@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Award,
+  Briefcase,
   CheckCircle,
   Clock,
   Filter,
   Info,
+  Layers3,
   Loader2,
   Pencil,
   Plus,
@@ -46,6 +48,7 @@ import { XPNotification } from "@/components/gamification/xp-notification"
 import { BitacoraAnimatedBackground } from "@/components/bitacoras/bitacora-animated-background"
 import { getProgressToNextRank, getRankByExperience } from "@/lib/sapiens-ranks"
 import { BITACORA_THEMES, getThemeColors } from "@/lib/bitacora-themes"
+import { motion } from "framer-motion"
 
 type ImpactType = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NONE"
 type CommitSource = "MANUAL" | "ROADMAP" | "SESION"
@@ -205,10 +208,10 @@ function getImpactType(entry: BitacoraEntry): ImpactType {
 }
 
 function SkillRadarChart({ data, color }: { data: { skill: string; value: number }[]; color: string }) {
-  const size = 260
+  const size = 280
   const cx = size / 2
   const cy = size / 2
-  const maxR = size / 2 - 40
+  const maxR = size / 2 - 34
   const n = data.length
   const angleStep = (2 * Math.PI) / n
 
@@ -226,8 +229,9 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
   })
 
   return (
-    <svg width={size + 80} height={size + 70} viewBox={`0 0 ${size + 80} ${size + 70}`} className="w-full max-w-[340px] overflow-visible">
-      <g transform="translate(40, 20)">
+    <svg width={size + 90} height={size + 80} viewBox={`0 0 ${size + 90} ${size + 80}`} className="w-full max-w-[380px] overflow-visible">
+      <g transform="translate(45, 24)">
+        <circle cx={cx} cy={cy} r={maxR + 6} fill={color} fillOpacity="0.06" />
         {/* Grid */}
         {[0.25, 0.5, 0.75, 1].map((scale) => (
           <polygon
@@ -269,11 +273,14 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
         <polygon
           points={polygonPoints}
           fill={color}
-          fillOpacity="0.35"
+          fillOpacity="0.38"
           stroke={color}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeOpacity="0.8"
         />
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} fillOpacity="0.95" />
+        ))}
         {/* Labels */}
         {labelPoints.map((lp, i) => (
           <text
@@ -732,6 +739,23 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       .slice(0, 12)
   }, [roadmapTasks, completedTaskIds])
 
+  const profileInsights = useMemo(() => {
+    const topSkills = [...skillRadarData]
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 3)
+      .map((s) => s.skill)
+
+    const projectMap = new Map<string, number>()
+    commitRecords.forEach((r) => {
+      const current = projectMap.get(r.project) || 0
+      projectMap.set(r.project, current + 1)
+    })
+    const primaryProject =
+      [...projectMap.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || bitacora?.board?.title || "GENERAL"
+
+    return { topSkills, primaryProject }
+  }, [skillRadarData, commitRecords, bitacora?.board?.title])
+
   const evolution = useMemo(() => {
     const buckets = Array.from({ length: 8 }, (_, index) => {
       const start = new Date()
@@ -799,6 +823,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
+              backgroundAttachment: "fixed",
             }}
           />
         )}
@@ -807,11 +832,11 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           aria-hidden
           style={{
             background: bitacora.image
-              ? "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.8) 100%)"
+              ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.45) 35%, rgba(0,0,0,0.68) 100%)"
               : "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,1) 100%)",
           }}
         />
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+        <div className={`pointer-events-none absolute inset-0 -z-10 ${bitacora.image ? "opacity-45" : "opacity-100"}`} aria-hidden>
           <BitacoraAnimatedBackground
             themeColor={bitacora.themeColor}
             rank={sapiensRank?.id ?? bitacora.avatar?.rank}
@@ -1203,33 +1228,92 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-white">Sobre mí</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {parsedProfile.about ? (
-                  <p className="text-sm text-gray-300 leading-relaxed">{parsedProfile.about}</p>
-                ) : (
-                  <div className="space-y-2 text-sm text-gray-400">
-                    <p>Edita tu perfil para describir:</p>
-                    <ul className="list-inside list-disc space-y-1 text-gray-500">
-                      <li>Tu rol y enfoque principal</li>
-                      <li>Áreas donde aportas más valor</li>
-                      <li>Un logro reciente o meta del trimestre</li>
-                    </ul>
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+            <Card className="h-full border-gray-800 bg-[#111214]/90 backdrop-blur">
+              <CardContent className="flex h-full flex-col gap-4 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="h-12 w-12 overflow-hidden rounded-full border border-gray-700 bg-black/50">
+                    {avatarImage ? (
+                      <img src={avatarImage} alt={bitacora.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-gray-400">
+                        <UserCircle2 className="h-6 w-6" />
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{bitacora.title}</p>
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400">{parsedProfile.role}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-800 bg-black/20 p-3">
+                  <p className="text-xs text-gray-400">Descripción profesional</p>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-300">
+                    {parsedProfile.about || "Agrega una descripción breve de tu enfoque, responsabilidades y valor dentro del equipo."}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-md border border-gray-800 bg-black/25 p-2">
+                    <p className="flex items-center gap-1 text-[11px] text-gray-400">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      Proyecto principal
+                    </p>
+                    <p className="mt-1 truncate text-xs font-medium text-gray-200">{profileInsights.primaryProject}</p>
+                  </div>
+                  <div className="rounded-md border border-gray-800 bg-black/25 p-2">
+                    <p className="flex items-center gap-1 text-[11px] text-gray-400">
+                      <Layers3 className="h-3.5 w-3.5" />
+                      Áreas clave
+                    </p>
+                    <p className="mt-1 truncate text-xs font-medium text-gray-200">
+                      {profileInsights.topSkills.length > 0 ? profileInsights.topSkills.join(" · ") : "Sin datos"}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-            <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
-              <CardContent className="pt-6">
-                {profileSkills.length > 0 && skillRadarData.length >= 2 ? (
-                  <div className="flex min-h-[320px] items-center justify-center py-4">
-                    <SkillRadarChart data={skillRadarData} color={themeColors.primary} />
-                  </div>
-                ) : profileSkills.length > 0 ? (
+            <motion.div
+              className="h-full rounded-lg"
+              initial={{ opacity: 1 }}
+              animate={{
+                boxShadow: [
+                  `0 0 24px ${themeColors.glow}25`,
+                  `0 0 40px ${themeColors.glow}40`,
+                  `0 0 24px ${themeColors.glow}25`,
+                ],
+              }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Card
+                className="h-full border border-[#111214]/90 bg-[#111214]/90 backdrop-blur"
+                style={{ borderColor: `${themeColors.primary}40`, boxShadow: `inset 0 0 60px ${themeColors.glow}08` }}
+              >
+                <CardContent className="flex h-full flex-col justify-center p-4">
+                  {profileSkills.length > 0 && skillRadarData.length >= 2 ? (
+                    <>
+                      <div className="flex min-h-[360px] items-center justify-center">
+                        <SkillRadarChart data={skillRadarData} color={themeColors.primary} />
+                      </div>
+                      <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+                        {skillRadarData.map((d, i) => (
+                          <div key={d.skill} className="flex items-center gap-1.5 text-[11px]">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: themeColors.primary }}
+                            />
+                            <span className="text-gray-400">{d.skill}</span>
+                            <span className="text-gray-500">·</span>
+                            <span className="font-medium text-gray-300">{d.value}%</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-center text-xs text-gray-500">
+                        Contribuciones reales por skill (XP + actividad registrada).
+                      </p>
+                    </>
+                  ) : profileSkills.length > 0 ? (
                   <div className="flex flex-wrap gap-2 py-4">
                     {profileSkills.map((skill) => (
                       <Badge
@@ -1240,14 +1324,15 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                         {skill}
                       </Badge>
                     ))}
-                    <p className="w-full text-xs text-gray-500">Agrega al menos 2 habilidades para ver el gráfico radar.</p>
+                    <p className="w-full text-xs text-gray-500">Agrega al menos 2 habilidades para ver el mapa radar.</p>
                   </div>
                 ) : (
-                  <p className="py-6 text-sm text-gray-400">Edita el perfil para agregar áreas de conocimiento y ver el gráfico.</p>
+                  <p className="py-6 text-sm text-gray-400">Edita el perfil para agregar áreas de conocimiento y ver el mapa de habilidades.</p>
                 )}
               </CardContent>
             </Card>
-            <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
+            </motion.div>
+            <Card className="h-full border-gray-800 bg-[#111214]/90 backdrop-blur">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Target className="h-5 w-5" style={{ color: themeColors.secondary }} />
