@@ -205,10 +205,10 @@ function getImpactType(entry: BitacoraEntry): ImpactType {
 }
 
 function SkillRadarChart({ data, color }: { data: { skill: string; value: number }[]; color: string }) {
-  const size = 140
+  const size = 260
   const cx = size / 2
   const cy = size / 2
-  const maxR = size / 2 - 28
+  const maxR = size / 2 - 40
   const n = data.length
   const angleStep = (2 * Math.PI) / n
 
@@ -221,13 +221,13 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
 
   const labelPoints = data.map((d, i) => {
     const angle = -Math.PI / 2 + i * angleStep
-    const r = maxR + 18
+    const r = maxR + 32
     return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), label: d.skill }
   })
 
   return (
-    <svg width={size + 60} height={size + 50} className="overflow-visible">
-      <g transform="translate(30, 10)">
+    <svg width={size + 80} height={size + 70} viewBox={`0 0 ${size + 80} ${size + 70}`} className="w-full max-w-[340px] overflow-visible">
+      <g transform="translate(40, 20)">
         {/* Grid */}
         {[0.25, 0.5, 0.75, 1].map((scale) => (
           <polygon
@@ -241,8 +241,8 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
               .join(" ")}
             fill="none"
             stroke="currentColor"
-            strokeOpacity="0.15"
-            strokeWidth="0.5"
+            strokeOpacity="0.2"
+            strokeWidth="1"
             className="text-gray-500"
           />
         ))}
@@ -259,8 +259,8 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
               x2={ex}
               y2={ey}
               stroke="currentColor"
-              strokeOpacity="0.2"
-              strokeWidth="0.5"
+              strokeOpacity="0.25"
+              strokeWidth="1"
               className="text-gray-500"
             />
           )
@@ -271,7 +271,7 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
           fill={color}
           fillOpacity="0.35"
           stroke={color}
-          strokeWidth="1.5"
+          strokeWidth="2.5"
           strokeOpacity="0.8"
         />
         {/* Labels */}
@@ -282,7 +282,7 @@ function SkillRadarChart({ data, color }: { data: { skill: string; value: number
             y={lp.y}
             textAnchor={lp.x < cx - 10 ? "end" : lp.x > cx + 10 ? "start" : "middle"}
             dominantBaseline="middle"
-            className="fill-gray-400 text-[9px] font-medium"
+            className="fill-gray-300 text-xs font-semibold"
           >
             {lp.label.length > 10 ? lp.label.slice(0, 8) + "…" : lp.label}
           </text>
@@ -803,8 +803,13 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           />
         )}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-black/80 via-black/85 to-black"
+          className="pointer-events-none absolute inset-0 -z-10"
           aria-hidden
+          style={{
+            background: bitacora.image
+              ? "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.8) 100%)"
+              : "linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,1) 100%)",
+          }}
         />
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
           <BitacoraAnimatedBackground
@@ -1219,31 +1224,26 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-white">Habilidades</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {profileSkills.length > 0 ? (
-                  <>
-                    <div className="flex flex-wrap gap-2">
-                      {profileSkills.map((skill) => (
-                        <Badge
-                          key={skill}
-                          className="border"
-                          style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
-                        >
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                    {skillRadarData.length >= 2 && (
-                      <div className="flex justify-center">
-                        <SkillRadarChart data={skillRadarData} color={themeColors.primary} />
-                      </div>
-                    )}
-                  </>
+              <CardContent className="pt-6">
+                {profileSkills.length > 0 && skillRadarData.length >= 2 ? (
+                  <div className="flex min-h-[320px] items-center justify-center py-4">
+                    <SkillRadarChart data={skillRadarData} color={themeColors.primary} />
+                  </div>
+                ) : profileSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 py-4">
+                    {profileSkills.map((skill) => (
+                      <Badge
+                        key={skill}
+                        className="border"
+                        style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                    <p className="w-full text-xs text-gray-500">Agrega al menos 2 habilidades para ver el gráfico radar.</p>
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-400">Aún no hay habilidades registradas. Edita el perfil para agregar áreas de conocimiento.</p>
+                  <p className="py-6 text-sm text-gray-400">Edita el perfil para agregar áreas de conocimiento y ver el gráfico.</p>
                 )}
               </CardContent>
             </Card>
