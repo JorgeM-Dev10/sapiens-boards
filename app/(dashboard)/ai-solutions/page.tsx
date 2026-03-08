@@ -108,12 +108,12 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
             <GripVertical className="h-4 w-4" />
           </button>
         </div>
-        <div className="aspect-video overflow-hidden bg-gray-900 flex items-center justify-center">
+        <div className="relative w-full h-[180px] overflow-hidden rounded-t-lg flex-shrink-0 bg-gray-900">
           {solution.icon ? (
             <img
               src={solution.icon}
               alt={solution.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
                 e.currentTarget.style.display = "none"
                 const fallback = e.currentTarget.parentElement
@@ -126,12 +126,15 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
               }}
             />
           ) : (
-            activeTab === "INDIVIDUAL" ? (
-              <Bot className="h-16 w-16 text-gray-500" />
-            ) : (
-              <Package className="h-16 w-16 text-gray-500" />
-            )
+            <div className="w-full h-full flex items-center justify-center">
+              {activeTab === "INDIVIDUAL" ? (
+                <Bot className="h-16 w-16 text-gray-500" />
+              ) : (
+                <Package className="h-16 w-16 text-gray-500" />
+              )}
+            </div>
           )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/20 to-black/50 pointer-events-none rounded-t-lg" />
         </div>
         <CardHeader className="p-4 pt-3 pb-1">
           <CardTitle className="text-white text-lg font-semibold leading-tight line-clamp-2">
