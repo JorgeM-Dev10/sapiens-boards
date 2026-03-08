@@ -25,7 +25,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 
@@ -97,108 +97,84 @@ function SortableSolutionCard({ solution, activeTab, onEdit, onDelete, getCatego
 
   return (
     <div ref={setNodeRef} style={style} className={isDragging ? "z-50" : ""}>
-      <Card className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors flex flex-col h-full">
-        <CardHeader className="flex-shrink-0">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <div className="flex items-center justify-center mb-6 h-96 overflow-hidden bg-gray-900 rounded-lg">
-                {solution.icon ? (
-                  <img 
-                    src={solution.icon} 
-                    alt={solution.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.parentElement!.innerHTML = activeTab === "INDIVIDUAL" 
-                        ? '<svg class="h-32 w-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
-                        : '<svg class="h-32 w-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
-                    }}
-                  />
-                ) : (
-                  activeTab === "INDIVIDUAL" ? (
-                    <Bot className="h-32 w-32 text-gray-400" />
-                  ) : (
-                    <Package className="h-32 w-32 text-gray-400" />
-                  )
-                )}
-              </div>
-              <CardTitle className="text-white text-center text-2xl mb-3">{solution.name}</CardTitle>
-              <div className="flex justify-center">
-                <Badge className={`${getCategoryColor(solution.category, solution.categoryColor)} text-white text-sm px-3 py-1`}>
-                  {getCategoryLabel(solution.category)}
-                </Badge>
-              </div>
-            </div>
-            <button
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <GripVertical className="h-5 w-5" />
-            </button>
+      <Card className="group bg-[#1a1a1a] border-gray-800 hover:border-gray-600 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5 transition-all duration-200 flex flex-col h-full overflow-hidden">
+        <div className="flex items-start justify-between p-2 pb-0">
+          <span className="sr-only">Reordenar</span>
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-colors"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="aspect-video overflow-hidden bg-gray-900 flex items-center justify-center">
+          {solution.icon ? (
+            <img
+              src={solution.icon}
+              alt={solution.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = "none"
+                const fallback = e.currentTarget.parentElement
+                if (fallback) {
+                  fallback.innerHTML =
+                    activeTab === "INDIVIDUAL"
+                      ? '<svg class="h-16 w-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>'
+                      : '<svg class="h-16 w-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>'
+                }
+              }}
+            />
+          ) : (
+            activeTab === "INDIVIDUAL" ? (
+              <Bot className="h-16 w-16 text-gray-500" />
+            ) : (
+              <Package className="h-16 w-16 text-gray-500" />
+            )
+          )}
+        </div>
+        <CardHeader className="p-4 pt-3 pb-1">
+          <CardTitle className="text-white text-lg font-semibold leading-tight line-clamp-2">
+            {solution.name}
+          </CardTitle>
+          <div className="mt-2">
+            <Badge className={`${getCategoryColor(solution.category, solution.categoryColor)} text-white text-xs px-2 py-0.5`}>
+              {getCategoryLabel(solution.category)}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
+        <CardContent className="p-4 pt-0 flex-1 flex flex-col min-h-0">
           {solution.description && (
-            <div className="mb-4">
-              <p className="text-base text-gray-300 leading-relaxed">{solution.description}</p>
-            </div>
+            <p className="text-sm text-gray-400 line-clamp-2 mb-3">{solution.description}</p>
           )}
-          {featuresList.length > 0 && (
-            <div className="mb-6 flex-1">
-              <h4 className="text-sm font-semibold text-white mb-3">Características:</h4>
-              <ul className="space-y-2">
-                {featuresList.map((feature, index) => (
-                  <li key={index} className="flex items-start text-sm text-gray-400">
-                    <span className="text-blue-500 mr-2 mt-1">•</span>
-                    <span className="flex-1">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {featuresList.length > 0 && activeTab === "INDIVIDUAL" && (
+            <p className="text-xs text-gray-500 mb-3">
+              {featuresList.length} característica{featuresList.length !== 1 ? "s" : ""}
+            </p>
           )}
           {activeTab === "BUNDLE" && solution.bundleItems && solution.bundleItems.length > 0 && (
-            <div className="mb-6 flex-1">
-              <h4 className="text-sm font-semibold text-white mb-3">Soluciones incluidas:</h4>
-              <div className="space-y-2">
-                {solution.bundleItems.map((bundleItem: any, index: number) => {
-                  const includedSolution = bundleItem.solution
-                  if (!includedSolution) return null
-                  return (
-                    <div
-                      key={bundleItem.id || index}
-                      className="flex items-center justify-between p-2 rounded bg-gray-900/50 border border-gray-800"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm text-gray-300">{includedSolution.name}</span>
-                      </div>
-                      <Badge className={`${getCategoryColor(includedSolution.category, includedSolution.categoryColor)} text-white text-xs`}>
-                        {getCategoryLabel(includedSolution.category)}
-                      </Badge>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+              <Package className="h-3.5 w-3.5" />
+              Incluye {solution.bundleItems.length} solución{solution.bundleItems.length !== 1 ? "es" : ""}
+            </p>
           )}
-          <div className="flex space-x-2 mt-auto pt-4">
+          <div className="flex gap-2 mt-auto pt-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEdit(solution)}
-              className="flex-1 bg-transparent border-gray-800 text-white hover:bg-gray-900"
+              className="flex-1 h-8 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
             >
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />
               Editar
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onDelete(solution.id)}
-              className="flex-1 bg-transparent border-red-800 text-red-400 hover:bg-red-600/10"
+              className="flex-1 h-8 text-xs bg-transparent border-gray-700 text-red-400 hover:bg-red-500/10"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
               Eliminar
             </Button>
           </div>
@@ -772,9 +748,9 @@ export default function AISolutionsPage() {
           >
             <SortableContext
               items={solutions.map((s) => s.id)}
-              strategy={verticalListSortingStrategy}
+              strategy={rectSortingStrategy}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {solutions.map((solution) => (
                   <SortableSolutionCard
                     key={solution.id}
