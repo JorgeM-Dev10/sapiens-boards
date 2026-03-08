@@ -204,6 +204,94 @@ function getImpactType(entry: BitacoraEntry): ImpactType {
   return "NONE"
 }
 
+function SkillRadarChart({ data, color }: { data: { skill: string; value: number }[]; color: string }) {
+  const size = 140
+  const cx = size / 2
+  const cy = size / 2
+  const maxR = size / 2 - 28
+  const n = data.length
+  const angleStep = (2 * Math.PI) / n
+
+  const points = data.map((d, i) => {
+    const angle = -Math.PI / 2 + i * angleStep
+    const r = (d.value / 100) * maxR
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+  })
+  const polygonPoints = points.map((p) => `${p.x},${p.y}`).join(" ")
+
+  const labelPoints = data.map((d, i) => {
+    const angle = -Math.PI / 2 + i * angleStep
+    const r = maxR + 18
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), label: d.skill }
+  })
+
+  return (
+    <svg width={size + 60} height={size + 50} className="overflow-visible">
+      <g transform="translate(30, 10)">
+        {/* Grid */}
+        {[0.25, 0.5, 0.75, 1].map((scale) => (
+          <polygon
+            key={scale}
+            points={data
+              .map((_, i) => {
+                const angle = -Math.PI / 2 + i * angleStep
+                const r = scale * maxR
+                return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`
+              })
+              .join(" ")}
+            fill="none"
+            stroke="currentColor"
+            strokeOpacity="0.15"
+            strokeWidth="0.5"
+            className="text-gray-500"
+          />
+        ))}
+        {/* Axes */}
+        {data.map((_, i) => {
+          const angle = -Math.PI / 2 + i * angleStep
+          const ex = cx + maxR * Math.cos(angle)
+          const ey = cy + maxR * Math.sin(angle)
+          return (
+            <line
+              key={i}
+              x1={cx}
+              y1={cy}
+              x2={ex}
+              y2={ey}
+              stroke="currentColor"
+              strokeOpacity="0.2"
+              strokeWidth="0.5"
+              className="text-gray-500"
+            />
+          )
+        })}
+        {/* Data polygon */}
+        <polygon
+          points={polygonPoints}
+          fill={color}
+          fillOpacity="0.35"
+          stroke={color}
+          strokeWidth="1.5"
+          strokeOpacity="0.8"
+        />
+        {/* Labels */}
+        {labelPoints.map((lp, i) => (
+          <text
+            key={i}
+            x={lp.x}
+            y={lp.y}
+            textAnchor={lp.x < cx - 10 ? "end" : lp.x > cx + 10 ? "start" : "middle"}
+            dominantBaseline="middle"
+            className="fill-gray-400 text-[9px] font-medium"
+          >
+            {lp.label.length > 10 ? lp.label.slice(0, 8) + "…" : lp.label}
+          </text>
+        ))}
+      </g>
+    </svg>
+  )
+}
+
 export default function BitacoraPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -606,6 +694,25 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     }
   }, [commitRecords])
 
+  const skillRadarData = useMemo(() => {
+    if (!profileSkills.length) return []
+    const maxXp = Math.max(
+      ...profileSkills.map((skill) =>
+        commitRecords
+          .filter((r) => r.associatedSkill === skill)
+          .reduce((acc, r) => acc + Math.max(r.xp, 1), 0)
+      ),
+      1
+    )
+    return profileSkills.slice(0, 8).map((skill) => {
+      const xp = commitRecords
+        .filter((r) => r.associatedSkill === skill)
+        .reduce((acc, r) => acc + Math.max(r.xp, 1), 0)
+      const value = Math.min(100, Math.round((xp / maxXp) * 100))
+      return { skill, value: Math.max(value, 10) }
+    })
+  }, [profileSkills, commitRecords])
+
   const completedTaskIds = useMemo(() => {
     return new Set((bitacora?.entries || []).map((e) => e.taskId).filter(Boolean) as string[])
   }, [bitacora])
@@ -841,8 +948,10 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                               value={profileForm.about}
                               onChange={(e) => setProfileForm((prev) => ({ ...prev, about: e.target.value }))}
                               className="border-gray-700 bg-gray-900 text-white"
-                              rows={3}
+                              rows={4}
+                              placeholder="Ej: Full-stack enfocado en automatización y APIs. Contribuyo con mejoras en flujos, diseño de sistemas y entrega de impacto medible. Me motiva resolver problemas complejos y dejar el código mejor de lo que lo encontré."
                             />
+                            <p className="mt-1 text-xs text-gray-500">Rol, enfoque principal, qué aportas al equipo o metas del trimestre.</p>
                           </div>
                           <div className="md:col-span-2">
                             <Label htmlFor="profile-skill-input">Habilidades</Label>
@@ -1095,28 +1204,44 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 <CardTitle className="text-white">Sobre mí</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-300">
-                  {parsedProfile.about || "Agrega una descripción para contextualizar tu rol e impacto en el equipo."}
-                </p>
+                {parsedProfile.about ? (
+                  <p className="text-sm text-gray-300 leading-relaxed">{parsedProfile.about}</p>
+                ) : (
+                  <div className="space-y-2 text-sm text-gray-400">
+                    <p>Edita tu perfil para describir:</p>
+                    <ul className="list-inside list-disc space-y-1 text-gray-500">
+                      <li>Tu rol y enfoque principal</li>
+                      <li>Áreas donde aportas más valor</li>
+                      <li>Un logro reciente o meta del trimestre</li>
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-white">Habilidades</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {profileSkills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profileSkills.map((skill) => (
-                      <Badge
-                        key={skill}
-                        className="border"
-                        style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
-                      >
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      {profileSkills.map((skill) => (
+                        <Badge
+                          key={skill}
+                          className="border"
+                          style={{ borderColor: `${themeColors.secondary}66`, backgroundColor: `${themeColors.secondary}1f`, color: themeColors.secondary }}
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                    {skillRadarData.length >= 2 && (
+                      <div className="flex justify-center">
+                        <SkillRadarChart data={skillRadarData} color={themeColors.primary} />
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-400">Aún no hay habilidades registradas. Edita el perfil para agregar áreas de conocimiento.</p>
                 )}
