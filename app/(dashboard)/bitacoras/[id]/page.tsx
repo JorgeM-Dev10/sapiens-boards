@@ -616,9 +616,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
     return roadmapTasks
       .map((t) => ({
         ...t,
-        completed: completedTaskIds.has(t.id),
+        completed: t.status === "completed" || completedTaskIds.has(t.id),
         priority: (impactOrder[t.impactLevel as keyof typeof impactOrder] ?? 0) * 10
-          + (t.status === "in_progress" ? 5 : t.status === "done" ? -10 : 0)
+          + (t.status === "in_progress" ? 5 : t.status === "completed" ? -10 : 0)
           + (t.dueDate ? Math.max(0, 10 - Math.floor((new Date(t.dueDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))) : 0),
       }))
       .sort((a, b) => b.priority - a.priority)
