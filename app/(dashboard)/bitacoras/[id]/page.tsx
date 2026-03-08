@@ -1025,7 +1025,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   XP total
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Total de experiencia acumulada por contribuciones registradas (commits, tareas completadas desde roadmap)." />
+                  <span title="Total de experiencia acumulada por contribuciones registradas (commits, tareas completadas desde roadmap).">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.experience || 0}</p>
               </CardContent>
@@ -1034,7 +1036,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   Registros
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Número total de commits o entradas registradas en la bitácora." />
+                  <span title="Número total de commits o entradas registradas en la bitácora.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{personalStats.registros}</p>
               </CardContent>
@@ -1043,7 +1047,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   Tareas completadas
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Número de tareas completadas desde los Roadmaps conectados." />
+                  <span title="Número de tareas completadas desde los Roadmaps conectados.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.totalTasks || 0}</p>
               </CardContent>
@@ -1052,7 +1058,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   Sesiones
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Cantidad de sesiones de trabajo registradas en la bitácora." />
+                  <span title="Cantidad de sesiones de trabajo registradas en la bitácora.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{bitacora.avatar?.totalSessions || 0}</p>
               </CardContent>
@@ -1061,7 +1069,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   Horas registradas
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Total de horas registradas en sesiones o commits." />
+                  <span title="Total de horas registradas en sesiones o commits.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{(bitacora.avatar?.totalHours || 0).toFixed(1)}h</p>
               </CardContent>
@@ -1070,7 +1080,9 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
               <CardContent className="p-4">
                 <p className="flex items-center gap-1 text-xs text-gray-400">
                   Impact score promedio
-                  <Info className="h-3.5 w-3.5 cursor-help text-gray-500" title="Promedio de impacto calculado por el sistema basado en el valor de cada contribución." />
+                  <span title="Promedio de impacto calculado por el sistema basado en el valor de cada contribución.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-gray-500" />
+                  </span>
                 </p>
                 <p className="mt-1 text-xl font-bold text-white">{personalStats.impactAvg}</p>
               </CardContent>
