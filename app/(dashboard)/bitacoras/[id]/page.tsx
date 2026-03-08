@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Award,
-  CalendarDays,
   CheckCircle,
   Clock,
   Filter,
@@ -48,6 +47,7 @@ import { getProgressToNextRank, getRankByExperience } from "@/lib/sapiens-ranks"
 import { BITACORA_THEMES, getThemeColors } from "@/lib/bitacora-themes"
 
 type ImpactType = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NONE"
+type CommitSource = "MANUAL" | "ROADMAP" | "SESION"
 
 interface WorkSession {
   id: string
@@ -125,6 +125,8 @@ interface CommitRecord {
   tasksCompleted: number
   hoursLogged: number
   project: string
+  source: CommitSource
+  associatedSkill: string | null
 }
 
 const ROLE_TOKEN_START = "[ROLE]"
@@ -180,6 +182,13 @@ ${SKILLS_TOKEN_START}${skills.trim()}${SKILLS_TOKEN_END}
 ${GOALS_TOKEN_START}${goals.trim()}${GOALS_TOKEN_END}`
 }
 
+function parseSkillsList(skillsRaw: string): string[] {
+  return skillsRaw
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean)
+}
+
 function getImpactType(entry: BitacoraEntry): ImpactType {
   const level = entry.task?.impactLevel?.toUpperCase()
   if (level === "CRITICAL" || level === "HIGH" || level === "MEDIUM" || level === "LOW") {
@@ -204,17 +213,21 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [registroMessage, setRegistroMessage] = useState("")
   const [search, setSearch] = useState("")
+  const [timeFilter, setTimeFilter] = useState<"day" | "week" | "month" | "custom">("month")
+  const [sourceFilter, setSourceFilter] = useState<"ALL" | CommitSource>("ALL")
   const [impactFilter, setImpactFilter] = useState<"ALL" | ImpactType>("ALL")
   const [projectFilter, setProjectFilter] = useState("ALL")
+  const [skillFilter, setSkillFilter] = useState("ALL")
   const [minXPFilter, setMinXPFilter] = useState("")
   const [minTasksFilter, setMinTasksFilter] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const [newSkillInput, setNewSkillInput] = useState("")
   const [profileForm, setProfileForm] = useState({
     title: "",
     role: "MIEMBRO SAPIENS",
     about: "",
-    skills: "",
+    skills: [] as string[],
     goals: "",
     coverImage: "",
     themeColor: "neon-purple",
@@ -252,7 +265,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         title: data.title,
         role: parsed.role.toUpperCase(),
         about: parsed.about,
-        skills: parsed.skills,
+        skills: parseSkillsList(parsed.skills),
         goals: parsed.goals,
         coverImage: data.image || "",
         themeColor: data.themeColor || "neon-purple",
@@ -341,7 +354,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
           description: encodeProfileDescription(
             profileForm.role.toUpperCase(),
             profileForm.about,
-            profileForm.skills,
+            profileForm.skills.join(", "),
             profileForm.goals
           ),
           image: profileForm.coverImage.trim() || null,
@@ -378,6 +391,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
   }
 
   const parsedProfile = decodeProfileDescription(bitacora?.description || null)
+  const profileSkills = useMemo(() => parseSkillsList(parsedProfile.skills), [parsedProfile.skills])
   const sapiensRank = bitacora?.avatar ? getRankByExperience(bitacora.avatar.experience) : null
   const progressData = bitacora?.avatar ? getProgressToNextRank(bitacora.avatar.experience) : null
   const themeColors = getThemeColors(bitacora?.themeColor)
@@ -399,6 +413,12 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       dayStats.set(key, current)
     })
 
+    const detectSkill = (text: string) => {
+      const normalized = text.toLowerCase()
+      const matched = profileSkills.find((skill) => normalized.includes(skill.toLowerCase()))
+      return matched || null
+    }
+
     const entryRecords: CommitRecord[] = bitacora.entries.map((entry) => {
       const dayKey = entry.createdAt.split("T")[0]
       const agg = dayStats.get(dayKey) || { tasks: 0, hours: 0 }
@@ -406,20 +426,24 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         entry.task?.list?.board?.title ||
         bitacora.board?.title ||
         "GENERAL"
+      const description =
+        entry.task?.title ||
+        entry.aiReasoning ||
+        "Registro manual de contribución"
+      const source: CommitSource = entry.task ? "ROADMAP" : "MANUAL"
 
       return {
         id: `entry-${entry.id}`,
         date: entry.createdAt,
-        description:
-          entry.task?.title ||
-          entry.aiReasoning ||
-          "Registro manual de contribución",
+        description,
         xp: entry.xpGanado || 0,
         impactType: getImpactType(entry),
         impactScore: entry.impactScore,
         tasksCompleted: agg.tasks,
         hoursLogged: agg.hours,
         project: project.toUpperCase(),
+        source,
+        associatedSkill: detectSkill(`${description} ${project}`),
       }
     })
 
@@ -437,20 +461,42 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         tasksCompleted: session.tasksCompleted || 0,
         hoursLogged: session.durationMinutes / 60,
         project: bitacora.board?.title?.toUpperCase() || "GENERAL",
+        source: "SESION" as const,
+        associatedSkill: detectSkill(`${session.description || ""} ${session.workType} ${bitacora.board?.title || ""}`),
       }))
 
     return [...entryRecords, ...sessionOnlyRecords].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
-  }, [bitacora])
+  }, [bitacora, profileSkills])
 
   const uniqueProjects = useMemo(() => {
     return Array.from(new Set(commitRecords.map((c) => c.project))).sort()
   }, [commitRecords])
+  const uniqueSkills = useMemo(() => {
+    return Array.from(
+      new Set(
+        commitRecords
+          .map((c) => c.associatedSkill)
+          .filter((skill): skill is string => Boolean(skill))
+      )
+    ).sort()
+  }, [commitRecords])
 
   const filteredRecords = useMemo(() => {
+    const now = new Date()
+    const startDateByPreset =
+      timeFilter === "day"
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        : timeFilter === "week"
+        ? new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000)
+        : timeFilter === "month"
+        ? new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000)
+        : null
+
     return commitRecords.filter((record) => {
       const recordDay = record.date.split("T")[0]
+      const recordDate = new Date(record.date)
       const minXp = minXPFilter.trim() ? Number(minXPFilter) : null
       const minTasks = minTasksFilter.trim() ? Number(minTasksFilter) : null
 
@@ -460,16 +506,33 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
         if (!text.includes(q)) return false
       }
 
+      if (timeFilter !== "custom" && startDateByPreset && recordDate < startDateByPreset) return false
+      if (timeFilter === "custom") {
+        if (fromDate && recordDay < fromDate) return false
+        if (toDate && recordDay > toDate) return false
+      }
+      if (sourceFilter !== "ALL" && record.source !== sourceFilter) return false
       if (impactFilter !== "ALL" && record.impactType !== impactFilter) return false
       if (projectFilter !== "ALL" && record.project !== projectFilter) return false
-      if (fromDate && recordDay < fromDate) return false
-      if (toDate && recordDay > toDate) return false
+      if (skillFilter !== "ALL" && record.associatedSkill !== skillFilter) return false
       if (minXp !== null && !Number.isNaN(minXp) && record.xp < minXp) return false
       if (minTasks !== null && !Number.isNaN(minTasks) && record.tasksCompleted < minTasks) return false
 
       return true
     })
-  }, [commitRecords, search, impactFilter, projectFilter, fromDate, toDate, minXPFilter, minTasksFilter])
+  }, [
+    commitRecords,
+    timeFilter,
+    sourceFilter,
+    search,
+    impactFilter,
+    projectFilter,
+    skillFilter,
+    fromDate,
+    toDate,
+    minXPFilter,
+    minTasksFilter,
+  ])
 
   const personalStats = useMemo(() => {
     const entries = bitacora?.entries || []
@@ -502,6 +565,47 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
       xp: monthRecords.reduce((acc, record) => acc + record.xp, 0),
       highImpact: monthRecords.filter((record) => ["HIGH", "CRITICAL"].includes(record.impactType)).length,
     }
+  }, [commitRecords])
+
+  const skillProgress = useMemo(() => {
+    if (!profileSkills.length) return []
+    const maxXp = Math.max(
+      ...profileSkills.map((skill) => {
+        return commitRecords
+          .filter((record) => record.associatedSkill === skill)
+          .reduce((acc, record) => acc + Math.max(record.xp, 1), 0)
+      }),
+      1
+    )
+
+    return profileSkills.map((skill) => {
+      const xp = commitRecords
+        .filter((record) => record.associatedSkill === skill)
+        .reduce((acc, record) => acc + Math.max(record.xp, 1), 0)
+      const percentage = Math.min(100, Math.round((xp / maxXp) * 100))
+      return { skill, percentage, xp }
+    })
+  }, [profileSkills, commitRecords])
+
+  const evolution = useMemo(() => {
+    const buckets = Array.from({ length: 8 }, (_, index) => {
+      const start = new Date()
+      start.setDate(start.getDate() - (7 - index) * 7)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 6)
+      const commits = commitRecords.filter((record) => {
+        const date = new Date(record.date)
+        return date >= start && date <= end
+      })
+      return {
+        label: `S${index + 1}`,
+        xp: commits.reduce((acc, record) => acc + record.xp, 0),
+        commits: commits.length,
+      }
+    })
+    const maxXp = Math.max(...buckets.map((b) => b.xp), 1)
+    const maxCommits = Math.max(...buckets.map((b) => b.commits), 1)
+    return { buckets, maxXp, maxCommits }
   }, [commitRecords])
 
   if (isLoading) {
@@ -703,15 +807,66 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                             />
                           </div>
                           <div className="md:col-span-2">
-                            <Label htmlFor="profile-skills">Habilidades (separadas por coma)</Label>
-                            <Textarea
-                              id="profile-skills"
-                              value={profileForm.skills}
-                              onChange={(e) => setProfileForm((prev) => ({ ...prev, skills: e.target.value }))}
-                              className="border-gray-700 bg-gray-900 text-white"
-                              rows={2}
-                              placeholder="Estrategia, Ventas, React, Automatización..."
-                            />
+                            <Label htmlFor="profile-skill-input">Habilidades</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="profile-skill-input"
+                                value={newSkillInput}
+                                onChange={(e) => setNewSkillInput(e.target.value)}
+                                className="border-gray-700 bg-gray-900 text-white"
+                                placeholder="Ej: Backend, Automation, AI Systems..."
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    const value = newSkillInput.trim()
+                                    if (!value) return
+                                    setProfileForm((prev) => {
+                                      if (prev.skills.some((skill) => skill.toLowerCase() === value.toLowerCase())) return prev
+                                      return { ...prev, skills: [...prev.skills, value] }
+                                    })
+                                    setNewSkillInput("")
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                className="bg-gray-800 hover:bg-gray-700"
+                                onClick={() => {
+                                  const value = newSkillInput.trim()
+                                  if (!value) return
+                                  setProfileForm((prev) => {
+                                    if (prev.skills.some((skill) => skill.toLowerCase() === value.toLowerCase())) return prev
+                                    return { ...prev, skills: [...prev.skills, value] }
+                                  })
+                                  setNewSkillInput("")
+                                }}
+                              >
+                                Agregar
+                              </Button>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {profileForm.skills.length === 0 ? (
+                                <span className="text-xs text-gray-400">Aún no hay habilidades agregadas.</span>
+                              ) : (
+                                profileForm.skills.map((skill) => (
+                                  <Badge key={skill} className="border border-gray-600 bg-gray-800 text-gray-100">
+                                    {skill}
+                                    <button
+                                      type="button"
+                                      className="ml-2 text-gray-300 hover:text-white"
+                                      onClick={() =>
+                                        setProfileForm((prev) => ({
+                                          ...prev,
+                                          skills: prev.skills.filter((s) => s !== skill),
+                                        }))
+                                      }
+                                    >
+                                      x
+                                    </button>
+                                  </Badge>
+                                ))
+                              )}
+                            </div>
                           </div>
                           <div className="md:col-span-2">
                             <Label htmlFor="profile-goals">Metas del mes</Label>
@@ -851,13 +1006,10 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 <CardTitle className="text-white">Habilidades</CardTitle>
               </CardHeader>
               <CardContent>
-                {parsedProfile.skills ? (
-                  <div className="flex flex-wrap gap-2">
-                    {parsedProfile.skills
-                      .split(",")
-                      .map((skill) => skill.trim())
-                      .filter(Boolean)
-                      .map((skill) => (
+                {profileSkills.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {profileSkills.map((skill) => (
                         <Badge
                           key={skill}
                           className="border"
@@ -866,6 +1018,26 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                           {skill}
                         </Badge>
                       ))}
+                    </div>
+                    <div className="space-y-2">
+                      {skillProgress.map((item) => (
+                        <div key={item.skill}>
+                          <div className="mb-1 flex justify-between text-xs text-gray-300">
+                            <span>{item.skill}</span>
+                            <span>{item.percentage}%</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-gray-800">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${item.percentage}%`,
+                                background: `linear-gradient(to right, ${themeColors.primary}, ${themeColors.secondary})`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400">Aún no hay habilidades registradas.</p>
@@ -889,6 +1061,51 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
             </Card>
           </div>
 
+          <Card className="border-gray-800 bg-[#111214]/90 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-white">Evolución de rendimiento (8 semanas)</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs uppercase text-gray-400">XP por semana</p>
+                <div className="flex h-40 items-end gap-2">
+                  {evolution.buckets.map((bucket) => (
+                    <div key={`xp-${bucket.label}`} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="text-[10px] text-gray-300">{bucket.xp}</div>
+                      <div className="relative w-full flex-1 rounded-t bg-gray-800/70">
+                        <div
+                          className="absolute bottom-0 w-full rounded-t"
+                          style={{
+                            height: `${Math.max((bucket.xp / evolution.maxXp) * 100, 4)}%`,
+                            background: `linear-gradient(to top, ${themeColors.primary}, ${themeColors.secondary})`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500">{bucket.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs uppercase text-gray-400">Contribuciones por semana</p>
+                <div className="flex h-40 items-end gap-2">
+                  {evolution.buckets.map((bucket) => (
+                    <div key={`c-${bucket.label}`} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="text-[10px] text-gray-300">{bucket.commits}</div>
+                      <div className="relative w-full flex-1 rounded-t bg-gray-800/70">
+                        <div
+                          className="absolute bottom-0 w-full rounded-t bg-emerald-500"
+                          style={{ height: `${Math.max((bucket.commits / evolution.maxCommits) * 100, 4)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500">{bucket.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-gray-800 bg-[#1a1a1a]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
@@ -898,6 +1115,28 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <Select value={timeFilter} onValueChange={(value: "day" | "week" | "month" | "custom") => setTimeFilter(value)}>
+                  <SelectTrigger className="border-gray-700 bg-gray-900 text-white">
+                    <SelectValue placeholder="Periodo" />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-800 bg-[#1a1a1a] text-white">
+                    <SelectItem value="day">Hoy</SelectItem>
+                    <SelectItem value="week">Últimos 7 días</SelectItem>
+                    <SelectItem value="month">Últimos 30 días</SelectItem>
+                    <SelectItem value="custom">Rango personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sourceFilter} onValueChange={(value: "ALL" | CommitSource) => setSourceFilter(value)}>
+                  <SelectTrigger className="border-gray-700 bg-gray-900 text-white">
+                    <SelectValue placeholder="Tipo de actividad" />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-800 bg-[#1a1a1a] text-white">
+                    <SelectItem value="ALL">Toda actividad</SelectItem>
+                    <SelectItem value="MANUAL">Registro manual</SelectItem>
+                    <SelectItem value="ROADMAP">Commit desde roadmap</SelectItem>
+                    <SelectItem value="SESION">Sesión registrada</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -940,18 +1179,19 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                 />
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <Input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="border-gray-700 bg-gray-900 text-white"
-                />
-                <Input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="border-gray-700 bg-gray-900 text-white"
-                />
+                <Select value={skillFilter} onValueChange={setSkillFilter}>
+                  <SelectTrigger className="border-gray-700 bg-gray-900 text-white">
+                    <SelectValue placeholder="Skill asociada" />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-800 bg-[#1a1a1a] text-white">
+                    <SelectItem value="ALL">Todas las skills</SelectItem>
+                    {uniqueSkills.map((skill) => (
+                      <SelectItem key={skill} value={skill}>
+                        {skill}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   type="number"
                   min="0"
@@ -960,6 +1200,26 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   placeholder="Tareas completadas mínimas"
                   className="border-gray-700 bg-gray-900 text-white"
                 />
+                {timeFilter === "custom" ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="border-gray-700 bg-gray-900 text-white"
+                    />
+                    <Input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="border-gray-700 bg-gray-900 text-white"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-300">
+                    Periodo activo: {timeFilter === "day" ? "Hoy" : timeFilter === "week" ? "Últimos 7 días" : "Últimos 30 días"}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -987,9 +1247,17 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                           <Badge className="border border-blue-500/30 bg-blue-500/15 text-blue-200">
                             {record.project}
                           </Badge>
+                          <Badge className="border border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-200">
+                            {record.source}
+                          </Badge>
                           <Badge className="border border-gray-600 bg-gray-800 text-gray-200">
                             {record.impactType}
                           </Badge>
+                          {record.associatedSkill && (
+                            <Badge className="border border-cyan-500/30 bg-cyan-500/10 text-cyan-200">
+                              Skill: {record.associatedSkill}
+                            </Badge>
+                          )}
                           {record.impactScore !== null && (
                             <Badge className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-200">
                               Impact {record.impactScore}
@@ -1036,7 +1304,7 @@ export default function BitacoraPage({ params }: { params: { id: string } }) {
                   <h3 className="font-semibold text-white">Sistema gamificado Sapiens</h3>
                   <p className="mt-1 text-sm text-gray-300">
                     Tu progreso se mide por impacto real: XP, calidad de contribución, constancia y valor generado.
-                    Registra cada commit de trabajo para fortalecer tu ranking y detectar áreas de mejora mensual.
+                    Registra cada commit de trabajo para fortalecer tu trayectoria personal y detectar áreas de mejora mensual.
                   </p>
                   <p className="mt-2 text-xs text-blue-200">
                     Valor económico acumulado: ${personalStats.economicValue.toLocaleString("es-MX")}
