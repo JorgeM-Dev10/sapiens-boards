@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,9 +13,17 @@ import {
   Award,
   TrendingUp,
   Calendar,
-  Activity
+  Activity,
+  Trophy
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Bitacora {
   id: string
@@ -52,6 +60,7 @@ export default function EstadisticasPage() {
   const { toast } = useToast()
   const [bitacoras, setBitacoras] = useState<Bitacora[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [periodDays, setPeriodDays] = useState("30")
 
   useEffect(() => {
     fetchBitacoras()
@@ -77,72 +86,93 @@ export default function EstadisticasPage() {
     }
   }
 
-  const totalStats = {
-    totalHours: bitacoras.reduce((sum, b) => sum + b.stats.totalHours, 0),
-    totalTasks: bitacoras.reduce((sum, b) => sum + b.stats.totalTasks, 0),
-    totalSessions: bitacoras.reduce((sum, b) => sum + b.stats.totalSessions, 0),
-    totalExperience: bitacoras.reduce((sum, b) => sum + (b.avatar?.experience || 0), 0),
-    averageLevel: bitacoras.length > 0
-      ? bitacoras.reduce((sum, b) => sum + (b.avatar?.level || 1), 0) / bitacoras.length
-      : 0,
-    impactScorePromedio:
-      bitacoras.length > 0
-        ? bitacoras.reduce(
-            (sum, b) => sum + (b.impactStats?.impactScorePromedio ?? 0),
-            0
-          ) / bitacoras.length
-        : 0,
-    criticalCount: bitacoras.reduce(
-      (sum, b) => sum + (b.impactStats?.criticalCount ?? 0),
-      0
-    ),
-    economicValue: bitacoras.reduce(
-      (sum, b) => sum + (b.impactStats?.economicValue ?? 0),
-      0
-    ),
+  const period = Number(periodDays)
+
+  const formatLocalDateKey = (input: Date) => {
+    const y = input.getFullYear()
+    const m = String(input.getMonth() + 1).padStart(2, "0")
+    const d = String(input.getDate()).padStart(2, "0")
+    return `${y}-${m}-${d}`
   }
 
-  // Horas por día (últimos 7 días)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    return date.toISOString().split('T')[0]
-  }).reverse()
+  const totalStats = useMemo(() => {
+    const totalHours = bitacoras.reduce((sum, b) => sum + b.stats.totalHours, 0)
+    const totalTasks = bitacoras.reduce((sum, b) => sum + b.stats.totalTasks, 0)
+    const totalSessions = bitacoras.reduce((sum, b) => sum + b.stats.totalSessions, 0)
+    const totalExperience = bitacoras.reduce((sum, b) => sum + (b.avatar?.experience || 0), 0)
+    const impactScorePromedio =
+      bitacoras.length > 0
+        ? bitacoras.reduce((sum, b) => sum + (b.impactStats?.impactScorePromedio ?? 0), 0) / bitacoras.length
+        : 0
+    const criticalCount = bitacoras.reduce((sum, b) => sum + (b.impactStats?.criticalCount ?? 0), 0)
+    const economicValue = bitacoras.reduce((sum, b) => sum + (b.impactStats?.economicValue ?? 0), 0)
 
-  const hoursByDay = last7Days.map(date => {
-    const hours = bitacoras.reduce((sum, bitacora) => {
-      return sum + bitacora.workSessions
-        .filter(s => new Date(s.date).toISOString().split('T')[0] === date)
-        .reduce((s, session) => s + session.durationMinutes / 60, 0)
-    }, 0)
-    return { date, hours }
-  })
+    return {
+      totalHours,
+      totalTasks,
+      totalSessions,
+      totalExperience,
+      impactScorePromedio: Math.round(impactScorePromedio),
+      criticalCount,
+      economicValue,
+      productivityPerSession: totalSessions > 0 ? totalTasks / totalSessions : 0,
+      avgHoursPerSession: totalSessions > 0 ? totalHours / totalSessions : 0,
+    }
+  }, [bitacoras])
 
-  const maxHours = Math.max(...hoursByDay.map(d => d.hours), 1)
+  const dayRange = useMemo(() => {
+    return Array.from({ length: period }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (period - 1 - i))
+      return formatLocalDateKey(date)
+    })
+  }, [period])
 
-  // Tareas por día (últimos 7 días)
-  const tasksByDay = last7Days.map(date => {
-    const tasks = bitacoras.reduce((sum, bitacora) => {
-      return sum + bitacora.workSessions
-        .filter(s => new Date(s.date).toISOString().split('T')[0] === date)
-        .reduce((s, session) => s + (session.tasksCompleted || 0), 0)
-    }, 0)
-    return { date, tasks }
-  })
+  const activityByDay = useMemo(() => {
+    return dayRange.map((day) => {
+      let hours = 0
+      let tasks = 0
 
-  const maxTasks = Math.max(...tasksByDay.map(d => d.tasks), 1)
+      bitacoras.forEach((bitacora) => {
+        bitacora.workSessions.forEach((session) => {
+          if (formatLocalDateKey(new Date(session.date)) !== day) return
+          hours += session.durationMinutes / 60
+          tasks += session.tasksCompleted || 0
+        })
+      })
 
-  // Top por XP (impacto)
-  const topByXP = bitacoras
-    .map(b => ({
-      title: b.title,
-      experience: b.avatar?.experience ?? 0,
-      hours: b.stats.totalHours,
-    }))
-    .sort((a, b) => b.experience - a.experience)
-    .slice(0, 5)
+      return { day, hours, tasks }
+    })
+  }, [bitacoras, dayRange])
 
-  const maxXP = Math.max(...topByXP.map(b => b.experience), 1)
+  const ranking = useMemo(() => {
+    return [...bitacoras]
+      .map((b) => ({
+        id: b.id,
+        title: b.title,
+        xp: b.avatar?.experience ?? 0,
+        impact: b.impactStats?.impactScorePromedio ?? 0,
+        commits: b.stats.totalSessions,
+        economic: b.impactStats?.economicValue ?? 0,
+      }))
+      .sort((a, b) => b.xp - a.xp)
+  }, [bitacoras])
+
+  const topActive = useMemo(() => {
+    return [...bitacoras]
+      .map((b) => ({
+        id: b.id,
+        title: b.title,
+        sessions: b.stats.totalSessions,
+        tasks: b.stats.totalTasks,
+      }))
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, 5)
+  }, [bitacoras])
+
+  const maxHours = Math.max(...activityByDay.map((d) => d.hours), 1)
+  const maxTasks = Math.max(...activityByDay.map((d) => d.tasks), 1)
+  const periodLabel = period === 7 ? "7 días" : period === 30 ? "30 días" : "90 días"
 
   return (
     <div className="flex h-screen flex-col bg-black text-white">
@@ -152,15 +182,27 @@ export default function EstadisticasPage() {
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
               <BarChart3 className="h-8 w-8" />
-              Estadísticas
+              Estadísticas Globales
             </h1>
-            <Button
-              onClick={() => router.push("/bitacoras")}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Ver Bitácoras
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={periodDays} onValueChange={setPeriodDays}>
+                <SelectTrigger className="w-[140px] border-gray-700 bg-[#161616]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-gray-800 bg-[#1a1a1a] text-white">
+                  <SelectItem value="7">Últimos 7 días</SelectItem>
+                  <SelectItem value="30">Últimos 30 días</SelectItem>
+                  <SelectItem value="90">Últimos 90 días</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={() => router.push("/bitacoras")}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Ver Perfiles
+              </Button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -176,20 +218,18 @@ export default function EstadisticasPage() {
                 onClick={() => router.push("/bitacoras")}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Crear Primera Bitácora
+                Crear primer perfil
               </Button>
             </div>
           ) : (
             <div className="space-y-6">
-              {/* KPIs principales: 4 arriba, 4 abajo */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
                 <Card className="bg-[#1a1a1a] border-gray-800">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">XP por Impacto</p>
+                        <p className="text-xs text-gray-400 mb-1">XP total equipo</p>
                         <p className="text-2xl font-bold text-white">{totalStats.totalExperience} XP</p>
-                        <p className="text-xs text-blue-400/80 mt-0.5">Evaluación IA</p>
                       </div>
                       <Award className="h-8 w-8 text-yellow-400 opacity-50" />
                     </div>
@@ -199,7 +239,19 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Tareas Completadas</p>
+                        <p className="text-xs text-gray-400 mb-1">Impacto global</p>
+                        <p className="text-2xl font-bold text-white">{totalStats.impactScorePromedio}</p>
+                        <p className="text-xs text-emerald-400/80 mt-0.5">score promedio</p>
+                      </div>
+                      <Activity className="h-8 w-8 text-cyan-400 opacity-50" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#1a1a1a] border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Tareas completadas</p>
                         <p className="text-2xl font-bold text-white">{totalStats.totalTasks}</p>
                       </div>
                       <CheckCircle className="h-8 w-8 text-green-400 opacity-50" />
@@ -210,7 +262,7 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Sesiones Totales</p>
+                        <p className="text-xs text-gray-400 mb-1">Commits de trabajo</p>
                         <p className="text-2xl font-bold text-white">{totalStats.totalSessions}</p>
                       </div>
                       <FileText className="h-8 w-8 text-purple-400 opacity-50" />
@@ -221,38 +273,10 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Horas Totales</p>
+                        <p className="text-xs text-gray-400 mb-1">Horas registradas</p>
                         <p className="text-2xl font-bold text-white">{totalStats.totalHours.toFixed(1)}h</p>
-                        <p className="text-xs text-gray-500 mt-0.5">métrica secundaria</p>
                       </div>
                       <Clock className="h-8 w-8 text-blue-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Segunda fila: misma métrica en otro orden para 4+4 visual (o futuras métricas) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-[#1a1a1a]/80 border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Impact Score promedio</p>
-                        <p className="text-2xl font-bold text-white">{Math.round(totalStats.impactScorePromedio)}</p>
-                        <p className="text-xs text-emerald-400/80 mt-0.5">0-100</p>
-                      </div>
-                      <Activity className="h-8 w-8 text-cyan-400 opacity-50" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-[#1a1a1a]/80 border-gray-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1">Tareas CRITICAL</p>
-                        <p className="text-2xl font-bold text-amber-400">{totalStats.criticalCount}</p>
-                      </div>
-                      <Award className="h-8 w-8 text-amber-400 opacity-50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -264,7 +288,6 @@ export default function EstadisticasPage() {
                         <p className="text-2xl font-bold text-green-400">
                           ${totalStats.economicValue.toLocaleString("es-MX")}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">MXN</p>
                       </div>
                       <TrendingUp className="h-8 w-8 text-emerald-400 opacity-50" />
                     </div>
@@ -274,10 +297,10 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Bitácoras activas</p>
-                        <p className="text-2xl font-bold text-white">{bitacoras.length}</p>
+                        <p className="text-xs text-gray-400 mb-1">Critical detectadas</p>
+                        <p className="text-2xl font-bold text-amber-400">{totalStats.criticalCount}</p>
                       </div>
-                      <BarChart3 className="h-8 w-8 text-indigo-400 opacity-50" />
+                      <TargetIcon />
                     </div>
                   </CardContent>
                 </Card>
@@ -285,12 +308,13 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Tareas / sesión</p>
+                        <p className="text-xs text-gray-400 mb-1">Productividad</p>
                         <p className="text-2xl font-bold text-white">
-                          {totalStats.totalSessions > 0 ? (totalStats.totalTasks / totalStats.totalSessions).toFixed(1) : "0"}
+                          {totalStats.productivityPerSession.toFixed(1)}
                         </p>
+                        <p className="text-xs text-gray-500 mt-0.5">tareas por commit</p>
                       </div>
-                      <TrendingUp className="h-8 w-8 text-amber-400 opacity-50" />
+                      <Trophy className="h-8 w-8 text-indigo-400 opacity-50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -298,9 +322,9 @@ export default function EstadisticasPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Horas / sesión</p>
+                        <p className="text-xs text-gray-400 mb-1">Horas por commit</p>
                         <p className="text-2xl font-bold text-white">
-                          {totalStats.totalSessions > 0 ? (totalStats.totalHours / totalStats.totalSessions).toFixed(1) : "0"}h
+                          {totalStats.avgHoursPerSession.toFixed(1)}h
                         </p>
                       </div>
                       <Calendar className="h-8 w-8 text-emerald-400 opacity-50" />
@@ -309,189 +333,136 @@ export default function EstadisticasPage() {
                 </Card>
               </div>
 
-              {/* Gráfica de horas por día */}
               <Card className="bg-[#1a1a1a] border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    Horas por Día (Últimos 7 días)
+                    Actividad del equipo ({periodLabel})
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="py-6">
-                  <div className="flex items-end justify-between gap-2 h-48">
-                    {hoursByDay.map((day) => {
-                      const barHeight = day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 5) : 2
-                      return (
-                        <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
-                          {/* Valor de horas arriba */}
-                          <div className={`text-xs font-bold transition-opacity ${day.hours > 0 ? 'text-blue-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
-                            {day.hours.toFixed(1)}h
-                          </div>
-                          
-                          {/* Barra */}
-                          <div 
-                            className="w-full rounded-t-lg transition-all duration-300 relative"
-                            style={{ 
-                              height: `${barHeight}%`,
-                              minHeight: day.hours > 0 ? '20px' : '4px',
-                              maxHeight: '100%'
-                            }}
-                          >
-                            <div
-                              className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
-                                day.hours > 0 
-                                  ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 hover:from-blue-500 hover:via-blue-400 hover:to-blue-300 shadow-lg shadow-blue-500/50 border-t-2 border-blue-300/50' 
-                                  : 'bg-gray-700/20 border-t border-gray-600/30'
-                              }`}
-                            />
-                          </div>
-                          
-                          {/* Día de la semana */}
-                          <div className="text-center pt-1">
-                            <p className="text-xs text-gray-400 font-medium">
-                              {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Tareas completadas por día */}
-                <Card className="bg-[#1a1a1a] border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5" />
-                      Tareas Completadas por Día (Últimos 7 días)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-6">
-                    <div className="flex items-end justify-between gap-2 h-48">
-                      {tasksByDay.map((day) => {
-                        const barHeight = day.tasks > 0 ? Math.max((day.tasks / maxTasks) * 100, 5) : 2
+                <CardContent className="space-y-8 py-6">
+                  <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-wider text-gray-400">Horas por día</p>
+                    <div className="flex h-44 items-end justify-between gap-2">
+                      {activityByDay.map((day) => {
+                        const barHeight = day.hours > 0 ? Math.max((day.hours / maxHours) * 100, 4) : 2
                         return (
-                          <div key={day.date} className="flex flex-col items-center justify-end gap-2 flex-1 group">
-                            {/* Valor de tareas arriba */}
-                            <div className={`text-xs font-bold transition-opacity ${day.tasks > 0 ? 'text-green-400 opacity-100' : 'text-gray-500 opacity-50'}`}>
-                              {day.tasks}
-                            </div>
-                            
-                            {/* Barra */}
-                            <div 
-                              className="w-full rounded-t-lg transition-all duration-300 relative"
-                              style={{ 
-                                height: `${barHeight}%`,
-                                minHeight: day.tasks > 0 ? '20px' : '4px',
-                                maxHeight: '100%'
-                              }}
-                            >
+                          <div key={`h-${day.day}`} className="flex flex-1 flex-col items-center justify-end gap-1">
+                            <div className="text-[10px] font-semibold text-blue-300">{day.hours.toFixed(1)}h</div>
+                            <div className="relative w-full overflow-hidden rounded-t-md bg-gray-800/70" style={{ height: "90%" }}>
                               <div
-                                className={`w-full h-full rounded-t-lg transition-all duration-300 cursor-pointer ${
-                                  day.tasks > 0 
-                                    ? 'bg-gradient-to-t from-green-600 via-green-500 to-green-400 hover:from-green-500 hover:via-green-400 hover:to-green-300 shadow-lg shadow-green-500/50 border-t-2 border-green-300/50' 
-                                    : 'bg-gray-700/20 border-t border-gray-600/30'
-                                }`}
+                                className="absolute bottom-0 w-full rounded-t-md bg-gradient-to-t from-blue-600 to-cyan-400"
+                                style={{ height: `${barHeight}%` }}
                               />
                             </div>
-                            
-                            {/* Día de la semana */}
-                            <div className="text-center pt-1">
-                              <p className="text-xs text-gray-400 font-medium">
-                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short' })}
-                              </p>
+                            <div className="text-[10px] text-gray-400">
+                              {new Date(day.day).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit" })}
                             </div>
                           </div>
                         )
                       })}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-wider text-gray-400">Tareas por día</p>
+                    <div className="flex h-44 items-end justify-between gap-2">
+                      {activityByDay.map((day) => {
+                        const barHeight = day.tasks > 0 ? Math.max((day.tasks / maxTasks) * 100, 4) : 2
+                        return (
+                          <div key={`t-${day.day}`} className="flex flex-1 flex-col items-center justify-end gap-1">
+                            <div className="text-[10px] font-semibold text-emerald-300">{day.tasks}</div>
+                            <div className="relative w-full overflow-hidden rounded-t-md bg-gray-800/70" style={{ height: "90%" }}>
+                              <div
+                                className="absolute bottom-0 w-full rounded-t-md bg-gradient-to-t from-emerald-600 to-green-400"
+                                style={{ height: `${barHeight}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-gray-400">
+                              {new Date(day.day).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit" })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-                {/* Top Bitácoras por XP (impacto) */}
-                <Card className="bg-[#1a1a1a] border-gray-800">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card className="border-gray-800 bg-[#1a1a1a]">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Top Bitácoras (por XP impacto)
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <Trophy className="h-5 w-5 text-yellow-400" />
+                      Ranking de contribución
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {topByXP.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                        <FileText className="h-12 w-12 mb-2 opacity-50" />
-                        <p>No hay datos de bitácoras</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {topByXP.map((bitacora, index) => (
-                          <div key={bitacora.title} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-500/30 to-amber-600/20 border border-yellow-400/50 flex items-center justify-center text-yellow-300 font-bold text-xs shadow-lg">
-                                  {index + 1}
-                                </div>
-                                <span className="text-white font-medium">{bitacora.title}</span>
-                              </div>
-                              <span className="text-white font-bold">{bitacora.experience} XP</span>
-                            </div>
-                            <div className="w-full bg-gray-800/50 rounded-full h-2 overflow-hidden border border-gray-700/50">
-                              <div
-                                className="bg-gradient-to-r from-yellow-600 via-amber-500 to-yellow-400 h-full rounded-full transition-all shadow-lg shadow-yellow-500/30"
-                                style={{ width: `${(bitacora.experience / maxXP) * 100}%` }}
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500">{bitacora.hours.toFixed(1)}h (secundario)</p>
+                    <div className="space-y-3">
+                      {ranking.slice(0, 8).map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-800 bg-black/40 p-3"
+                        >
+                          <div>
+                            <p className="font-medium text-white">
+                              #{index + 1} {item.title}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Impacto {item.impact} • Commits {item.commits}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <div className="text-right">
+                            <p className="font-bold text-yellow-300">{item.xp} XP</p>
+                            <p className="text-xs text-gray-500">
+                              ${item.economic.toLocaleString("es-MX")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-gray-800 bg-[#1a1a1a]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white">
+                      <TrendingUp className="h-5 w-5 text-blue-400" />
+                      Bitácoras más activas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {topActive.map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-lg border border-gray-800 bg-black/40 p-3"
+                        >
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="font-medium text-white">{item.title}</p>
+                            <p className="text-sm text-blue-300">{item.sessions} commits</p>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-gray-800">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                              style={{
+                                width: `${ranking.length ? (item.sessions / Math.max(...topActive.map((i) => i.sessions), 1)) * 100 : 0}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="mt-2 text-xs text-gray-500">{item.tasks} tareas completadas</p>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Lista de bitácoras */}
-              <Card className="bg-[#1a1a1a] border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Todas las Bitácoras</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {bitacoras.map((bitacora) => (
-                      <Card
-                        key={bitacora.id}
-                        className="bg-gray-900 border-gray-800 hover:border-blue-500 transition-all cursor-pointer"
-                        onClick={() => router.push(`/bitacoras/${bitacora.id}`)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-white font-semibold">{bitacora.title}</h3>
-                            {bitacora.avatar && (
-                              <span className="text-xs text-blue-400 font-bold">
-                                Nivel {bitacora.avatar.level}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Horas</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalHours.toFixed(1)}h</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Tareas</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalTasks}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-gray-400 text-xs">Sesiones</p>
-                              <p className="text-white font-bold">{bitacora.stats.totalSessions}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+              <Card className="border-blue-500/40 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
+                <CardContent className="p-4">
+                  <p className="text-sm text-gray-200">
+                    Este dashboard muestra <strong>análisis global del equipo</strong>. El detalle individual, historial
+                    completo y progreso gamificado viven en cada perfil de <strong>Bitácora</strong>.
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -500,4 +471,8 @@ export default function EstadisticasPage() {
       </div>
     </div>
   )
+}
+
+function TargetIcon() {
+  return <Activity className="h-8 w-8 text-amber-400 opacity-50" />
 }

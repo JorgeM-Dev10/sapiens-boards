@@ -34,11 +34,37 @@ export async function GET(
             date: "desc",
           },
         },
+        entries: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            task: {
+              select: {
+                id: true,
+                title: true,
+                impactLevel: true,
+                economicValue: true,
+                list: {
+                  select: {
+                    board: {
+                      select: {
+                        id: true,
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
         user: {
           select: {
             id: true,
             name: true,
             email: true,
+            image: true,
           },
         },
       },
@@ -74,7 +100,16 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, image, order, boardId, themeColor, themeVariant } = body
+    const {
+      title,
+      description,
+      image,
+      order,
+      boardId,
+      themeColor,
+      themeVariant,
+      avatarImageUrl,
+    } = body
 
     // Verificar que la bitácora pertenece al usuario
     const existing = await prisma.bitacoraBoard.findFirst({
@@ -135,6 +170,25 @@ export async function PATCH(
         ...(boardId !== undefined && { boardId: boardId || null }),
         ...(themeColor !== undefined && { themeColor: themeColor || null }),
         ...(themeVariant !== undefined && { themeVariant: themeVariant || null }),
+        ...(avatarImageUrl !== undefined && {
+          avatar: {
+            upsert: {
+              create: {
+                level: 1,
+                experience: 0,
+                totalHours: 0,
+                totalTasks: 0,
+                totalSessions: 0,
+                avatarStyle: "basic",
+                rank: "INITIUM",
+                avatarImageUrl: avatarImageUrl || null,
+              },
+              update: {
+                avatarImageUrl: avatarImageUrl || null,
+              },
+            },
+          },
+        }),
         updatedAt: new Date(),
       },
       include: {
