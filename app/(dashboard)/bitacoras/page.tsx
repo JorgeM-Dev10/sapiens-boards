@@ -54,6 +54,31 @@ interface Bitacora {
   }
 }
 
+const ROLE_TOKEN_START = "[ROLE]"
+const ROLE_TOKEN_END = "[/ROLE]"
+const ABOUT_TOKEN_START = "[ABOUT]"
+const ABOUT_TOKEN_END = "[/ABOUT]"
+
+function decodeBitacoraDescription(raw: string | null) {
+  if (!raw) return ""
+
+  const roleStart = raw.indexOf(ROLE_TOKEN_START)
+  const roleEnd = raw.indexOf(ROLE_TOKEN_END)
+  let content = raw
+
+  if (roleStart >= 0 && roleEnd > roleStart) {
+    content = raw.slice(roleEnd + ROLE_TOKEN_END.length).trim()
+  }
+
+  const aboutStart = content.indexOf(ABOUT_TOKEN_START)
+  const aboutEnd = content.indexOf(ABOUT_TOKEN_END)
+  if (aboutStart >= 0 && aboutEnd > aboutStart) {
+    return content.slice(aboutStart + ABOUT_TOKEN_START.length, aboutEnd).trim()
+  }
+
+  return content
+}
+
 // Componente para tarjeta de bitácora
 function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
   bitacora: Bitacora
@@ -62,6 +87,7 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
   onDelete: (bitacoraId: string, e: React.MouseEvent) => void
   onClick: () => void
 }) {
+  const profileSummary = decodeBitacoraDescription(bitacora.description)
 
   const getLevelColor = (_level: number) => "text-gray-400"
 
@@ -290,8 +316,8 @@ function BitacoraCard({ bitacora, rankPosition, onEdit, onDelete, onClick }: {
                 <CardTitle className="text-white drop-shadow-lg text-xl font-bold mb-2">
                   {bitacora.title}
                 </CardTitle>
-                {bitacora.description && (
-                  <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2 text-sm">{bitacora.description}</CardDescription>
+                {profileSummary && (
+                  <CardDescription className="text-gray-200 mt-1 drop-shadow-md line-clamp-2 text-sm">{profileSummary}</CardDescription>
                 )}
               </div>
               <div className="flex space-x-1">
