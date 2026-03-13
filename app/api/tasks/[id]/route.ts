@@ -131,7 +131,7 @@ export async function PATCH(
         const bitacora = await prisma.bitacoraBoard.findFirst({
           where: {
             boardId: task.list.board.id,
-            userId: session.user.id,
+            userId,
           },
           include: {
             avatar: true,
@@ -210,7 +210,7 @@ export async function PATCH(
           const startTime = new Date(now.getTime() - 30 * 60000)
           await prisma.workSession.create({
             data: {
-              userId: session.user.id,
+              userId,
               bitacoraBoardId: bitacora.id,
               boardId: task.list.board.id,
               listId: task.listId,
