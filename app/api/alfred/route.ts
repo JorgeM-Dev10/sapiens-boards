@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-
-// Verificar API key
-function verifyApiKey(request: Request): boolean {
-  const apiKey = request.headers.get("x-api-key") || request.headers.get("authorization")?.replace("Bearer ", "")
-  const validApiKey = process.env.ALFRED_API_KEY
-
-  if (!validApiKey) {
-    console.error("ALFRED_API_KEY no está configurada en las variables de entorno")
-    return false
-  }
-
-  return apiKey === validApiKey
-}
+import { getApiKeyFromRequest, findAndValidateApiKey } from "@/lib/api-key"
 
 // Obtener userId del request o usar el primero disponible
 async function getUserId(userId?: string, userEmail?: string): Promise<string | null> {
@@ -31,17 +19,33 @@ async function getUserId(userId?: string, userEmail?: string): Promise<string | 
   return firstUser?.id || null
 }
 
+/**
+ * Valida API key: acepta ALFRED_API_KEY (env) o una key de la tabla api_keys (panel).
+ * Devuelve el userId a usar para la petición o null si no válida.
+ */
+async function resolveAlfredAuth(request: Request, body: { userId?: string; userEmail?: string }): Promise<string | null> {
+  const rawKey = getApiKeyFromRequest(request)
+  if (!rawKey?.trim()) return null
+
+  // 1) Key de entorno (legacy)
+  const envKey = process.env.ALFRED_API_KEY
+  if (envKey && rawKey.trim() === envKey) {
+    return await getUserId(body.userId, body.userEmail)
+  }
+
+  // 2) Key de la tabla api_keys (panel)
+  try {
+    const apiKey = await findAndValidateApiKey(rawKey.trim())
+    if (apiKey) return apiKey.createdById
+  } catch {
+    // key inactiva → 403 se devuelve más abajo
+  }
+  return null
+}
+
 export async function POST(request: Request) {
   try {
-    // Verificar API key
-    if (!verifyApiKey(request)) {
-      return NextResponse.json(
-        { error: "API key inválida o no proporcionada" },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const { action, resource, data, id, userId, userEmail } = body
 
     if (!action || !resource) {
@@ -51,11 +55,25 @@ export async function POST(request: Request) {
       )
     }
 
-    const targetUserId = await getUserId(userId, userEmail)
+    const targetUserId = await resolveAlfredAuth(request, { userId, userEmail })
     if (!targetUserId) {
+      const rawKey = getApiKeyFromRequest(request)
+      if (rawKey?.trim()) {
+        try {
+          await findAndValidateApiKey(rawKey.trim())
+        } catch (err: unknown) {
+          const e = err as { code?: string }
+          if (e?.code === "API_KEY_INACTIVE") {
+            return NextResponse.json(
+              { error: "API key desactivada" },
+              { status: 403 }
+            )
+          }
+        }
+      }
       return NextResponse.json(
-        { error: "No se pudo determinar el usuario. Proporciona userId o userEmail" },
-        { status: 400 }
+        { error: "API key inválida o no proporcionada" },
+        { status: 401 }
       )
     }
 

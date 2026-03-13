@@ -12,26 +12,22 @@ export type AuthResult =
   | NextResponse
 
 /**
- * Obtiene el userId permitiendo sesión O API Key.
- * No modifica la lógica actual: si hay sesión se usa; si no, se intenta x-api-key.
- * - Si no hay sesión ni API key → 401
- * - Si API key no existe → 401
- * - Si API key existe pero inactiva → 403
+ * Middleware checkApiKey: lee header x-api-key, busca en api_keys.
+ * - No existe key en request → 401
+ * - Key no existe en DB → 401
+ * - Key existe pero isActive = false → 403
+ * - Key existe y activa → permite request (devuelve userId).
  */
-export async function getAuthUserId(request: Request): Promise<AuthResult> {
-  const session = await getServerSession(authOptions)
-  if (session?.user?.id) {
-    return { userId: session.user.id, method: "session" }
-  }
-
+export async function checkApiKey(
+  request: Request
+): Promise<{ userId: string } | NextResponse> {
   const rawKey = getApiKeyFromRequest(request)
   if (!rawKey) {
     return NextResponse.json(
-      { error: "No autorizado. Inicia sesión o envía x-api-key." },
+      { error: "No autorizado. Envía header x-api-key." },
       { status: 401 }
     )
   }
-
   try {
     const apiKey = await findAndValidateApiKey(rawKey)
     if (!apiKey) {
@@ -40,7 +36,7 @@ export async function getAuthUserId(request: Request): Promise<AuthResult> {
         { status: 401 }
       )
     }
-    return { userId: apiKey.createdById, method: "apiKey" }
+    return { userId: apiKey.createdById }
   } catch (err: unknown) {
     const e = err as { code?: string }
     if (e?.code === "API_KEY_INACTIVE") {
@@ -51,6 +47,23 @@ export async function getAuthUserId(request: Request): Promise<AuthResult> {
     }
     throw err
   }
+}
+
+/**
+ * Obtiene el userId permitiendo sesión O API Key (alternativa al login).
+ * Primero sesión; si no hay sesión, usa checkApiKey (x-api-key).
+ * Aplicado a: /api/clients, /api/workers, /api/bitacoras, /api/boards (roadmaps),
+ * /api/ai-solutions (solutions), /api/company-expenses (expenses).
+ * No rompe auth actual.
+ */
+export async function getAuthUserId(request: Request): Promise<AuthResult> {
+  const session = await getServerSession(authOptions)
+  if (session?.user?.id) {
+    return { userId: session.user.id, method: "session" }
+  }
+  const result = await checkApiKey(request)
+  if (result instanceof NextResponse) return result
+  return { userId: result.userId, method: "apiKey" }
 }
 
 /**
