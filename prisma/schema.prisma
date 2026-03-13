@@ -399,5 +399,19 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model ApiLog {
+  id         String   @id @default(cuid())
+  apiKey     String?  // keyPrefix (nunca la key completa)
+  endpoint   String
+  method     String
+  resource   String?  // recurso principal (ej: clients, tasks)
+  action     String?  // GET->read, POST->create, etc.
+  statusCode Int?     // código HTTP de respuesta
+  body       Json?    // truncado si es muy grande
+  createdAt  DateTime @default(now())
+
+  @@map("api_logs")
+}
+
 
 

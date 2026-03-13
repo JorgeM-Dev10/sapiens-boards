@@ -1,34 +1,46 @@
 import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
+import { parsePaginationParams, wantsPagination, paginatedResponse } from "@/lib/api-pagination"
 
 export async function GET(request: Request) {
+  const start = Date.now()
   try {
     const auth = await getAuthUserId(request)
     if (auth instanceof NextResponse) return auth
     const userId = auth.userId
 
-    const clients = await prisma.client.findMany({
-      where: {
-        userId,
-      },
-      include: {
-        timelines: {
-          orderBy: {
-            createdAt: "desc",
-          },
+    const url = request.url
+    const nameFilter = new URL(url, "http://localhost").searchParams.get("name")?.trim()
+    const usePagination = wantsPagination(url)
+    const params = usePagination ? parsePaginationParams(url) : null
+
+    const where: { userId: string; name?: { contains: string; mode: "insensitive" } } = { userId }
+    if (nameFilter) where.name = { contains: nameFilter, mode: "insensitive" }
+
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        include: {
+          timelines: { orderBy: { createdAt: "desc" as const } },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    })
+        orderBy: params?.orderBy ?? { createdAt: "desc" },
+        ...(usePagination && params ? { skip: params.skip, take: params.take } : {}),
+      }),
+      usePagination ? prisma.client.count({ where }) : Promise.resolve(0),
+    ])
 
     const withComputed = clients.map((c) => ({
       ...c,
       pendingAmount: c.totalAmount - c.paidAmount,
       paymentStatus: c.totalAmount - c.paidAmount > 0 ? "Pending" : "Paid",
     }))
+
+    if (usePagination && params) {
+      return NextResponse.json(
+        paginatedResponse(withComputed, total, { ...params, limit: params.limit!, skip: params.skip, take: params.take }, "clients", start)
+      )
+    }
     return NextResponse.json(withComputed)
   } catch (error) {
     console.error("Error fetching clients:", error)

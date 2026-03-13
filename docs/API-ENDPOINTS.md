@@ -1,6 +1,25 @@
 # API Sapiens Boards – Endpoints
 
-Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-key` o `Authorization: Bearer <key>`). No rompen el frontend actual.
+Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-key` o `Authorization: Bearer <key>`). Las peticiones con API Key se registran en `api_logs`. No rompen el frontend actual.
+
+## Query params (listados)
+
+En los GET que devuelven listas se puede usar:
+
+- `?limit=` — máximo de registros (default 100, máx 500)
+- `?offset=` o `?page=` — paginación
+- `?sort=` — campo para ordenar (ej: `createdAt`, `title`)
+- `?order=` — `asc` o `desc`
+
+Si se usan `limit` o `page`, la respuesta es: `{ success: true, data: [], total, page, limit, meta: { resource, count, total, time } }`. Si no se envían, se devuelve el array directo (comportamiento anterior).
+
+Filtros por recurso (ejemplos):
+
+- `GET /api/clients?name=...`
+- `GET /api/tasks?boardId=...`
+- `GET /api/expenses?month=YYYY-MM`
+
+---
 
 ## Estructura estándar
 
@@ -15,8 +34,9 @@ Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-ke
 ## Recursos
 
 ### Clients (clientes)
-- `GET /api/clients` — listar clientes
+- `GET /api/clients` — listar (filtro: `?name=`, paginación: `?limit=&page=`)
 - `GET /api/clients/:id` — un cliente
+- `GET /api/clients/:id/expenses` — gastos de la cuenta del cliente
 - `POST /api/clients` — crear cliente
 - `PATCH /api/clients/:id` — actualizar
 - `DELETE /api/clients/:id` — eliminar
@@ -51,7 +71,7 @@ Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-ke
 - `POST /api/ai-solutions/reorder` — reordenar
 
 ### Expenses (gastos de empresa)
-- `GET /api/company-expenses` — listar (también `GET /api/expenses`)
+- `GET /api/company-expenses` — listar (filtro: `?month=YYYY-MM`, paginación) (también `GET /api/expenses`)
 - `GET /api/company-expenses/:id` — un gasto (también `GET /api/expenses/:id`)
 - `POST /api/company-expenses` — crear
 - `PATCH /api/company-expenses/:id` — actualizar
@@ -60,17 +80,28 @@ Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-ke
 ### Roadmaps (tableros / boards)
 - `GET /api/boards` — listar (también `GET /api/roadmaps`)
 - `GET /api/boards/:id` — un tablero (también `GET /api/roadmaps/:id`)
+- `GET /api/boards/:id/tasks` — tareas del tablero (relación)
 - `POST /api/boards` — crear
 - `PATCH /api/boards/:id` — actualizar
 - `DELETE /api/boards/:id` — eliminar
 - `POST /api/boards/reorder` — reordenar (también `POST /api/roadmaps/reorder`)
 
 ### Tasks (tareas)
-- `GET /api/tasks` — listar tareas (de todos los tableros del usuario)
+- `GET /api/tasks` — listar (filtro: `?boardId=`, paginación: `?limit=&page=&sort=&order=`)
 - `GET /api/tasks/:id` — una tarea
 - `POST /api/tasks` — crear (requiere `title`, `listId`)
 - `PATCH /api/tasks/:id` — actualizar
 - `DELETE /api/tasks/:id` — eliminar
+
+### Health, reciente y actividad
+- `GET /api/health` — comprobar que la API está activa. No requiere auth. `{ success: true, status: "ok", time }`.
+- `GET /api/recent` — últimos 10 registros de clients, tasks, expenses, bitacoras, boards. `{ success: true, data: { clients, tasks, expenses, bitacoras, boards } }`.
+- `GET /api/activity` — actividad reciente combinada (por createdAt). `{ success: true, data: [ { type, resource, id, createdAt, title? }, ... ] }`.
+
+### Búsqueda y resumen
+- `GET /api/search?q=...` — búsqueda global en clients, tasks, boards, solutions, bitacoras. Respuesta: `{ success: true, clients, tasks, boards, solutions, bitacoras, meta }`.
+- `GET /api/summary` — resumen en una llamada (clientes, workers, gastos, ingresos, tareas, boards, bitácoras, solutions). `{ success: true, data: { ... }, meta }`.
+- `GET /api/meta` — recursos, endpoints, actions y versión de API (para IA). `{ success: true, data: { version, resources, endpoints, actions, queryParams }, meta }`.
 
 ### API Keys (solo admin)
 - `GET /api/admin/api-keys` — listar keys (también `GET /api/api-keys`)
@@ -80,14 +111,29 @@ Todos los endpoints aceptan **sesión** (cookie) o **API Key** (header `x-api-ke
 
 ---
 
-## Integración Alfred (un solo endpoint)
+## Integración Alfred y batch
 
-- `POST /api/alfred` — acciones genéricas (create, read, update, delete, list) sobre recursos. Acepta la misma API Key del panel. Body: `{ action, resource, data?, id?, userId?, userEmail? }`.
+- `POST /api/alfred` — una acción sobre un recurso. Body: `{ action, resource, id?, data?, filters?, limit?, sort?, userId?, userEmail?, source? }`.
+
+**Actions:** `create` | `read` | `update` | `delete` | `list` | `stats` | `summary` | `search`
+
+**Resources:** `clients`, `workers`, `bitacoras`, `tasks`, `boards`, `roadmaps`, `expenses`, `solutions`, `stats`
+
+- `list` acepta `limit` y `sort`. `stats` y `summary` devuelven resumen numérico. `search` usa `filters.q` o `q`.
+
+- `POST /api/batch` — varias acciones en una request. Body: `{ actions: [ { action, resource, id?, data?, filters? }, ... ] }`. Máximo 20 acciones. Respuesta: `{ success: true, results: [ { success, data? } | { success: false, error }, ... ] }`.
+
+---
+
+## Logs de API
+
+Cada petición con **API Key** se registra en `api_logs`: apiKey (prefix), endpoint, method, resource, action, statusCode (opcional), body (truncado si es grande), createdAt.
 
 ---
 
 ## Respuestas
 
-- Éxito: JSON con los datos (o `{ success: true, data: ... }` en `/api/stats`).
+- Éxito: JSON con los datos. Con paginación: `{ success: true, data, total, page, limit, meta }`. Sin paginación: array u objeto como antes.
+- Nuevos endpoints (search, summary, meta, stats) incluyen `meta: { resource, count, time }`.
 - Error: `{ error: "mensaje" }` con código HTTP 4xx/5xx.
 - No se devuelve HTML en estos endpoints.

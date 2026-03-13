@@ -61,6 +61,7 @@ export async function findAndValidateApiKey(
     id: apiKey.id,
     createdById: apiKey.createdById,
     name: apiKey.name,
+    keyPrefix: apiKey.keyPrefix,
   }
 }
 

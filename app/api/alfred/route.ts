@@ -46,7 +46,7 @@ async function resolveAlfredAuth(request: Request, body: { userId?: string; user
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const { action, resource, data, id, userId, userEmail } = body
+    const { action, resource, data, id, userId, userEmail, filters, limit, sort, source } = body
 
     if (!action || !resource) {
       return NextResponse.json(
@@ -77,37 +77,7 @@ export async function POST(request: Request) {
       )
     }
 
-    let result: any
-
-    switch (action.toLowerCase()) {
-      case "create":
-        result = await handleCreate(resource, data, targetUserId)
-        break
-      case "read":
-        result = await handleRead(resource, id, targetUserId)
-        break
-      case "update":
-        if (!id) {
-          return NextResponse.json({ error: "Se requiere 'id' para actualizar" }, { status: 400 })
-        }
-        result = await handleUpdate(resource, id, data, targetUserId)
-        break
-      case "delete":
-        if (!id) {
-          return NextResponse.json({ error: "Se requiere 'id' para eliminar" }, { status: 400 })
-        }
-        result = await handleDelete(resource, id, targetUserId)
-        break
-      case "list":
-        result = await handleList(resource, targetUserId)
-        break
-      default:
-        return NextResponse.json(
-          { error: `Acción '${action}' no válida. Use: create, read, update, delete, list` },
-          { status: 400 }
-        )
-    }
-
+    const result = await runOneAlfredAction(targetUserId, body)
     return NextResponse.json({ success: true, data: result })
   } catch (error: any) {
     console.error("Error en API de Alfred:", error)
@@ -115,6 +85,39 @@ export async function POST(request: Request) {
       { error: error.message || "Error interno del servidor" },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * Ejecuta una sola acción Alfred. Usado por POST /api/alfred y POST /api/batch.
+ */
+export async function runOneAlfredAction(userId: string, body: Record<string, unknown>): Promise<unknown> {
+  const { action, resource, data, id, filters, limit, sort } = body
+  if (!action || !resource) {
+    throw new Error("Se requiere 'action' y 'resource'")
+  }
+  const act = String(action).toLowerCase()
+  switch (act) {
+    case "create":
+      return await handleCreate(String(resource), data as any, userId)
+    case "read":
+      return await handleRead(String(resource), id as string | undefined, userId)
+    case "update":
+      if (!id) throw new Error("Se requiere 'id' para actualizar")
+      return await handleUpdate(String(resource), String(id), data as any, userId)
+    case "delete":
+      if (!id) throw new Error("Se requiere 'id' para eliminar")
+      return await handleDelete(String(resource), String(id), userId)
+    case "list":
+      return await handleList(String(resource), userId, { filters: filters as ListOptions["filters"], limit: limit as number | undefined, sort: sort as string | undefined })
+    case "stats":
+      return await handleStats(userId)
+    case "summary":
+      return await handleStats(userId)
+    case "search":
+      return await handleSearch(userId, (filters as { q?: string })?.q ?? (body.q as string) ?? "")
+    default:
+      throw new Error(`Acción '${action}' no válida. Use: create, read, update, delete, list, stats, summary, search`)
   }
 }
 
@@ -729,22 +732,37 @@ async function handleDelete(resource: string, id: string, userId: string) {
 }
 
 // LIST
-async function handleList(resource: string, userId: string) {
+const defaultTake = 100
+const maxTake = 500
+type ListOptions = { filters?: Record<string, unknown>; limit?: number; sort?: string }
+function listOpts(opts?: ListOptions) {
+  const take = opts?.limit ? Math.min(Math.max(1, opts.limit), maxTake) : defaultTake
+  const sortField = opts?.sort || "createdAt"
+  const orderBy = { [sortField]: "desc" as const }
+  return { take, orderBy }
+}
+
+async function handleList(resource: string, userId: string, options?: ListOptions) {
+  const opts = listOpts(options)
   switch (resource.toLowerCase()) {
     case "client":
     case "clients":
       return await prisma.client.findMany({
         where: { userId },
         include: { timelines: { orderBy: { createdAt: "desc" } } },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "board":
     case "boards":
+    case "roadmap":
+    case "roadmaps":
       return await prisma.board.findMany({
         where: { ownerId: userId },
         include: { lists: { include: { tasks: true } } },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "list":
@@ -752,24 +770,28 @@ async function handleList(resource: string, userId: string) {
       return await prisma.list.findMany({
         include: { tasks: true },
         orderBy: { order: "asc" },
+        take: opts.take,
       })
 
     case "task":
     case "tasks":
       return await prisma.task.findMany({
+        where: { list: { board: { ownerId: userId } } },
         include: {
           assigned: true,
           tags: { include: { tag: true } },
           list: true,
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "worker":
     case "workers":
       return await prisma.worker.findMany({
         where: { userId },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "ai-solution":
@@ -778,19 +800,22 @@ async function handleList(resource: string, userId: string) {
     case "solutions":
       return await prisma.aISolution.findMany({
         where: { userId },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "tag":
     case "tags":
       return await prisma.tag.findMany({
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "timeline":
     case "timelines":
       return await prisma.clientTimeline.findMany({
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     case "order":
@@ -815,12 +840,90 @@ async function handleList(resource: string, userId: string) {
             },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: opts.orderBy,
+        take: opts.take,
+      })
+
+    case "expense":
+    case "expenses":
+      return await prisma.companyExpense.findMany({
+        where: { createdById: userId },
+        orderBy: opts.orderBy,
+        take: opts.take,
+      })
+
+    case "bitacora":
+    case "bitacoras":
+      return await prisma.bitacoraBoard.findMany({
+        where: { userId },
+        include: { avatar: true },
+        orderBy: opts.orderBy,
+        take: opts.take,
       })
 
     default:
       throw new Error(`Recurso '${resource}' no válido`)
   }
+}
+
+// STATS
+async function handleStats(userId: string) {
+  const [clientsAgg, workersAgg, expensesAgg, clientRevenue, tasksCount, boardsCount, bitacorasCount, solutionsCount] = await Promise.all([
+    prisma.client.count({ where: { userId } }),
+    prisma.worker.count({ where: { userId } }),
+    prisma.companyExpense.aggregate({ where: { createdById: userId }, _sum: { amount: true }, _count: true }),
+    prisma.client.aggregate({ where: { userId }, _sum: { totalAmount: true, paidAmount: true } }),
+    prisma.task.count({ where: { list: { board: { ownerId: userId } } } }),
+    prisma.board.count({ where: { ownerId: userId } }),
+    prisma.bitacoraBoard.count({ where: { userId } }),
+    prisma.aISolution.count({ where: { userId } }),
+  ])
+  const totalRevenue = clientRevenue._sum.totalAmount ?? 0
+  const totalPaid = clientRevenue._sum.paidAmount ?? 0
+  return {
+    clientes: clientsAgg,
+    workers: workersAgg,
+    gastos: { total: expensesAgg._sum.amount ?? 0, count: expensesAgg._count },
+    ingresos: { total: totalRevenue, cobrado: totalPaid, pendiente: totalRevenue - totalPaid },
+    tareas: tasksCount,
+    boards: boardsCount,
+    bitacoras: bitacorasCount,
+    solutions: solutionsCount,
+  }
+}
+
+// SEARCH
+async function handleSearch(userId: string, q: string) {
+  if (!q?.trim()) return { clients: [], tasks: [], boards: [], solutions: [], bitacoras: [] }
+  const mode = "insensitive" as const
+  const [clients, tasks, boards, solutions, bitacoras] = await Promise.all([
+    prisma.client.findMany({
+      where: { userId, OR: [{ name: { contains: q, mode } }, { description: { contains: q, mode } }] },
+      take: 20,
+    }),
+    prisma.task.findMany({
+      where: {
+        list: { board: { ownerId: userId } },
+        OR: [{ title: { contains: q, mode } }, { description: { contains: q, mode } }],
+      },
+      take: 20,
+      include: { list: { select: { id: true, title: true, board: { select: { id: true, title: true } } } } },
+    }),
+    prisma.board.findMany({
+      where: { ownerId: userId, OR: [{ title: { contains: q, mode } }, { description: { contains: q, mode } }] },
+      take: 20,
+    }),
+    prisma.aISolution.findMany({
+      where: { userId, OR: [{ name: { contains: q, mode } }, { description: { contains: q, mode } }, { category: { contains: q, mode } }] },
+      take: 20,
+    }),
+    prisma.bitacoraBoard.findMany({
+      where: { userId, OR: [{ title: { contains: q, mode } }, { description: { contains: q, mode } }] },
+      take: 20,
+      include: { avatar: true },
+    }),
+  ])
+  return { clients, tasks, boards, solutions, bitacoras }
 }
 
 

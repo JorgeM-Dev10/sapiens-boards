@@ -5,10 +5,11 @@ import {
   getApiKeyFromRequest,
   findAndValidateApiKey,
 } from "@/lib/api-key"
+import { logApiRequest } from "@/lib/api-log"
 
 export type AuthResult =
   | { userId: string; method: "session" }
-  | { userId: string; method: "apiKey" }
+  | { userId: string; method: "apiKey"; keyPrefix: string }
   | NextResponse
 
 /**
@@ -16,11 +17,11 @@ export type AuthResult =
  * - No existe key en request → 401
  * - Key no existe en DB → 401
  * - Key existe pero isActive = false → 403
- * - Key existe y activa → permite request (devuelve userId).
+ * - Key existe y activa → permite request (devuelve userId y keyPrefix para logs).
  */
 export async function checkApiKey(
   request: Request
-): Promise<{ userId: string } | NextResponse> {
+): Promise<{ userId: string; keyPrefix: string } | NextResponse> {
   const rawKey = getApiKeyFromRequest(request)
   if (!rawKey) {
     return NextResponse.json(
@@ -36,7 +37,7 @@ export async function checkApiKey(
         { status: 401 }
       )
     }
-    return { userId: apiKey.createdById }
+    return { userId: apiKey.createdById, keyPrefix: apiKey.keyPrefix }
   } catch (err: unknown) {
     const e = err as { code?: string }
     if (e?.code === "API_KEY_INACTIVE") {
@@ -51,10 +52,7 @@ export async function checkApiKey(
 
 /**
  * Obtiene el userId permitiendo sesión O API Key (alternativa al login).
- * Primero sesión; si no hay sesión, usa checkApiKey (x-api-key).
- * Aplicado a: /api/clients, /api/workers, /api/bitacoras, /api/boards (roadmaps),
- * /api/ai-solutions (solutions), /api/company-expenses (expenses).
- * No rompe auth actual.
+ * Si la petición es con API Key, registra en api_logs (endpoint, method).
  */
 export async function getAuthUserId(request: Request): Promise<AuthResult> {
   const session = await getServerSession(authOptions)
@@ -63,7 +61,21 @@ export async function getAuthUserId(request: Request): Promise<AuthResult> {
   }
   const result = await checkApiKey(request)
   if (result instanceof NextResponse) return result
-  return { userId: result.userId, method: "apiKey" }
+  try {
+    const pathname = new URL(request.url, "http://localhost").pathname
+    const segments = pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean)
+    const resource = segments[0] ?? undefined
+    const action = request.method === "GET" ? "read" : request.method === "POST" ? "create" : request.method === "PATCH" || request.method === "PUT" ? "update" : request.method === "DELETE" ? "delete" : request.method.toLowerCase()
+    await logApiRequest({
+      apiKeyPrefix: result.keyPrefix,
+      endpoint: pathname,
+      method: request.method,
+      resource: resource || undefined,
+      action,
+      body: null,
+    })
+  } catch (_) {}
+  return { userId: result.userId, method: "apiKey", keyPrefix: result.keyPrefix }
 }
 
 /**

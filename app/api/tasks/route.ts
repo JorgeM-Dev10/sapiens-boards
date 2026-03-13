@@ -1,28 +1,45 @@
 import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
+import { parsePaginationParams, wantsPagination, paginatedResponse } from "@/lib/api-pagination"
 
 export async function GET(request: Request) {
+  const start = Date.now()
   try {
     const auth = await getAuthUserId(request)
     if (auth instanceof NextResponse) return auth
     const userId = auth.userId
 
-    const tasks = await prisma.task.findMany({
-      where: {
-        list: {
-          board: {
-            ownerId: userId,
-          },
+    const url = request.url
+    const u = new URL(url, "http://localhost")
+    const boardId = u.searchParams.get("boardId")?.trim()
+    const usePagination = wantsPagination(url)
+    const params = usePagination ? parsePaginationParams(url) : null
+
+    const where: { list: { board: { ownerId: string; id?: string } } } = {
+      list: { board: { ownerId: userId } },
+    }
+    if (boardId) where.list.board.id = boardId
+
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        include: {
+          assigned: true,
+          list: { include: { board: { select: { id: true, title: true } } } },
+          tags: { include: { tag: true } },
         },
-      },
-      include: {
-        assigned: true,
-        list: { include: { board: { select: { id: true, title: true } } } },
-        tags: { include: { tag: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    })
+        orderBy: params?.orderBy ?? { createdAt: "desc" },
+        ...(usePagination && params ? { skip: params.skip, take: params.take } : {}),
+      }),
+      usePagination ? prisma.task.count({ where }) : Promise.resolve(0),
+    ])
+
+    if (usePagination && params) {
+      return NextResponse.json(
+        paginatedResponse(tasks, total, { ...params, limit: params.limit!, skip: params.skip, take: params.take }, "tasks", start)
+      )
+    }
     return NextResponse.json(tasks)
   } catch (error) {
     console.error("Error fetching tasks:", error)
