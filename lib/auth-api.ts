@@ -57,7 +57,9 @@ export async function getAuthUserId(request: Request): Promise<AuthResult> {
  * Comprueba si el usuario actual es admin (para rutas /api/admin/*).
  * Por defecto se usa ADMIN_EMAIL en env; si no está definido, cualquier usuario logueado es "admin" para API keys.
  */
-export function isAdmin(session: { user?: { email?: string | null } } | null): boolean {
+export function isAdmin(
+  session: { user?: { id?: string; email?: string | null } } | null
+): boolean {
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
     return session?.user?.email === adminEmail
