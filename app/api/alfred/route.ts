@@ -101,7 +101,8 @@ export async function runOneAlfredAction(userId: string, body: Record<string, un
     case "create":
       return await handleCreate(String(resource), data as any, userId)
     case "read":
-      return await handleRead(String(resource), id as string | undefined, userId)
+      if (!id) throw new Error("Se requiere 'id' para leer")
+      return await handleRead(String(resource), String(id), userId)
     case "update":
       if (!id) throw new Error("Se requiere 'id' para actualizar")
       return await handleUpdate(String(resource), String(id), data as any, userId)
