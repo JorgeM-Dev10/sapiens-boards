@@ -46,7 +46,6 @@ export async function GET(request: Request) {
       }),
       prisma.board.findMany({
         where: { ownerId: userId },
-        select: { id: true },
         include: {
           lists: {
             select: { id: true },
