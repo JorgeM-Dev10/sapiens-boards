@@ -2,6 +2,36 @@ import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
+
+    const { id } = await params
+    const solution = await prisma.aISolution.findFirst({
+      where: { id, userId },
+      include: {
+        bundleItems: { include: { solution: true } },
+        bundles: { include: { bundle: true } },
+      },
+    })
+    if (!solution) {
+      return NextResponse.json({ error: "Solución no encontrada" }, { status: 404 })
+    }
+    return NextResponse.json(solution)
+  } catch (error) {
+    console.error("Error fetching solution:", error)
+    return NextResponse.json(
+      { error: "Error al obtener la solución" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

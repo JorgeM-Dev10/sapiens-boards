@@ -1,15 +1,43 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
+
+export async function GET(request: Request) {
+  try {
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        list: {
+          board: {
+            ownerId: userId,
+          },
+        },
+      },
+      include: {
+        assigned: true,
+        list: { include: { board: { select: { id: true, title: true } } } },
+        tags: { include: { tag: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    return NextResponse.json(tasks)
+  } catch (error) {
+    console.error("Error fetching tasks:", error)
+    return NextResponse.json(
+      { error: "Error al obtener las tareas" },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const { title, description, image, listId, order, status, assignedTo, dueDate } = body
@@ -23,9 +51,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verificar que la lista existe
-    const list = await prisma.list.findUnique({
-      where: { id: listId },
+    // Verificar que la lista existe y pertenece a un board del usuario
+    const list = await prisma.list.findFirst({
+      where: {
+        id: listId,
+        board: { ownerId: userId },
+      },
     })
 
     if (!list) {

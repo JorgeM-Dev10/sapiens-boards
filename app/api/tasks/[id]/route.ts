@@ -1,21 +1,57 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
 import { evaluateTaskImpact } from "@/lib/openrouter"
 import { recomputeBitacoraAvatar } from "@/lib/gamification"
+
+async function getTaskAndCheckOwner(id: string, userId: string) {
+  const task = await prisma.task.findFirst({
+    where: {
+      id,
+      list: { board: { ownerId: userId } },
+    },
+    include: {
+      assigned: true,
+      list: { include: { board: true } },
+      tags: { include: { tag: true } },
+    },
+  })
+  return task
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
+
+    const { id } = await params
+    const task = await getTaskAndCheckOwner(id, userId)
+    if (!task) {
+      return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
+    }
+    return NextResponse.json(task)
+  } catch (error) {
+    console.error("Error fetching task:", error)
+    return NextResponse.json(
+      { error: "Error al obtener la tarea" },
+      { status: 500 }
+    )
+  }
+}
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
     const body = await request.json()
@@ -55,17 +91,10 @@ export async function PATCH(
       }
     }
 
-    // Obtener la tarea antes de actualizar para verificar si cambió el status
-    const oldTask = await prisma.task.findUnique({
-      where: { id },
-      include: {
-        list: {
-          include: {
-            board: true,
-          },
-        },
-      },
-    })
+    const existing = await getTaskAndCheckOwner(id, userId)
+    if (!existing) {
+      return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
+    }
 
     const task = await prisma.task.update({
       where: {
@@ -97,7 +126,7 @@ export async function PATCH(
     } | null = null
 
     // Completada: evaluación IA, guardar impacto, crear BitacoraEntry y actualizar avatar
-    if (status === "completed" && oldTask?.status !== "completed" && task.list?.board) {
+    if (status === "completed" && existing?.status !== "completed" && task.list?.board) {
       try {
         const bitacora = await prisma.bitacoraBoard.findFirst({
           where: {
@@ -228,18 +257,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
+    const task = await getTaskAndCheckOwner(id, userId)
+    if (!task) {
+      return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
+    }
 
     await prisma.task.delete({
-      where: {
-        id,
-      },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

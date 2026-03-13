@@ -2,6 +2,32 @@ import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
+
+    const { id } = await params
+    const expense = await prisma.companyExpense.findFirst({
+      where: { id, createdById: userId },
+    })
+    if (!expense) {
+      return NextResponse.json({ error: "Gasto no encontrado" }, { status: 404 })
+    }
+    return NextResponse.json(expense)
+  } catch (error) {
+    console.error("Error fetching expense:", error)
+    return NextResponse.json(
+      { error: "Error al obtener el gasto" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
