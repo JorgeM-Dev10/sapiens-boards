@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const { solutionIds, type } = body // Array de IDs en el nuevo orden
@@ -26,7 +23,7 @@ export async function POST(request: Request) {
       prisma.aISolution.updateMany({
         where: {
           id: solutionId,
-          userId: session.user.id,
+          userId,
           ...(type && { type }),
         },
         data: {

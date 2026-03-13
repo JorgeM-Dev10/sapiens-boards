@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Building2, Users, Sparkles, BookOpen, LogOut, User, BarChart3, FileText } from "lucide-react"
+import { Calendar, Building2, Users, Sparkles, BookOpen, LogOut, User, BarChart3, FileText, Key } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ const navigation = [
   { name: "Librería", href: "/library", icon: BookOpen },
   { name: "Estadísticas", href: "/estadisticas", icon: BarChart3 },
   { name: "Bitácoras", href: "/bitacoras", icon: FileText },
+  { name: "API Keys", href: "/api-keys", icon: Key },
 ]
 
 export function Sidebar() {

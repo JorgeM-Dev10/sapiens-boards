@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const clients = await prisma.client.findMany({
       where: {
-        userId: session.user.id,
+        userId,
       },
       include: {
         timelines: {
@@ -44,11 +41,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const { name, description, icon, phase, totalAmount, paidAmount, logoUrl } = body
@@ -69,7 +64,7 @@ export async function POST(request: Request) {
         phase: phase || "PLANIFICACIÓN",
         totalAmount: parseFloat(totalAmount),
         paidAmount: parseFloat(paidAmount) || 0,
-        userId: session.user.id,
+        userId,
       },
       include: {
         timelines: true,

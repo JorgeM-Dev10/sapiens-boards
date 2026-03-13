@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(
@@ -8,18 +7,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
     const worker = await prisma.worker.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
     })
 
@@ -42,11 +39,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
     const body = await request.json()
@@ -65,7 +60,7 @@ export async function PATCH(
     const worker = await prisma.worker.update({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
       data: {
         ...(name && { name }),
@@ -96,18 +91,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
     await prisma.worker.delete({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
     })
 

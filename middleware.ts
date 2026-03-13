@@ -9,6 +9,7 @@ export const config = {
     "/library/:path*",
     "/estadisticas/:path*",
     "/bitacoras/:path*",
+    "/api-keys/:path*",
   ]
 }
 

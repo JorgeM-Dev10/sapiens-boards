@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 import { evaluateTaskImpact } from "@/lib/openrouter"
 import { recomputeBitacoraAvatar } from "@/lib/gamification"
@@ -14,10 +13,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
     const body = await request.json()
@@ -33,7 +31,7 @@ export async function POST(
     const bitacora = await prisma.bitacoraBoard.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
       include: {
         avatar: true,

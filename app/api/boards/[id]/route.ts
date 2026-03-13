@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(
@@ -8,11 +7,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
@@ -20,7 +17,7 @@ export async function GET(
     const board = await prisma.board.findFirst({
       where: {
         id,
-        ownerId: session.user.id, // Solo tableros del usuario
+        ownerId: userId, // Solo tableros del usuario
       },
       include: {
         lists: {
@@ -69,11 +66,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
     const body = await request.json()
@@ -82,7 +77,7 @@ export async function PATCH(
     const board = await prisma.board.update({
       where: {
         id,
-        ownerId: session.user.id,
+        ownerId: userId,
       },
       data: {
         title,
@@ -106,18 +101,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
     await prisma.board.delete({
       where: {
         id,
-        ownerId: session.user.id,
+        ownerId: userId,
       },
     })
 

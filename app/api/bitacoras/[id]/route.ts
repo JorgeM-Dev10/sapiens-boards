@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(
@@ -8,18 +7,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
     const bitacora = await prisma.bitacoraBoard.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
       include: {
         avatar: true,
@@ -92,11 +89,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
     const body = await request.json()
@@ -115,7 +110,7 @@ export async function PATCH(
     const existing = await prisma.bitacoraBoard.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
     })
 
@@ -146,7 +141,7 @@ export async function PATCH(
       const board = await prisma.board.findFirst({
         where: {
           id: boardId,
-          ownerId: session.user.id,
+          ownerId: userId,
         },
       })
 
@@ -215,11 +210,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { id } = await params
 
@@ -227,7 +220,7 @@ export async function DELETE(
     const existing = await prisma.bitacoraBoard.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId,
       },
     })
 

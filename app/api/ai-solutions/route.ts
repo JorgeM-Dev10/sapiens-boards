@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type") // "INDIVIDUAL" o "BUNDLE"
 
     const where: any = {
-      userId: session.user.id,
+      userId,
     }
 
     if (type) {
@@ -48,11 +45,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const {
@@ -78,7 +73,7 @@ export async function POST(request: Request) {
     // Obtener el máximo order para ponerlo al final
     const maxOrder = await prisma.aISolution.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         type: type || "INDIVIDUAL",
       },
       orderBy: {
@@ -101,7 +96,7 @@ export async function POST(request: Request) {
         icon,
         order: (maxOrder?.order ?? -1) + 1,
         isActive: isActive !== undefined ? isActive : true,
-        userId: session.user.id,
+        userId,
         updatedAt: new Date(),
       },
     })

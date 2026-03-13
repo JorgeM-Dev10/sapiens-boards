@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const bitacoras = await prisma.bitacoraBoard.findMany({
       where: {
-        userId: session.user.id,
+        userId,
       },
       include: {
         avatar: true,
@@ -103,11 +100,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const { title, description, image, themeColor, themeVariant } = body
@@ -122,7 +117,7 @@ export async function POST(request: Request) {
     // Obtener el máximo order para ponerlo al final
     const maxOrder = await prisma.bitacoraBoard.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
       },
       orderBy: {
         order: "desc",
@@ -142,7 +137,7 @@ export async function POST(request: Request) {
         themeColor: themeColor || null,
         themeVariant: themeVariant || null,
         order: newOrder,
-        userId: session.user.id,
+        userId,
       },
       include: {
         avatar: true,

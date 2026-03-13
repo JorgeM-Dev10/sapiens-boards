@@ -30,6 +30,7 @@ model User {
   workSessions  WorkSession[]
   bitacoraBoards BitacoraBoard[]
   companyExpenses CompanyExpense[]
+  apiKeys        ApiKey[]
 
   @@map("User")
 }
@@ -380,6 +381,22 @@ model BitacoraEntry {
   bitacoraBoard BitacoraBoard  @relation(fields: [bitacoraBoardId], references: [id], onDelete: Cascade)
 
   @@map("BitacoraEntry")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String    @unique // SHA-256 hash para lookup (nunca guardar la key en claro)
+  keyPrefix   String    // Primeros caracteres para mostrar en listado (ej: sk_sapiens_abc...)
+  createdAt   DateTime  @default(now())
+  isActive    Boolean   @default(true)
+  permissions Json?     // Opcional: restricciones futuras
+  lastUsedAt  DateTime?
+  createdById String    // Usuario al que pertenece el contexto de esta key
+
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
 }
 
 
