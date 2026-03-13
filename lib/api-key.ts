@@ -37,7 +37,7 @@ export function keyPrefix(key: string, visibleChars = 12): string {
  */
 export async function findAndValidateApiKey(
   rawKey: string | null
-): Promise<{ id: string; createdById: string; name: string } | null> {
+): Promise<{ id: string; createdById: string; name: string; keyPrefix: string } | null> {
   if (!rawKey?.trim()) return null
 
   const keyHash = hashKey(rawKey.trim())
