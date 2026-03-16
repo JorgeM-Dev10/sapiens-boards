@@ -59,6 +59,13 @@ Filtros por recurso (ejemplos):
 - `DELETE /api/bitacoras/:id` — eliminar
 - `POST /api/bitacoras/:id/log-impact` — registrar impacto (mensaje libre)
 
+### Work sessions (sesiones de trabajo / bitácoras)
+- `GET /api/work-sessions` — listar sesiones (filtros: `?boardId=`, `?bitacoraBoardId=`, `?startDate=`, `?endDate=`, `?workType=`). Acepta sesión o API key.
+- `GET /api/work-sessions/:id` — una sesión
+- `POST /api/work-sessions` — crear (body: `boardId` o `bitacoraBoardId`, `date`, `startTime`, `endTime`, opc. `tasksCompleted`, `description`, `workType`)
+- `PATCH /api/work-sessions/:id` — actualizar
+- `DELETE /api/work-sessions/:id` — eliminar
+
 ### Stats (estadísticas)
 - `GET /api/stats` — estadísticas agregadas (clientes, workers, bitácoras, gastos, roadmaps, tareas, soluciones). Respuesta: `{ success: true, data: { ... } }`
 

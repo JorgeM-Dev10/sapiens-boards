@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 import { recomputeBitacoraAvatar } from "@/lib/gamification"
 
@@ -22,14 +21,11 @@ function calculateMinutes(startTime: string, endTime: string): number {
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId")
     const boardId = searchParams.get("boardId")
     const bitacoraBoardId = searchParams.get("bitacoraBoardId")
     const startDate = searchParams.get("startDate")
@@ -37,8 +33,7 @@ export async function GET(request: Request) {
     const workType = searchParams.get("workType")
 
     const where: any = {
-      // Solo mostrar sesiones del usuario o de su equipo (si tiene permisos)
-      userId: userId || session.user.id,
+      userId,
     }
 
     if (boardId) {
@@ -106,11 +101,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
+    const auth = await getAuthUserId(request)
+    if (auth instanceof NextResponse) return auth
+    const userId = auth.userId
 
     const body = await request.json()
     const {
@@ -144,7 +137,7 @@ export async function POST(request: Request) {
 
     const sessionData = await prisma.workSession.create({
       data: {
-        userId: session.user.id,
+        userId,
         boardId: boardId || null,
         bitacoraBoardId: bitacoraBoardId || null,
         listId: listId || null,
