@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { isAdmin } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 /**
  * GET /api/admin/api-keys
  * Solo admin. Lista API Keys: name, key (parcial), active, createdAt.

@@ -9,6 +9,8 @@ import {
   keyPrefix,
 } from "@/lib/api-key"
 
+export const dynamic = "force-dynamic"
+
 /**
  * POST /api/admin/api-keys/create
  * Solo admin. Body: { name }.

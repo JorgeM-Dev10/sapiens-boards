@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { isAdmin } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 /**
  * PATCH /api/admin/api-keys/[id] -> Desactivar (body: { isActive: false })
  * DELETE /api/admin/api-keys/[id] -> Eliminar

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 /**
  * GET /api/summary
  * Resumen general en una sola llamada: clientes, workers, gastos, ingresos, tareas, boards, bitácoras, solutions.

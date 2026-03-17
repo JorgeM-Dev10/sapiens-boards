@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = "force-dynamic"
+
 const PER_TYPE = 10
 
 /**

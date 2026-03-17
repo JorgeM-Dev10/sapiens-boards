@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { getAuthUserId } from "@/lib/auth-api"
 
+export const dynamic = "force-dynamic"
+
 const API_VERSION = "1.0"
 
 const ACTIONS = [
